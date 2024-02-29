@@ -1,0 +1,468 @@
+{
+    "organizations": [
+        {
+            "id": "UT212",
+            "name": "South Utah Valley Animal Shelter",
+            "email": "doglicensedivision@gmail.com",
+            "phone": "(801) 851-4080",
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Spanish Fork",
+                "state": "UT",
+                "postcode": "84660",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/ut\/spanish-fork\/south-utah-valley-animal-shelter-ut212\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": null,
+            "mission_statement": null,
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/ut212"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=ut212"
+                }
+            }
+        },
+        {
+            "id": "TX2415",
+            "name": "Schwen Animal Rescue",
+            "email": "schwenanimalrescue@gmail.com",
+            "phone": "(317) 332-4136",
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Pilot Point",
+                "state": "TX",
+                "postcode": "76258",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/tx\/pilot-point\/schwen-animal-rescue-tx2415\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": "https:\/\/www.schwenanimalrescue.com",
+            "mission_statement": "To provide a structured home, personalized touch, and hope for the forgotten animals of North Texas. To take in the...",
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49554\/1\/?bust=1572108164\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49554\/1\/?bust=1572108164\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49554\/1\/?bust=1572108164\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49554\/1\/?bust=1572108164"
+                }
+            ],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/tx2415"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=tx2415"
+                }
+            }
+        },
+        {
+            "id": "ON573",
+            "name": "Kincardine Veterinary Services ",
+            "email": "office@kinvet.com",
+            "phone": "(519) 396-2071",
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Kincardine",
+                "state": "ON",
+                "postcode": "N2Z 2X3",
+                "country": "CA"
+            },
+            "hours": {
+                "monday": "9:30am-5:00pm",
+                "tuesday": "9:30am-5:00pm",
+                "wednesday": "9:30am-5:00pm",
+                "thursday": "9:30am-5:00pm",
+                "friday": "9:30am-5:00pm",
+                "saturday": "9:30am-12pm",
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/ca\/on\/kincardine\/kincardine-veterinary-services-on573\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": null,
+            "mission_statement": null,
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/3\/?bust=1542817494\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/3\/?bust=1542817494\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/3\/?bust=1542817494\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/3\/?bust=1542817494"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/1\/?bust=1542817493\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/1\/?bust=1542817493\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/1\/?bust=1542817493\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/1\/?bust=1542817493"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/2\/?bust=1542817493\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/2\/?bust=1542817493\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/2\/?bust=1542817493\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48692\/2\/?bust=1542817493"
+                }
+            ],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/on573"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=on573"
+                }
+            }
+        },
+        {
+            "id": "UT208",
+            "name": "Happy Tails at Pegasus",
+            "email": "happytailsatpegasus@gmail.com",
+            "phone": "(435) 830-3971",
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Grantsville",
+                "state": "UT",
+                "postcode": "84029",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/ut\/grantsville\/happy-tails-at-pegasus-ut208\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": null,
+            "mission_statement": null,
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/1\/?bust=1543960589\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/1\/?bust=1543960589\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/1\/?bust=1543960589\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/1\/?bust=1543960589"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/2\/?bust=1543960590\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/2\/?bust=1543960590\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/2\/?bust=1543960590\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/2\/?bust=1543960590"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/3\/?bust=1543960722\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/3\/?bust=1543960722\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/3\/?bust=1543960722\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/3\/?bust=1543960722"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/4\/?bust=1543960722\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/4\/?bust=1543960722\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/4\/?bust=1543960722\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48719\/4\/?bust=1543960722"
+                }
+            ],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/ut208"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=ut208"
+                }
+            }
+        },
+        {
+            "id": "VA788",
+            "name": "K Kids Dachshund Rescue Inc",
+            "email": "savedoxies@kkidsrescue.org",
+            "phone": null,
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Staunton",
+                "state": "VA",
+                "postcode": "24401",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/va\/staunton\/k-kids-dachshund-rescue-inc-va788\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": null,
+            "mission_statement": null,
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/1\/?bust=1541603040\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/1\/?bust=1541603040\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/1\/?bust=1541603040\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/1\/?bust=1541603040"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/3\/?bust=1541603512\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/3\/?bust=1541603512\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/3\/?bust=1541603512\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/3\/?bust=1541603512"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/2\/?bust=1541603595\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/2\/?bust=1541603595\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/2\/?bust=1541603595\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/2\/?bust=1541603595"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/4\/?bust=1541604096\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/4\/?bust=1541604096\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/4\/?bust=1541604096\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/4\/?bust=1541604096"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/5\/?bust=1541604274\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/5\/?bust=1541604274\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/5\/?bust=1541604274\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/5\/?bust=1541604274"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/6\/?bust=1541627660\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/6\/?bust=1541627660\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/6\/?bust=1541627660\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48548\/6\/?bust=1541627660"
+                }
+            ],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/va788"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=va788"
+                }
+            }
+        },
+        {
+            "id": "TX2382",
+            "name": "A New Dawn Pet Adoption",
+            "email": "newdawnpet@comcast.net",
+            "phone": "(281) 904-0280",
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Deer Park",
+                "state": "TX",
+                "postcode": "77536",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/tx\/deer-park\/a-new-dawn-pet-adoption-tx2382\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": null,
+            "mission_statement": null,
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/tx2382"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=tx2382"
+                }
+            }
+        },
+        {
+            "id": "FL1616",
+            "name": "Nutzy and Zinger\u0027s Critter House",
+            "email": "nutzyandzingerscritterhouse@gmail.com",
+            "phone": null,
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "Kissimmee",
+                "state": "FL",
+                "postcode": "34742",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/fl\/kissimmee\/nutzy-and-zingers-critter-house-fl1616\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": null,
+            "mission_statement": "Nutzy and Zinger\u0026#039;s Critter House is primarily a wildlife rescue and rehabilitation organization.  In the spirit of protecting wildlife we...",
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": "https:\/\/www.facebook.com\/CritterRescueFL\/",
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/1\/?bust=1564948840\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/1\/?bust=1564948840\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/1\/?bust=1564948840\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/1\/?bust=1564948840"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/2\/?bust=1564948841\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/2\/?bust=1564948841\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/2\/?bust=1564948841\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/2\/?bust=1564948841"
+                },
+                {
+                    "small": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/3\/?bust=1564948841\u0026width=100",
+                    "medium": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/3\/?bust=1564948841\u0026width=300",
+                    "large": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/3\/?bust=1564948841\u0026width=600",
+                    "full": "https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49257\/3\/?bust=1564948841"
+                }
+            ],
+            "distance": null,
+            "_links": {
+                "self": {
+                    "href": "\/v2\/organizations\/fl1616"
+                },
+                "animals": {
+                    "href": "\/v2\/animals?organization=fl1616"
+                }
+            }
+        },
+        {
+            "id": "TX2410",
+            "name": "Myranda\u0027s Mended Souls Rescue",
+            "email": "myrandasmendedsoulsrescue@gmail.com",
+            "phone": "(214) 802-5844",
+            "address": {
+                "address1": null,
+                "address2": null,
+                "city": "ROWLETT",
+                "state": "TX",
+                "postcode": "75089",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https:\/\/www.petfinder.com\/member\/us\/tx\/rowlett\/myrandas-mended-souls-rescue-tx2410\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2",
+            "website": "http:\/\/www.myrandasmendedsoulsrescue.com",
+            "mission_statement": "Mending Broken Souls One Rescue at a Time",
+            "adoption": {
+                "policy":"We are a small Dallas, TX area rescue group. We require meet
+and greet, application on file, home visit and...","url":null},"social_media":{"facebook":"https:\/\/www.facebook.com\/myrandasmendedsoulsrescue","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/1\/?bust=1568994185\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/1\/?bust=1568994185\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/1\/?bust=1568994185\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/1\/?bust=1568994185"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/2\/?bust=1568994186\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/2\/?bust=1568994186\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/2\/?bust=1568994186\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/2\/?bust=1568994186"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/3\/?bust=1568994186\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/3\/?bust=1568994186\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/3\/?bust=1568994186\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49494\/3\/?bust=1568994186"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/tx2410"},"animals":{"href":"\/v2\/animals?organization=tx2410"}}},{"id":"ON591","name":"Rescue Dogs Lebanon-Canada","email":"RescueDogsLebanonCanada@gmail.com","phone":"(416) 587-8804","address":{"address1":null,"address2":null,"city":"Etobicoke","state":"ON","postcode":"M9A 3V3","country":"CA"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/ca\/on\/etobicoke\/rescue-dogs-lebanon-canada-on591\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":null,"adoption":{"policy":null,"url":null},"social_media":{"facebook":"https:\/\/www.facebook.com\/Rescue-DOGS-from-Lebanon-CANADA","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/1\/?bust=1566486372\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/1\/?bust=1566486372\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/1\/?bust=1566486372\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/1\/?bust=1566486372"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/2\/?bust=1566486373\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/2\/?bust=1566486373\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/2\/?bust=1566486373\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49421\/2\/?bust=1566486373"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/on591"},"animals":{"href":"\/v2\/animals?organization=on591"}}},{"id":"WI535","name":"Mecca\u0027s Pit Bull Rescue","email":"meccaspitbullrescue@gmail.com","phone":"(920) 627-6727","address":{"address1":null,"address2":null,"city":"Sheboygan","state":"WI","postcode":"53081","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/wi\/sheboygan\/meccas-pit-bull-rescue-wi535\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":"https:\/\/www.meccaspitbullrescue.com","mission_statement":"Our mission is to rescue and assist Pit Bull- Type dogs and owners and to be a community outreach. We...","adoption":{"policy":"Mecca\u0026#039;s Pit Bull Rescue requires for
+an application to be completely filled out.  Then we contact you once the application...","url":null},"social_media":{"facebook":"https:\/\/www.facebook.com\/meccaspitbullrescue","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49906\/1\/?bust=1580694133\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49906\/1\/?bust=1580694133\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49906\/1\/?bust=1580694133\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49906\/1\/?bust=1580694133"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/wi535"},"animals":{"href":"\/v2\/animals?organization=wi535"}}},{"id":"MO745","name":"Family Pet Hospital","email":"office@familypetstl.com","phone":"(314) 720-1704","address":{"address1":"10400 Watson Rd.","address2":null,"city":"Sunset Hills","state":"MO","postcode":"63127","country":"US"},"hours":{"monday":"8 AM - 6PM","tuesday":"8 AM - 6PM","wednesday":"8 AM - 6PM","thursday":"8 AM - 6PM","friday":"8 AM - 4PM","saturday":"8 AM - 1PM","sunday":"CLOSED"},"url":"https:\/\/www.petfinder.com\/member\/us\/mo\/sunset-hills\/family-pet-hospital-mo745\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":"http:\/\/www.familypetstl.com","mission_statement":"Family Pet Hospital is a family run locally owned full-service pet hospital located in Sunset Hills, MO. We provide quality...","adoption":{"policy":"TERMS AND AGREEMENTS(S) OF ADOPTION\r\nPlease initial after each statement:\r\n\r\nI am 18 years or older.\r\n\r\nI agree to pay...","url":null},"social_media":{"facebook":"https:\/\/www.facebook.com\/familypetstl\/","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/1\/?bust=1565286191\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/1\/?bust=1565286191\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/1\/?bust=1565286191\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/1\/?bust=1565286191"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/2\/?bust=1565286192\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/2\/?bust=1565286192\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/2\/?bust=1565286192\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/2\/?bust=1565286192"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/3\/?bust=1565286192\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/3\/?bust=1565286192\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/3\/?bust=1565286192\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/3\/?bust=1565286192"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/4\/?bust=1565286193\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/4\/?bust=1565286193\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/4\/?bust=1565286193\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/4\/?bust=1565286193"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/5\/?bust=1565286193\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/5\/?bust=1565286193\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/5\/?bust=1565286193\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49332\/5\/?bust=1565286193"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/mo745"},"animals":{"href":"\/v2\/animals?organization=mo745"}}},{"id":"IL919","name":"Garrido Stray Rescue Foundation","email":"garridostrayrescue@gmail.com","phone":null,"address":{"address1":null,"address2":null,"city":"Chicago","state":"IL","postcode":"60656","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/il\/chicago\/garrido-stray-rescue-foundation-il919\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":"Pet rescue is our primary goal and we are only able to do it with the help of our ever...","adoption":{"policy":null,"url":null},"social_media":{"facebook":"https:\/\/www.facebook.com\/GarridoStrayFund\/","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48747\/1\/?bust=1545365357\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48747\/1\/?bust=1545365357\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48747\/1\/?bust=1545365357\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48747\/1\/?bust=1545365357"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/il919"},"animals":{"href":"\/v2\/animals?organization=il919"}}},{"id":"CA2600","name":"Mell\u0027s Mutts","email":"mellsmutts@yahoo.com","phone":"(559) 259-2709","address":{"address1":null,"address2":null,"city":"Fresno","state":"CA","postcode":"93705","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/ca\/fresno\/mells-mutts-ca2600\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":null,"adoption":{"policy":null,"url":null},"social_media":{"facebook":null,"twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48314\/1\/?bust=1528504121\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48314\/1\/?bust=1528504121\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48314\/1\/?bust=1528504121\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48314\/1\/?bust=1528504121"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/ca2600"},"animals":{"href":"\/v2\/animals?organization=ca2600"}}},{"id":"NJ937","name":"Lawns to Laps Cat Rescue","email":"LawnsToLaps@gmail.com","phone":"(201) 949-8566","address":{"address1":null,"address2":null,"city":"Kearny","state":"NJ","postcode":"07032","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/nj\/kearny\/lawns-to-laps-cat-rescue-nj937\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":"https:\/\/lawnstolaps.org","mission_statement":"The mission of Lawns to Laps Cat Rescue is to decrease the euthanasia rates of cats in municipal shelters in...","adoption":{"policy":"Adoptions can take place once an application has been approved and a home visit has been made.  For more information,...","url":null},"social_media":{"facebook":"https:\/\/facebook.com\/lawnstolaps","twitter":null,"youtube":null,"instagram":"https:\/\/instagram.com\/lawnstolaps","pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49541\/1\/?bust=1570046766\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49541\/1\/?bust=1570046766\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49541\/1\/?bust=1570046766\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49541\/1\/?bust=1570046766"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/nj937"},"animals":{"href":"\/v2\/animals?organization=nj937"}}},{"id":"CA2764","name":"Transform A Street Dog","email":"TFASDog@gmail.com","phone":"(214) 957-3965","address":{"address1":null,"address2":null,"city":"Pacifica","state":"CA","postcode":"94044","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/ca\/pacifica\/transform-a-street-dog-ca2764\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":"http:\/\/TransformAStreetDog.org","mission_statement":"Transform A Street Dog\u2019s mission is to
+support animal activists in Ukraine and other countries experiencing overwhelming street dog crises.","adoption":{"policy":"All dogs posted on Petfinder.com are already in the US\r\n\r\nWhy do Ukrainian street dogs need homes abroad?\r\n\r\nBesides the...","url":"http:\/\/whatgoesarounddogs.org\/adoption-process\/"},"social_media":{"facebook":"https:\/\/www.facebook.com\/TransformAStreetDog\/","twitter":null,"youtube":null,"instagram":"https:\/\/www.instagram.com\/transformastreetdog","pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/1\/?bust=1582920657\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/1\/?bust=1582920657\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/1\/?bust=1582920657\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/1\/?bust=1582920657"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/2\/?bust=1582920658\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/2\/?bust=1582920658\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/2\/?bust=1582920658\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/2\/?bust=1582920658"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/3\/?bust=1582920658\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/3\/?bust=1582920658\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/3\/?bust=1582920658\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/3\/?bust=1582920658"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/4\/?bust=1582920659\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/4\/?bust=1582920659\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/4\/?bust=1582920659\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/4\/?bust=1582920659"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/5\/?bust=1582920659\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/5\/?bust=1582920659\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/5\/?bust=1582920659\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/5\/?bust=1582920659"},{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/6\/?bust=1582920659\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/6\/?bust=1582920659\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/6\/?bust=1582920659\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49994\/6\/?bust=1582920659"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/ca2764"},"animals":{"href":"\/v2\/animals?organization=ca2764"}}},{"id":"WI517","name":"Passion for Paws, LLC","email":"vetoffice@pawsmadison.com","phone":"(608) 826-3700","address":{"address1":"437 S. Junction Rd","address2":null,"city":"Madison","state":"WI","postcode":"53719","country":"US"},"hours":{"monday":"8am-5pm","tuesday":"8am-5pm","wednesday":"8am-5pm","thursday":"8am-5pm","friday":"8am-5pm","saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/wi\/madison\/passion-for-paws-llc-wi517\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":"http:\/\/www.pfpvcmadison.com","mission_statement":"To provide the best patient and client care with compassion and communication in a family atmosphere.","adoption":{"policy":null,"url":null},"social_media":{"facebook":"http:\/\/www.facebook.com\/paws53719","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48906\/1\/?bust=1553029780\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48906\/1\/?bust=1553029780\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48906\/1\/?bust=1553029780\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48906\/1\/?bust=1553029780"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/wi517"},"animals":{"href":"\/v2\/animals?organization=wi517"}}},{"id":"IL911","name":"The Cat\u0027s Inn","email":"thecatsinngrayslake@gmail.com","phone":"(224) 733-9060","address":{"address1":null,"address2":null,"city":"Waukegan","state":"IL","postcode":"60085","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/il\/waukegan\/the-cats-inn-il911\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":null,"adoption":{"policy":null,"url":null},"social_media":{"facebook":null,"twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48655\/1\/?bust=1541475791\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48655\/1\/?bust=1541475791\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48655\/1\/?bust=1541475791\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48655\/1\/?bust=1541475791"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/il911"},"animals":{"href":"\/v2\/animals?organization=il911"}}},{"id":"TX2407","name":"Happy Dance Dog Rescue","email":"HappyDanceDogRescue@gmail.com","phone":"(972) 979-2676","address":{"address1":null,"address2":null,"city":"Lewisville","state":"TX","postcode":"75077","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/tx\/lewisville\/happy-dance-dog-rescue-tx2407\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":null,"adoption":{"policy":null,"url":null},"social_media":{"facebook":null,"twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/tx2407"},"animals":{"href":"\/v2\/animals?organization=tx2407"}}},{"id":"CA2712","name":"Gary \u0026 Irma\u0027s Furbaby Rescue","email":"garylmcclurg@yahoo.com","phone":"(714) 973-1363","address":{"address1":null,"address2":null,"city":"Chino Hills","state":"CA","postcode":"91709","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/ca\/chino-hills\/gary-and-irmas-furbaby-rescue-ca2712\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":null,"adoption":{"policy":null,"url":null},"social_media":{"facebook":null,"twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49473\/1\/?bust=1567902673\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49473\/1\/?bust=1567902673\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49473\/1\/?bust=1567902673\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/49473\/1\/?bust=1567902673"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/ca2712"},"animals":{"href":"\/v2\/animals?organization=ca2712"}}},{"id":"WA674","name":"BRAVE Rescue","email":"Braverescue101@gmail.com","phone":"(206) 261-5339","address":{"address1":null,"address2":null,"city":"Onalaska","state":"WA","postcode":"98570","country":"US"},"hours":{"monday":null,"tuesday":null,"wednesday":null,"thursday":null,"friday":null,"saturday":null,"sunday":null},"url":"https:\/\/www.petfinder.com\/member\/us\/wa\/onalaska\/brave-rescue-wa674\/?referrer_id=86dd8aa2-6cfe-4a58-b469-eeace82da3e2","website":null,"mission_statement":null,"adoption":{"policy":null,"url":null},"social_media":{"facebook":"https:\/\/www.facebook.com\/Bullyrescue\/","twitter":null,"youtube":null,"instagram":null,"pinterest":null},"photos":[{"small":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48870\/1\/?bust=1551413764\u0026width=100","medium":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48870\/1\/?bust=1551413764\u0026width=300","large":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48870\/1\/?bust=1551413764\u0026width=600","full":"https:\/\/dl5zpyw5k3jeb.cloudfront.net\/organization-photos\/48870\/1\/?bust=1551413764"}],"distance":null,"_links":{"self":{"href":"\/v2\/organizations\/wa674"},"animals":{"href":"\/v2\/animals?organization=wa674"}}}],"pagination":{"count_per_page":20,"total_count":14553,"current_page":1,"total_pages":728,"_links":{"next":{"href":"\/v2\/organizations?page=2"}}}}

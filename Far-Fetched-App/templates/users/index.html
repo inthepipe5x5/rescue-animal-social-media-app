@@ -1,0 +1,68 @@
+{% extends 'base.html' %} {% block content %} {% if users|length == 0 %}
+<h3>Sorry, no users found</h3>
+{% else %}
+<div class="row justify-content-end">
+  <div class="col-sm-9">
+    <div class="row">
+      {% for user in users %}
+
+      <div class="col-lg-4 col-md-6 col-12 mb-4">
+        <div class="card user-card">
+          <img
+            class="card-img-top"
+            src="{{user.header_image_url}}"
+            alt="Card image cap"
+          />
+          <div class="card-outer">
+            <div class="card-inner">
+              <div class="image-wrapper">
+                <img
+                  src="{{ user.header_image_url or '../../static/images/profile/default-pic.jpg' }}" {# provided stock URLs are not working #}
+                  alt="User Header Image Header BG"
+                  class="card-hero"
+                />
+              </div>
+              <div class="card-contents">
+                <div class="row">
+                  <a href="/users/{{ user.id }}" class="card-link">
+                    <img
+                      src="{{ user.image_url }}"
+                      alt="Image for {{ user.username }}"
+                      class="card-image"
+                    />
+                  </a>
+                  <div class="col-sm text-primary">
+                    <a href="/users/{{ user.id }}" class="card-link">@{{ user.username }}</a>
+                  </div>
+                  <small class="col-sm text-muted" style="margin-left: 10px">{{ user.location }}</small>
+                  <div class="card-contents card-link">
+                    {{user.bio}}
+                  </div>
+                </div>
+
+                {% if g.user %} {% if g.user.is_following(user) %}
+                <form method="POST"
+                  class="form-control form-control-sm"
+                  style="height: 30px"
+                  action="/users/stop-following/{{ user.id }}">
+                  <button class="btn btn-primary btn-sm mt-2">Unfollow</button>
+                </form>
+                {% else %}
+                <form method="POST" action="/users/follow/{{ user.id }}">
+                  <button class="btn btn-outline-primary btn-sm mt-2">
+                    Follow
+                  </button>
+                </form>
+                {% endif %} {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %} {% endblock %}

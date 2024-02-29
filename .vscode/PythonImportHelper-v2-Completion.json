@@ -1,0 +1,803 @@
+[
+    {
+        "label": "csv",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "csv",
+        "description": "csv",
+        "detail": "csv",
+        "documentation": {}
+    },
+    {
+        "label": "DictReader",
+        "importPath": "csv",
+        "description": "csv",
+        "isExtraImport": true,
+        "detail": "csv",
+        "documentation": {}
+    },
+    {
+        "label": "choice",
+        "importPath": "random",
+        "description": "random",
+        "isExtraImport": true,
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "randint",
+        "importPath": "random",
+        "description": "random",
+        "isExtraImport": true,
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "sample",
+        "importPath": "random",
+        "description": "random",
+        "isExtraImport": true,
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "uniform",
+        "importPath": "random",
+        "description": "random",
+        "isExtraImport": true,
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "permutations",
+        "importPath": "itertools",
+        "description": "itertools",
+        "isExtraImport": true,
+        "detail": "itertools",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "Faker",
+        "importPath": "faker",
+        "description": "faker",
+        "isExtraImport": true,
+        "detail": "faker",
+        "documentation": {}
+    },
+    {
+        "label": "get_random_datetime",
+        "importPath": "helpers",
+        "description": "helpers",
+        "isExtraImport": true,
+        "detail": "helpers",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "Flask",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "render_template",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "request",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "flash",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "redirect",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "session",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "g",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "url_for",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "FontAwesome",
+        "importPath": "flask_font_awesome",
+        "description": "flask_font_awesome",
+        "isExtraImport": true,
+        "detail": "flask_font_awesome",
+        "documentation": {}
+    },
+    {
+        "label": "IntegrityError",
+        "importPath": "sqlalchemy.exc",
+        "description": "sqlalchemy.exc",
+        "isExtraImport": true,
+        "detail": "sqlalchemy.exc",
+        "documentation": {}
+    },
+    {
+        "label": "pdb",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pdb",
+        "description": "pdb",
+        "detail": "pdb",
+        "documentation": {}
+    },
+    {
+        "label": "UserAddForm",
+        "importPath": "forms",
+        "description": "forms",
+        "isExtraImport": true,
+        "detail": "forms",
+        "documentation": {}
+    },
+    {
+        "label": "LoginForm",
+        "importPath": "forms",
+        "description": "forms",
+        "isExtraImport": true,
+        "detail": "forms",
+        "documentation": {}
+    },
+    {
+        "label": "UserEditForm",
+        "importPath": "forms",
+        "description": "forms",
+        "isExtraImport": true,
+        "detail": "forms",
+        "documentation": {}
+    },
+    {
+        "label": "db",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "connect_db",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "User",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "db",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "User",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "Message",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "Likes",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "User",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "Message",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "Follows",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "app",
+        "description": "app",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "importPath": "app",
+        "description": "app",
+        "isExtraImport": true,
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "db",
+        "importPath": "app",
+        "description": "app",
+        "isExtraImport": true,
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "FlaskForm",
+        "importPath": "flask_wtf",
+        "description": "flask_wtf",
+        "isExtraImport": true,
+        "detail": "flask_wtf",
+        "documentation": {}
+    },
+    {
+        "label": "StringField",
+        "importPath": "wtforms",
+        "description": "wtforms",
+        "isExtraImport": true,
+        "detail": "wtforms",
+        "documentation": {}
+    },
+    {
+        "label": "PasswordField",
+        "importPath": "wtforms",
+        "description": "wtforms",
+        "isExtraImport": true,
+        "detail": "wtforms",
+        "documentation": {}
+    },
+    {
+        "label": "TextAreaField",
+        "importPath": "wtforms",
+        "description": "wtforms",
+        "isExtraImport": true,
+        "detail": "wtforms",
+        "documentation": {}
+    },
+    {
+        "label": "DataRequired",
+        "importPath": "wtforms.validators",
+        "description": "wtforms.validators",
+        "isExtraImport": true,
+        "detail": "wtforms.validators",
+        "documentation": {}
+    },
+    {
+        "label": "Email",
+        "importPath": "wtforms.validators",
+        "description": "wtforms.validators",
+        "isExtraImport": true,
+        "detail": "wtforms.validators",
+        "documentation": {}
+    },
+    {
+        "label": "Length",
+        "importPath": "wtforms.validators",
+        "description": "wtforms.validators",
+        "isExtraImport": true,
+        "detail": "wtforms.validators",
+        "documentation": {}
+    },
+    {
+        "label": "model_form_factory",
+        "importPath": "wtforms_alchemy",
+        "description": "wtforms_alchemy",
+        "isExtraImport": true,
+        "detail": "wtforms_alchemy",
+        "documentation": {}
+    },
+    {
+        "label": "Bcrypt",
+        "importPath": "flask_bcrypt",
+        "description": "flask_bcrypt",
+        "isExtraImport": true,
+        "detail": "flask_bcrypt",
+        "documentation": {}
+    },
+    {
+        "label": "SQLAlchemy",
+        "importPath": "flask_sqlalchemy",
+        "description": "flask_sqlalchemy",
+        "isExtraImport": true,
+        "detail": "flask_sqlalchemy",
+        "documentation": {}
+    },
+    {
+        "label": "MAX_MESSAGE_LENGTH",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "MAX_MESSAGE_LENGTH = 140\nUSERS_CSV_HEADERS = ['email', 'username', 'image_url', 'password', 'bio', 'header_image_url', 'location']\nMESSAGES_CSV_HEADERS = ['text', 'timestamp', 'user_id']\nFOLLOWS_CSV_HEADERS = ['user_being_followed_id', 'user_following_id']\nNUM_USERS = 300\nNUM_MESSAGES = 1000\nNUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "USERS_CSV_HEADERS",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "USERS_CSV_HEADERS = ['email', 'username', 'image_url', 'password', 'bio', 'header_image_url', 'location']\nMESSAGES_CSV_HEADERS = ['text', 'timestamp', 'user_id']\nFOLLOWS_CSV_HEADERS = ['user_being_followed_id', 'user_following_id']\nNUM_USERS = 300\nNUM_MESSAGES = 1000\nNUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "MESSAGES_CSV_HEADERS",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "MESSAGES_CSV_HEADERS = ['text', 'timestamp', 'user_id']\nFOLLOWS_CSV_HEADERS = ['user_being_followed_id', 'user_following_id']\nNUM_USERS = 300\nNUM_MESSAGES = 1000\nNUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "FOLLOWS_CSV_HEADERS",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "FOLLOWS_CSV_HEADERS = ['user_being_followed_id', 'user_following_id']\nNUM_USERS = 300\nNUM_MESSAGES = 1000\nNUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]\n    for i in range(count)",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "NUM_USERS",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "NUM_USERS = 300\nNUM_MESSAGES = 1000\nNUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]\n    for i in range(count)\n]",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "NUM_MESSAGES",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "NUM_MESSAGES = 1000\nNUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]\n    for i in range(count)\n]\n# Generate random header image URLs to use for users",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "NUM_FOLLWERS",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "NUM_FOLLWERS = 5000\nfake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]\n    for i in range(count)\n]\n# Generate random header image URLs to use for users\nheader_image_urls = [",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "fake",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "fake = Faker()\n# Generate random profile image URLs to use for users\nimage_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]\n    for i in range(count)\n]\n# Generate random header image URLs to use for users\nheader_image_urls = [\n    requests.get(f\"http://www.splashbase.co/api/v1/images/{i}\").json()['url']",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "image_urls",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "image_urls = [\n    f\"https://randomuser.me/api/portraits/{kind}/{i}.jpg\"\n    for kind, count in [(\"lego\", 10), (\"men\", 100), (\"women\", 100)]\n    for i in range(count)\n]\n# Generate random header image URLs to use for users\nheader_image_urls = [\n    requests.get(f\"http://www.splashbase.co/api/v1/images/{i}\").json()['url']\n    for i in range(1, 46)\n]",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "header_image_urls",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "description": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "peekOfCode": "header_image_urls = [\n    requests.get(f\"http://www.splashbase.co/api/v1/images/{i}\").json()['url']\n    for i in range(1, 46)\n]\nwith open('generator/users.csv', 'w') as users_csv:\n    users_writer = csv.DictWriter(users_csv, fieldnames=USERS_CSV_HEADERS)\n    users_writer.writeheader()\n    for i in range(NUM_USERS):\n        users_writer.writerow(dict(\n            email=fake.email(),",
+        "detail": "Far-Fetched-App.fake-user-generator.create_csvs",
+        "documentation": {}
+    },
+    {
+        "label": "get_random_datetime",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.fake-user-generator.helpers",
+        "description": "Far-Fetched-App.fake-user-generator.helpers",
+        "peekOfCode": "def get_random_datetime(year_gap=2):\n    \"\"\"Get a random datetime within the last few years.\"\"\"\n    now = datetime.now()\n    then = now.replace(year=now.year - year_gap)\n    random_timestamp = uniform(then.timestamp(), now.timestamp())\n    return datetime.fromtimestamp(random_timestamp)",
+        "detail": "Far-Fetched-App.fake-user-generator.helpers",
+        "documentation": {}
+    },
+    {
+        "label": "add_user_to_g",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:\n        g.user = User.query.get_or_404(session[CURR_USER_KEY])\n    else:\n        g.user = None\ndef do_login(user):\n    \"\"\"Log in user.\"\"\"\n    session[CURR_USER_KEY] = user.id\ndef do_logout():",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "do_login",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def do_login(user):\n    \"\"\"Log in user.\"\"\"\n    session[CURR_USER_KEY] = user.id\ndef do_logout():\n    \"\"\"Logout user.\"\"\"\n    if CURR_USER_KEY in session:\n        del session[CURR_USER_KEY]\n@app.route('/signup', methods=[\"GET\", \"POST\"])\ndef signup():\n    \"\"\"Handle user signup.",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "do_logout",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def do_logout():\n    \"\"\"Logout user.\"\"\"\n    if CURR_USER_KEY in session:\n        del session[CURR_USER_KEY]\n@app.route('/signup', methods=[\"GET\", \"POST\"])\ndef signup():\n    \"\"\"Handle user signup.\n    Create new user and add to DB. Redirect to home page.\n    If form not valid, present form.\n    If the there already is a user with that username: flash message",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "signup",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def signup():\n    \"\"\"Handle user signup.\n    Create new user and add to DB. Redirect to home page.\n    If form not valid, present form.\n    If the there already is a user with that username: flash message\n    and re-present form.\n    \"\"\"\n    form = UserAddForm()\n    if form.validate_on_submit():\n        try:",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "login",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def login():\n    \"\"\"Handle user login.\"\"\"\n    form = LoginForm()\n    if form.validate_on_submit():\n        user = User.authenticate(form.username.data,\n                                 form.password.data)\n        if user:\n            do_login(user)\n            flash(f\"Hello, {user.username}!\", \"success\")\n            return redirect(\"/\")",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "logout",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def logout():\n    \"\"\"Handle logout of user.\"\"\"\n    # IMPLEMENT THIS\n    if not CURR_USER_KEY in session:\n        do_login()\n    do_logout()\n    flash('logged out sucessful')\n    return redirect(url_for('login'))\n##############################################################################\n# General user routes:",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "list_users",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def list_users():\n    \"\"\"Page with listing of users.\n    Can take a 'q' param in querystring to search by that username.\n    \"\"\"\n    search = request.args.get('q')\n    if not search:\n        users = User.query.all()\n    else:\n        users = User.query.filter(User.username.like(f\"%{search}%\")).all()\n    return render_template('users/index.html', users=users)",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "users_show",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def users_show(user_id):\n    \"\"\"Show user profile.\"\"\"\n    user = User.query.get_or_404(user_id)\n    return render_template('users/show.html', user=user)\n@app.route('/users/<int:user_id>/following')\ndef show_following(user_id):\n    \"\"\"Show list of people this user is following.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(\"/\")",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "show_following",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def show_following(user_id):\n    \"\"\"Show list of people this user is following.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(\"/\")\n    user = User.query.get_or_404(user_id)\n    return render_template('users/following.html', user=user)\n@app.route('/users/<int:user_id>/followers')\ndef users_followers(user_id):\n    \"\"\"Show list of followers of this user.\"\"\"",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "users_followers",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def users_followers(user_id):\n    \"\"\"Show list of followers of this user.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(\"/\")\n    user = User.query.get_or_404(user_id)\n    return render_template('users/followers.html', user=user)\n@app.route('/users/follow/<int:follow_id>', methods=['POST'])\ndef add_follow(follow_id):\n    \"\"\"Add a follow for the currently-logged-in user.\"\"\"",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "add_follow",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def add_follow(follow_id):\n    \"\"\"Add a follow for the currently-logged-in user.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(\"/\")\n    followed_user = User.query.get_or_404(follow_id)\n    g.user.following.append(followed_user)\n    db.session.commit()\n    return redirect(f\"/users/{g.user.id}/following\")\n@app.route('/users/stop-following/<int:follow_id>', methods=['POST'])",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "stop_following",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def stop_following(follow_id):\n    \"\"\"Have currently-logged-in-user stop following this user.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(\"/\")\n    followed_user = User.query.get(follow_id)\n    g.user.following.remove(followed_user)\n    db.session.commit()\n    return redirect(f\"/users/{g.user.id}/following\")\n@app.route('/users/profile', methods=[\"GET\", \"POST\"])",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "profile",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def profile():\n    \"\"\"Update profile for current user.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(url_for('login'))\n    else:\n        logged_in_user = User.query.get(g.user.id)\n        form = UserEditForm(obj=logged_in_user)\n        if form.validate_on_submit(): \n            if User.authenticate(form.username.data, form.password.data):",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "delete_user",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def delete_user():\n    \"\"\"Delete user.\"\"\"\n    if not g.user:\n        flash(\"Access unauthorized.\", \"danger\")\n        return redirect(\"/\")\n    do_logout()\n    db.session.delete(g.user)\n    db.session.commit()\n    return redirect(\"/signup\")\n##############################################################################",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "homepage",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def homepage():\n    \"\"\"Show homepage:\n    - anon users:\n    - logged in: \n    \"\"\"\n    if g.user:\n        users_followed_by_current_user = g.user.following\n        # Now, you can use this list of users to get their messages\n        return render_template('home.html')\n    else:",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "add_header",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "def add_header(req):\n    \"\"\"Add non-caching headers on every request.\"\"\"\n    req.headers[\"Cache-Control\"] = \"no-cache, no-store, must-revalidate\"\n    req.headers[\"Pragma\"] = \"no-cache\"\n    req.headers[\"Expires\"] = \"0\"\n    req.headers['Cache-Control'] = 'public, max-age=0'\n    return req\nif __name__ == '__main__':\n    app.run(debug=True)",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "CURR_USER_KEY",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "CURR_USER_KEY = \"curr_user\"\napp = Flask(__name__)\nfont_awesome = FontAwesome(app)\nconnect_db(app)\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "app = Flask(__name__)\nfont_awesome = FontAwesome(app)\nconnect_db(app)\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:\n        g.user = User.query.get_or_404(session[CURR_USER_KEY])",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "font_awesome",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "font_awesome = FontAwesome(app)\nconnect_db(app)\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:\n        g.user = User.query.get_or_404(session[CURR_USER_KEY])\n    else:",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "app.config['SQLALCHEMY_DATABASE_URI']",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.config",
+        "description": "Far-Fetched-App.config",
+        "peekOfCode": "app.config['SQLALCHEMY_DATABASE_URI'] = (\nos.environ.get('DATABASE_URL', 'postgresql:///ff-rescue-db'))\nif os.environ['FLASK_ENV'] == 'testing':\n    os.environ['TESTING'] = True\n    os.environ['DEBUG'] = True\nelif os.environ['FLASK_ENV'] == 'production':\n    os.environ['TESTING'] = False\n    os.environ['DEBUG'] = False\nelse:\n    os.environ['TESTING'] = False",
+        "detail": "Far-Fetched-App.config",
+        "documentation": {}
+    },
+    {
+        "label": "app_config_obj",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.config",
+        "description": "Far-Fetched-App.config",
+        "peekOfCode": "app_config_obj = {\n        'TESTING': os.environ.get('TESTING', False),\n        'SECRET_KEY':os.environ.get('SECRET_KEY', \"SECRET KEY\"),\n        'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL', 'postgresql:///ff-rescue-db'),\n        'WTF_CSRF_ENABLED': True,\n        'SQLALCHEMY_TRACK_MODIFICATIONS': False,\n        'SQLALCHEMY_ECHO': False,\n    }\nif app.config['TESTING'] == False:\n    #set env var 'DATABASE_URL' to non-testing db",
+        "detail": "Far-Fetched-App.config",
+        "documentation": {}
+    },
+    {
+        "label": "MessageForm",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "class MessageForm(FlaskForm):\n    \"\"\"Form for adding/editing messages.\"\"\"\n    text = TextAreaField('text', validators=[DataRequired()])\nBaseModelForm = model_form_factory(FlaskForm)\nclass ModelForm(BaseModelForm):\n    @classmethod\n    def get_session(self):\n        return db.session\nclass UserAddForm(ModelForm):\n    \"\"\"Form for adding users.\"\"\"",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "ModelForm",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "class ModelForm(BaseModelForm):\n    @classmethod\n    def get_session(self):\n        return db.session\nclass UserAddForm(ModelForm):\n    \"\"\"Form for adding users.\"\"\"\n    class Meta:\n        model = User\nclass UserEditForm(ModelForm):\n    username = StringField('Username', validators=[DataRequired()])",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "UserAddForm",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "class UserAddForm(ModelForm):\n    \"\"\"Form for adding users.\"\"\"\n    class Meta:\n        model = User\nclass UserEditForm(ModelForm):\n    username = StringField('Username', validators=[DataRequired()])\n    email = StringField('E-mail', validators=[DataRequired(), Email()])\n    password = PasswordField('Password', validators=[Length(min=6)])\n    image_url = TextAreaField('(Optional) Image URL')\n    location = StringField('(Optional) Location')",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "UserEditForm",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "class UserEditForm(ModelForm):\n    username = StringField('Username', validators=[DataRequired()])\n    email = StringField('E-mail', validators=[DataRequired(), Email()])\n    password = PasswordField('Password', validators=[Length(min=6)])\n    image_url = TextAreaField('(Optional) Image URL')\n    location = StringField('(Optional) Location')\n    bio = TextAreaField('(Optional) Bio')\nclass MessageForm(ModelForm):\n    class Meta:\n        model = Message ",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "MessageForm",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "class MessageForm(ModelForm):\n    class Meta:\n        model = Message \nclass LoginForm(FlaskForm):\n    \"\"\"Login form.\"\"\"\n    username = StringField('Username', validators=[DataRequired()])\n    password = PasswordField('Password', validators=[Length(min=6)])",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "LoginForm",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "class LoginForm(FlaskForm):\n    \"\"\"Login form.\"\"\"\n    username = StringField('Username', validators=[DataRequired()])\n    password = PasswordField('Password', validators=[Length(min=6)])",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "BaseModelForm",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.forms",
+        "description": "Far-Fetched-App.forms",
+        "peekOfCode": "BaseModelForm = model_form_factory(FlaskForm)\nclass ModelForm(BaseModelForm):\n    @classmethod\n    def get_session(self):\n        return db.session\nclass UserAddForm(ModelForm):\n    \"\"\"Form for adding users.\"\"\"\n    class Meta:\n        model = User\nclass UserEditForm(ModelForm):",
+        "detail": "Far-Fetched-App.forms",
+        "documentation": {}
+    },
+    {
+        "label": "Follows",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "class Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = 'follows'\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey('users.id', ondelete=\"cascade\"),\n        primary_key=True,\n    )\n    user_following_id = db.Column(\n        db.Integer,",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "User",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "class User(db.Model):\n    \"\"\"User in the system.\"\"\"\n    __tablename__ = 'users'\n    id = db.Column(\n        db.Integer,\n        primary_key=True,\n    )\n    email = db.Column(\n        db.Text,\n        nullable=False,",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "connect_db",
+        "kind": 2,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "def connect_db(app):\n    \"\"\"Connect this database to provided Flask app.\n    You should call this in your Flask app.\n    \"\"\"\n    db.app = app\n    db.init_app(app)",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "bcrypt",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "bcrypt = Bcrypt()\ndb = SQLAlchemy()\nclass Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = 'follows'\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey('users.id', ondelete=\"cascade\"),\n        primary_key=True,\n    )",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "db",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "db = SQLAlchemy()\nclass Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = 'follows'\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey('users.id', ondelete=\"cascade\"),\n        primary_key=True,\n    )\n    user_following_id = db.Column(",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    }
+]
