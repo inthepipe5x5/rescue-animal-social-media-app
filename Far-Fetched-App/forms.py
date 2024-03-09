@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length
 from wtforms_alchemy import model_form_factory
-from models import db, User, Message, Likes
+from models import db, User
 
 class MessageForm(FlaskForm):
     """Form for adding/editing messages."""
@@ -30,9 +30,6 @@ class UserEditForm(ModelForm):
     image_url = TextAreaField('(Optional) Image URL')
     location = StringField('(Optional) Location')
     bio = TextAreaField('(Optional) Bio')
-class MessageForm(ModelForm):
-    class Meta:
-        model = Message 
 
 
 class LoginForm(FlaskForm):

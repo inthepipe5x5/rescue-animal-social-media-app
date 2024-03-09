@@ -1,18 +1,40 @@
+import dotenv
 from flask import Flask, render_template, request, flash, redirect, session, g, url_for
-from flask_font_awesome import FontAwesome
-
+# from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError
 import pdb #MAKE SURE TO REMOVE IN PRODUCTION
 from forms import UserAddForm, LoginForm, UserEditForm
+import os
+from models import db, User
+from dotenv import load_dotenv
 
-from models import db, connect_db, User
+CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
 
-CURR_USER_KEY = "curr_user"
+#RESOLVE THIS: commented out font_awesome as there an import error to be resolved
+# font_awesome = FontAwesome(app)
+from config import config, Config
 
+load_dotenv()
 app = Flask(__name__)
-font_awesome = FontAwesome(app)
+app_config_instance = Config()
+flask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'
+app_config_instance.config_app(app=app,obj=config[flask_env_type])
 
-connect_db(app)
+print(os.environ.get('DATABASE_URL'))
+print(app.config)
+# if app.config['TESTING'] == False:
+#     #set env var 'DATABASE_URL' to non-testing db
+#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+
+# else: 
+#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['TEST_DATABASE_URL']
+
+# #set sqla URI to 'DATABASE_URL' env var 
+# if app.config['SQLALCHEMY_DATABASE_URI'] == None:
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///ff-rescue-db'
+# os.environ.get(db_url_key, 'postgresql:///ff-rescue-db'))
+
+
 
 
 ##############################################################################
@@ -279,4 +301,4 @@ def add_header(req):
     return req
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

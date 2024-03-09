@@ -1,36 +1,53 @@
 import os
-import app
+from dotenv import load_dotenv
+from models import connect_db
 
-    
-#set sqla URI to 'DATABASE_URL' env var 
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-os.environ.get('DATABASE_URL', 'postgresql:///ff-rescue-db'))
+# Load environment variables from .env file
+load_dotenv()
 
-if os.environ['FLASK_ENV'] == 'testing':
-    os.environ['TESTING'] = True
-    os.environ['DEBUG'] = True
-elif os.environ['FLASK_ENV'] == 'production':
-    os.environ['TESTING'] = False
-    os.environ['DEBUG'] = False
-else:
-    os.environ['TESTING'] = False
-    os.environ['DEBUG'] = True
+basedir = os.path.abspath(os.path.dirname(__file__))
 
+print(os.environ.get('FLASK_ENV','FLASK_APP'))
+class Config:
+    # Default configuration
+    TESTING = False
+    SECRET_KEY = os.environ.get('SECRET_KEY', "SECRET KEY")
+    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')
+    WTF_CSRF_ENABLED = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ECHO = False
 
-app_config_obj = {
-        'TESTING': os.environ.get('TESTING', False),
-        'SECRET_KEY':os.environ.get('SECRET_KEY', "SECRET KEY"),
-        'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL', 'postgresql:///ff-rescue-db'),
-        'WTF_CSRF_ENABLED': True,
-        'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-        'SQLALCHEMY_ECHO': False,
-    }
+    @staticmethod
+    def config_app(app, obj):
+        """
+        If some configuration needs to config the app in some way use this function
+        :param app: Flask app, update object
+        :return:
+        """
+        
+        app.config.from_object(obj)
+        connect_db(app)
+        
+        return app
 
-if app.config['TESTING'] == False:
-    #set env var 'DATABASE_URL' to non-testing db
-    app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+class DevelopmentConfig(Config):
+    DEBUG = True
 
-else: 
-    app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['TEST_DATABASE_URL']
+class TestingConfig(Config):
+    TESTING = True
+    DEBUG = True
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_TEST_DATABASE_URI', 'postgresql:///ff-rescue-db-test')
 
-app.config.update(app_config_obj)
+class ProductionConfig(Config):
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_PROD_DATABASE_URI')
+
+# Configuration dictionary
+config = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
+}

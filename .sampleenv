@@ -3,3 +3,4 @@ API_KEY=donotsharethisapikeywithanyone
 API_SECRET=wowwowsosecret
 DATABASE_URL=postgresql:///ff-rescue-db
 TEST_DATABASE_URL=postgresql:///ff-rescue-db-test
+PROD_DATABASE_URL=postgresql:///ff-rescue-db-prod

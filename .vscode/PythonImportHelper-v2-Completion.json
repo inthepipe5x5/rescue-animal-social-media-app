@@ -98,6 +98,31 @@
         "documentation": {}
     },
     {
+        "label": "dotenv",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
         "label": "Flask",
         "importPath": "flask",
         "description": "flask",
@@ -162,14 +187,6 @@
         "documentation": {}
     },
     {
-        "label": "FontAwesome",
-        "importPath": "flask_font_awesome",
-        "description": "flask_font_awesome",
-        "isExtraImport": true,
-        "detail": "flask_font_awesome",
-        "documentation": {}
-    },
-    {
         "label": "IntegrityError",
         "importPath": "sqlalchemy.exc",
         "description": "sqlalchemy.exc",
@@ -211,7 +228,24 @@
         "documentation": {}
     },
     {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
         "label": "db",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "User",
         "importPath": "models",
         "description": "models",
         "isExtraImport": true,
@@ -227,14 +261,6 @@
         "documentation": {}
     },
     {
-        "label": "User",
-        "importPath": "models",
-        "description": "models",
-        "isExtraImport": true,
-        "detail": "models",
-        "documentation": {}
-    },
-    {
         "label": "db",
         "importPath": "models",
         "description": "models",
@@ -244,22 +270,6 @@
     },
     {
         "label": "User",
-        "importPath": "models",
-        "description": "models",
-        "isExtraImport": true,
-        "detail": "models",
-        "documentation": {}
-    },
-    {
-        "label": "Message",
-        "importPath": "models",
-        "description": "models",
-        "isExtraImport": true,
-        "detail": "models",
-        "documentation": {}
-    },
-    {
-        "label": "Likes",
         "importPath": "models",
         "description": "models",
         "isExtraImport": true,
@@ -291,37 +301,19 @@
         "documentation": {}
     },
     {
-        "label": "os",
-        "kind": 6,
+        "label": "config",
+        "importPath": "config",
+        "description": "config",
         "isExtraImport": true,
-        "importPath": "os",
-        "description": "os",
-        "detail": "os",
+        "detail": "config",
         "documentation": {}
     },
     {
-        "label": "app",
-        "kind": 6,
+        "label": "Config",
+        "importPath": "config",
+        "description": "config",
         "isExtraImport": true,
-        "importPath": "app",
-        "description": "app",
-        "detail": "app",
-        "documentation": {}
-    },
-    {
-        "label": "app",
-        "importPath": "app",
-        "description": "app",
-        "isExtraImport": true,
-        "detail": "app",
-        "documentation": {}
-    },
-    {
-        "label": "db",
-        "importPath": "app",
-        "description": "app",
-        "isExtraImport": true,
-        "detail": "app",
+        "detail": "config",
         "documentation": {}
     },
     {
@@ -402,6 +394,22 @@
         "description": "flask_sqlalchemy",
         "isExtraImport": true,
         "detail": "flask_sqlalchemy",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "importPath": "app",
+        "description": "app",
+        "isExtraImport": true,
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "db",
+        "importPath": "app",
+        "description": "app",
+        "isExtraImport": true,
+        "detail": "app",
         "documentation": {}
     },
     {
@@ -643,7 +651,7 @@
         "kind": 2,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "def add_header(req):\n    \"\"\"Add non-caching headers on every request.\"\"\"\n    req.headers[\"Cache-Control\"] = \"no-cache, no-store, must-revalidate\"\n    req.headers[\"Pragma\"] = \"no-cache\"\n    req.headers[\"Expires\"] = \"0\"\n    req.headers['Cache-Control'] = 'public, max-age=0'\n    return req\nif __name__ == '__main__':\n    app.run(debug=True)",
+        "peekOfCode": "def add_header(req):\n    \"\"\"Add non-caching headers on every request.\"\"\"\n    req.headers[\"Cache-Control\"] = \"no-cache, no-store, must-revalidate\"\n    req.headers[\"Pragma\"] = \"no-cache\"\n    req.headers[\"Expires\"] = \"0\"\n    req.headers['Cache-Control'] = 'public, max-age=0'\n    return req\nif __name__ == '__main__':\n    app.run()",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
@@ -652,7 +660,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "CURR_USER_KEY = \"curr_user\"\napp = Flask(__name__)\nfont_awesome = FontAwesome(app)\nconnect_db(app)\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:",
+        "peekOfCode": "CURR_USER_KEY = os.environ.get(\"CURR_USER_KEY\", 'curr_user')\n#RESOLVE THIS: commented out font_awesome as there an import error to be resolved\n# font_awesome = FontAwesome(app)\nfrom config import config, Config\nload_dotenv()\napp = Flask(__name__)\napp_config_instance = Config()\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\nprint(os.environ.get('DATABASE_URL'))",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
@@ -661,34 +669,79 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "app = Flask(__name__)\nfont_awesome = FontAwesome(app)\nconnect_db(app)\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:\n        g.user = User.query.get_or_404(session[CURR_USER_KEY])",
+        "peekOfCode": "app = Flask(__name__)\napp_config_instance = Config()\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\nprint(os.environ.get('DATABASE_URL'))\nprint(app.config)\n# if app.config['TESTING'] == False:\n#     #set env var 'DATABASE_URL' to non-testing db\n#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']\n# else: ",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
     {
-        "label": "font_awesome",
+        "label": "app_config_instance",
         "kind": 5,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "font_awesome = FontAwesome(app)\nconnect_db(app)\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:\n        g.user = User.query.get_or_404(session[CURR_USER_KEY])\n    else:",
+        "peekOfCode": "app_config_instance = Config()\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\nprint(os.environ.get('DATABASE_URL'))\nprint(app.config)\n# if app.config['TESTING'] == False:\n#     #set env var 'DATABASE_URL' to non-testing db\n#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']\n# else: \n#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['TEST_DATABASE_URL']",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
     {
-        "label": "app.config['SQLALCHEMY_DATABASE_URI']",
+        "label": "flask_env_type",
         "kind": 5,
+        "importPath": "Far-Fetched-App.app",
+        "description": "Far-Fetched-App.app",
+        "peekOfCode": "flask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\nprint(os.environ.get('DATABASE_URL'))\nprint(app.config)\n# if app.config['TESTING'] == False:\n#     #set env var 'DATABASE_URL' to non-testing db\n#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']\n# else: \n#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['TEST_DATABASE_URL']\n# #set sqla URI to 'DATABASE_URL' env var ",
+        "detail": "Far-Fetched-App.app",
+        "documentation": {}
+    },
+    {
+        "label": "Config",
+        "kind": 6,
         "importPath": "Far-Fetched-App.config",
         "description": "Far-Fetched-App.config",
-        "peekOfCode": "app.config['SQLALCHEMY_DATABASE_URI'] = (\nos.environ.get('DATABASE_URL', 'postgresql:///ff-rescue-db'))\nif os.environ['FLASK_ENV'] == 'testing':\n    os.environ['TESTING'] = True\n    os.environ['DEBUG'] = True\nelif os.environ['FLASK_ENV'] == 'production':\n    os.environ['TESTING'] = False\n    os.environ['DEBUG'] = False\nelse:\n    os.environ['TESTING'] = False",
+        "peekOfCode": "class Config:\n    # Default configuration\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True\n    SQLALCHEMY_TRACK_MODIFICATIONS = False\n    SQLALCHEMY_ECHO = False\n    @staticmethod",
         "detail": "Far-Fetched-App.config",
         "documentation": {}
     },
     {
-        "label": "app_config_obj",
+        "label": "DevelopmentConfig",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.config",
+        "description": "Far-Fetched-App.config",
+        "peekOfCode": "class DevelopmentConfig(Config):\n    DEBUG = True\nclass TestingConfig(Config):\n    TESTING = True\n    DEBUG = True\n    PRESERVE_CONTEXT_ON_EXCEPTION = False\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_TEST_DATABASE_URI', 'postgresql:///ff-rescue-db-test')\nclass ProductionConfig(Config):\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_PROD_DATABASE_URI')",
+        "detail": "Far-Fetched-App.config",
+        "documentation": {}
+    },
+    {
+        "label": "TestingConfig",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.config",
+        "description": "Far-Fetched-App.config",
+        "peekOfCode": "class TestingConfig(Config):\n    TESTING = True\n    DEBUG = True\n    PRESERVE_CONTEXT_ON_EXCEPTION = False\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_TEST_DATABASE_URI', 'postgresql:///ff-rescue-db-test')\nclass ProductionConfig(Config):\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_PROD_DATABASE_URI')\n# Configuration dictionary\nconfig = {",
+        "detail": "Far-Fetched-App.config",
+        "documentation": {}
+    },
+    {
+        "label": "ProductionConfig",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.config",
+        "description": "Far-Fetched-App.config",
+        "peekOfCode": "class ProductionConfig(Config):\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_PROD_DATABASE_URI')\n# Configuration dictionary\nconfig = {\n    'development': DevelopmentConfig,\n    'testing': TestingConfig,\n    'production': ProductionConfig,\n    'default': DevelopmentConfig\n}",
+        "detail": "Far-Fetched-App.config",
+        "documentation": {}
+    },
+    {
+        "label": "basedir",
         "kind": 5,
         "importPath": "Far-Fetched-App.config",
         "description": "Far-Fetched-App.config",
-        "peekOfCode": "app_config_obj = {\n        'TESTING': os.environ.get('TESTING', False),\n        'SECRET_KEY':os.environ.get('SECRET_KEY', \"SECRET KEY\"),\n        'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL', 'postgresql:///ff-rescue-db'),\n        'WTF_CSRF_ENABLED': True,\n        'SQLALCHEMY_TRACK_MODIFICATIONS': False,\n        'SQLALCHEMY_ECHO': False,\n    }\nif app.config['TESTING'] == False:\n    #set env var 'DATABASE_URL' to non-testing db",
+        "peekOfCode": "basedir = os.path.abspath(os.path.dirname(__file__))\nprint(os.environ.get('FLASK_ENV','FLASK_APP'))\nclass Config:\n    # Default configuration\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True\n    SQLALCHEMY_TRACK_MODIFICATIONS = False",
+        "detail": "Far-Fetched-App.config",
+        "documentation": {}
+    },
+    {
+        "label": "config",
+        "kind": 5,
+        "importPath": "Far-Fetched-App.config",
+        "description": "Far-Fetched-App.config",
+        "peekOfCode": "config = {\n    'development': DevelopmentConfig,\n    'testing': TestingConfig,\n    'production': ProductionConfig,\n    'default': DevelopmentConfig\n}",
         "detail": "Far-Fetched-App.config",
         "documentation": {}
     },
@@ -724,16 +777,7 @@
         "kind": 6,
         "importPath": "Far-Fetched-App.forms",
         "description": "Far-Fetched-App.forms",
-        "peekOfCode": "class UserEditForm(ModelForm):\n    username = StringField('Username', validators=[DataRequired()])\n    email = StringField('E-mail', validators=[DataRequired(), Email()])\n    password = PasswordField('Password', validators=[Length(min=6)])\n    image_url = TextAreaField('(Optional) Image URL')\n    location = StringField('(Optional) Location')\n    bio = TextAreaField('(Optional) Bio')\nclass MessageForm(ModelForm):\n    class Meta:\n        model = Message ",
-        "detail": "Far-Fetched-App.forms",
-        "documentation": {}
-    },
-    {
-        "label": "MessageForm",
-        "kind": 6,
-        "importPath": "Far-Fetched-App.forms",
-        "description": "Far-Fetched-App.forms",
-        "peekOfCode": "class MessageForm(ModelForm):\n    class Meta:\n        model = Message \nclass LoginForm(FlaskForm):\n    \"\"\"Login form.\"\"\"\n    username = StringField('Username', validators=[DataRequired()])\n    password = PasswordField('Password', validators=[Length(min=6)])",
+        "peekOfCode": "class UserEditForm(ModelForm):\n    username = StringField('Username', validators=[DataRequired()])\n    email = StringField('E-mail', validators=[DataRequired(), Email()])\n    password = PasswordField('Password', validators=[Length(min=6)])\n    image_url = TextAreaField('(Optional) Image URL')\n    location = StringField('(Optional) Location')\n    bio = TextAreaField('(Optional) Bio')\nclass LoginForm(FlaskForm):\n    \"\"\"Login form.\"\"\"\n    username = StringField('Username', validators=[DataRequired()])",
         "detail": "Far-Fetched-App.forms",
         "documentation": {}
     },
