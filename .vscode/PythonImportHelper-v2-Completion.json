@@ -660,7 +660,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "CURR_USER_KEY = os.environ.get(\"CURR_USER_KEY\", 'curr_user')\n#RESOLVE THIS: commented out font_awesome as there an import error to be resolved\n# font_awesome = FontAwesome(app)\nfrom config import config, Config\nload_dotenv()\napp = Flask(__name__)\napp_config_instance = Config()\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\n##############################################################################",
+        "peekOfCode": "CURR_USER_KEY = os.environ.get(\"CURR_USER_KEY\", 'curr_user')\n#RESOLVE THIS: commented out font_awesome as there an import error to be resolved\n# font_awesome = FontAwesome(app)\nfrom config import config, Config\nload_dotenv()\n# create Flask app\napp = Flask(__name__)\n#create config instance\napp_config_instance = Config()\n#config Flask app",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
@@ -669,7 +669,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "app = Flask(__name__)\napp_config_instance = Config()\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:",
+        "peekOfCode": "app = Flask(__name__)\n#create config instance\napp_config_instance = Config()\n#config Flask app\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
@@ -678,7 +678,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "app_config_instance = Config()\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:\n        g.user = User.query.get_or_404(session[CURR_USER_KEY])",
+        "peekOfCode": "app_config_instance = Config()\n#config Flask app\nflask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'\napp_config_instance.config_app(app=app,obj=config[flask_env_type])\n##############################################################################\n# User signup/login/logout\n@app.before_request\ndef add_user_to_g():\n    \"\"\"If we're logged in, add curr user to Flask global.\"\"\"\n    if CURR_USER_KEY in session:",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },

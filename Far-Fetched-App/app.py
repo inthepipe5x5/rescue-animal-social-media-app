@@ -15,8 +15,15 @@ CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
 from config import config, Config
 
 load_dotenv()
+
+
+# create Flask app
 app = Flask(__name__)
+
+#create config instance
 app_config_instance = Config()
+
+#config Flask app
 flask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'
 app_config_instance.config_app(app=app,obj=config[flask_env_type])
 
