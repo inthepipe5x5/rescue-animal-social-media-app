@@ -109,7 +109,7 @@ nav form.navbar-form {
  */
 
 .onboarding > .navbar {
-  background-image: url("/static/images/nav-bg.png");
+  background-image: url("/static/images/animal-pictures/kym-ellis-p025ltbEPwM-unsplash.png");
   background-size: 100% 100%;
 }
 
@@ -396,7 +396,7 @@ p.card-bio {
   width: 100vw;
   left: 0;
   z-index: -1;
-  background-image: url("/static/images/signed-out-home.jpg");
+  background-image: url("static/images/animal-pictures/chris-anderson-coheb5v8c0M-unsplash.jpg");
   background-size: cover;
   background-position: center center;
   color: #fff;

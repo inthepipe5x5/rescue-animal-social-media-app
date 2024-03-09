@@ -8,9 +8,10 @@ load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 os.environ['APP_DIR'] = basedir
 
-print(os.environ.get('FLASK_ENV','FLASK_APP'))
 class Config:
     # Default configuration
+    DEBUG = True
+    TEMPLATES_AUTO_RELOAD = True
     TESTING = False
     SECRET_KEY = os.environ.get('SECRET_KEY', "SECRET KEY")
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly

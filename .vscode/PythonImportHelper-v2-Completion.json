@@ -651,7 +651,7 @@
         "kind": 2,
         "importPath": "Far-Fetched-App.app",
         "description": "Far-Fetched-App.app",
-        "peekOfCode": "def add_header(req):\n    \"\"\"Add non-caching headers on every request.\"\"\"\n    req.headers[\"Cache-Control\"] = \"no-cache, no-store, must-revalidate\"\n    req.headers[\"Pragma\"] = \"no-cache\"\n    req.headers[\"Expires\"] = \"0\"\n    req.headers['Cache-Control'] = 'public, max-age=0'\n    return req\nif __name__ == '__main__':\n    app.run()",
+        "peekOfCode": "def add_header(req):\n    \"\"\"Add non-caching headers on every request.\"\"\"\n    req.headers[\"Cache-Control\"] = \"no-cache, no-store, must-revalidate\"\n    req.headers[\"Pragma\"] = \"no-cache\"\n    req.headers[\"Expires\"] = \"0\"\n    req.headers['Cache-Control'] = 'public, max-age=0'\n    return req\nif __name__ == '__main__':\n    app.run(debug=True, use_reloader=True)",
         "detail": "Far-Fetched-App.app",
         "documentation": {}
     },
@@ -696,7 +696,7 @@
         "kind": 6,
         "importPath": "Far-Fetched-App.config",
         "description": "Far-Fetched-App.config",
-        "peekOfCode": "class Config:\n    # Default configuration\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True\n    SQLALCHEMY_TRACK_MODIFICATIONS = False\n    SQLALCHEMY_ECHO = False\n    @staticmethod",
+        "peekOfCode": "class Config:\n    # Default configuration\n    DEBUG = True\n    TEMPLATES_AUTO_RELOAD = True\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True\n    SQLALCHEMY_TRACK_MODIFICATIONS = False",
         "detail": "Far-Fetched-App.config",
         "documentation": {}
     },
@@ -732,7 +732,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.config",
         "description": "Far-Fetched-App.config",
-        "peekOfCode": "basedir = os.path.abspath(os.path.dirname(__file__))\nos.environ['APP_DIR'] = basedir\nprint(os.environ.get('FLASK_ENV','FLASK_APP'))\nclass Config:\n    # Default configuration\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True",
+        "peekOfCode": "basedir = os.path.abspath(os.path.dirname(__file__))\nos.environ['APP_DIR'] = basedir\nclass Config:\n    # Default configuration\n    DEBUG = True\n    TEMPLATES_AUTO_RELOAD = True\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')",
         "detail": "Far-Fetched-App.config",
         "documentation": {}
     },
@@ -741,7 +741,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.config",
         "description": "Far-Fetched-App.config",
-        "peekOfCode": "os.environ['APP_DIR'] = basedir\nprint(os.environ.get('FLASK_ENV','FLASK_APP'))\nclass Config:\n    # Default configuration\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True\n    SQLALCHEMY_TRACK_MODIFICATIONS = False",
+        "peekOfCode": "os.environ['APP_DIR'] = basedir\nclass Config:\n    # Default configuration\n    DEBUG = True\n    TEMPLATES_AUTO_RELOAD = True\n    TESTING = False\n    SECRET_KEY = os.environ.get('SECRET_KEY', \"SECRET KEY\")\n    # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly\n    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')\n    WTF_CSRF_ENABLED = True",
         "detail": "Far-Fetched-App.config",
         "documentation": {}
     },
