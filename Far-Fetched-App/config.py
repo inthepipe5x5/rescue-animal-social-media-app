@@ -6,6 +6,7 @@ from models import connect_db
 load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+os.environ['APP_DIR'] = basedir
 
 print(os.environ.get('FLASK_ENV','FLASK_APP'))
 class Config:
@@ -27,6 +28,8 @@ class Config:
         """
         
         app.config.from_object(obj)
+        
+        # app.config.from_envvar(os.environ.get('PWD'+'/.env', basedir))
         connect_db(app)
         
         return app

@@ -20,22 +20,6 @@ app_config_instance = Config()
 flask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'
 app_config_instance.config_app(app=app,obj=config[flask_env_type])
 
-print(os.environ.get('DATABASE_URL'))
-print(app.config)
-# if app.config['TESTING'] == False:
-#     #set env var 'DATABASE_URL' to non-testing db
-#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
-
-# else: 
-#     app_config_obj['SQLALCHEMY_DATABASE_URI'] = os.environ['TEST_DATABASE_URL']
-
-# #set sqla URI to 'DATABASE_URL' env var 
-# if app.config['SQLALCHEMY_DATABASE_URI'] == None:
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///ff-rescue-db'
-# os.environ.get(db_url_key, 'postgresql:///ff-rescue-db'))
-
-
-
 
 ##############################################################################
 # User signup/login/logout
