@@ -92,6 +92,7 @@ class User(db.Model):
     bio = db.Column(db.Text)
 
     location = db.Column(db.String(80))
+    user_residence = db.relationship("user_residence", back_populates="user")
 
     password = db.Column(
         db.Text,
@@ -175,7 +176,7 @@ class UserPreferences(db.Model):
     animal_type_preferences = db.Column(
         db.Integer, db.ForeignKey("user_animal_preferences.id")
     )
-    type_of_interaction_preference = db.Column(db.ARRAY(db.String)) #will store info eg. volunteering, donation, adoption, animal foster
+    type_of_interaction_preference = db.Column(db.ARRAY(db.String(20))) #will store info eg. volunteering, donation, adoption, animal foster
 
 
 class UserAnimalPreferences(db.Model):
@@ -196,7 +197,7 @@ class UserAnimalPreferences(db.Model):
     animal_age_preference = db.Column(db.ARRAY(db.String)) #will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
     animal_personality_tags_preferences = db.Column(db.ARRAY(db.String)) #will store user choices regarding animal personality
     animal_physical_attributes_preferences = db.Column(db.ARRAY(db.String)) #will store user choices regarding animal size eg. x-small, small, medium, large, x-large
-    gender_preference = db.Column(db.ARRAY(db.String)) #eg. "["maSle", "female"]" -> user wants both
+    gender_preference = db.Column(db.ARRAY(db.String)) #eg. "["male", "female"]" -> user wants both
 
     #attributes preferences
     house_trained = db.Column(db.boolean)
@@ -271,6 +272,8 @@ class UserResources(db.Model):
 class UserResidence(db.Model):
     """Table to store user residence and living situation where the rescue animals could be housed as well"""
     
+    __tablename__ = "user_residence"
+    
     id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
     user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
     
@@ -287,6 +290,26 @@ class UserResidence(db.Model):
     has_fence_surrounding_dwelling = db.Column(db.Boolean)
     has_doggie_door = db.Column(db.Boolean)
 
+
+class UserCurrentPets(db.Model):
+    """Table to capture user information regarding the pets living in their residence"""
+    
+    __tablename__ = 'user_current_pets'
+    
+    id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+    user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+    
+    user_has_pets = db.Column(db.Boolean)
+    pet_quantity = db.Column(db.Integer)
+    pet_type = db.Column(db.ARRAY(db.String))
+    pets_age = db.Column(db.Array(db.Integer))
+    user_pets_has_medical_conditions = db.Column(db.Boolean)
+    
+    user_pets_friendly_to_new_dogs = db.Column(db.Boolean)
+    user_pets_friendly_to_new_cats = db.Column(db.Boolean)
+    user_pets_friendly_to_new_birds = db.Column(db.Boolean)
+    user_pets_friendly_to_new_bunnies = db.Column(db.Boolean)
+    user_pets_friendly_to_new_misc_animal_types = db.Column(db.Boolean)
 
 def connect_db(app):
     """Connect this database to provided Flask app.
