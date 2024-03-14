@@ -813,7 +813,16 @@
         "kind": 6,
         "importPath": "Far-Fetched-App.models",
         "description": "Far-Fetched-App.models",
-        "peekOfCode": "class Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = 'follows'\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey('users.id', ondelete=\"cascade\"),\n        primary_key=True,\n    )\n    user_following_id = db.Column(\n        db.Integer,",
+        "peekOfCode": "class Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = \"follows\"\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey(\"users.id\", ondelete=\"cascade\"),\n        primary_key=True,\n    )\n    user_following_id = db.Column(\n        db.Integer,",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "RescueOrganization",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "class RescueOrganization(db.Model):\n    \"\"\"Rescue Organization db.Model\n    Args:\n        db (_type_): _description_\n    Returns:\n        _type_: _description_\n    \"\"\"\n    __tablename__ = \"rescueOrg\"\n    id = db.Column(\n        db.Integer,",
         "detail": "Far-Fetched-App.models",
         "documentation": {}
     },
@@ -822,7 +831,34 @@
         "kind": 6,
         "importPath": "Far-Fetched-App.models",
         "description": "Far-Fetched-App.models",
-        "peekOfCode": "class User(db.Model):\n    \"\"\"User in the system.\"\"\"\n    __tablename__ = 'users'\n    id = db.Column(\n        db.Integer,\n        primary_key=True,\n    )\n    email = db.Column(\n        db.Text,\n        nullable=False,",
+        "peekOfCode": "class User(db.Model):\n    \"\"\"User in the system.\"\"\"\n    __tablename__ = \"users\"\n    id = db.Column(\n        db.Integer,\n        primary_key=True,\n    )\n    email = db.Column(\n        db.Text,\n        nullable=False,",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "UserPreferences",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "class UserPreferences(db.Model):\n    \"\"\"Relational table that stores id of the other preferences tables associated with one User\"\"\"\n    __tablename__ = \"user_preferences\"\n    id = db.Column(db.Integer, primary_key=True)\n    user_id = db.Column(db.Integer, db.ForeignKey(\"users.user_id\"))\n    animal_type_preferences = db.Column(db.String)\n    species_preference = db.Column(db.String)\n    animal_age_preference = db.Column(db.String)\n    animal_attributes_preferences = db.Column(db.ARRAY(db.String))\n    age_preference = db.Column(db.String)",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "UserLocation",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "class UserLocation(db.Model):\n    \"Table to store user location information\"\n    __tablename__ = \"userLocation\"\n    id = db.Column(\n        db.Integer,\n        primary_key=True,\n    )\n    address = db.Column(db.String)\n    state_province = db.Column(db.String, nullable=False)\n    postal_code = db.Column(db.String, nullable=False)",
+        "detail": "Far-Fetched-App.models",
+        "documentation": {}
+    },
+    {
+        "label": "UserTravelPreferences",
+        "kind": 6,
+        "importPath": "Far-Fetched-App.models",
+        "description": "Far-Fetched-App.models",
+        "peekOfCode": "class UserTravelPreferences(db.Model):\n    \"Table to store user and travel preferences\"\n    __tablename__ = \"userTravelPreferences\"\n    id = db.Column(\n        db.Integer,\n        primary_key=True,\n    )\n    user_id = db.Column(\n        db.Integer, \n        db.ForeignKey(\"users.user_id\"))",
         "detail": "Far-Fetched-App.models",
         "documentation": {}
     },
@@ -840,7 +876,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.models",
         "description": "Far-Fetched-App.models",
-        "peekOfCode": "bcrypt = Bcrypt()\ndb = SQLAlchemy()\nclass Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = 'follows'\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey('users.id', ondelete=\"cascade\"),\n        primary_key=True,\n    )",
+        "peekOfCode": "bcrypt = Bcrypt()\ndb = SQLAlchemy()\nclass Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = \"follows\"\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey(\"users.id\", ondelete=\"cascade\"),\n        primary_key=True,\n    )",
         "detail": "Far-Fetched-App.models",
         "documentation": {}
     },
@@ -849,7 +885,7 @@
         "kind": 5,
         "importPath": "Far-Fetched-App.models",
         "description": "Far-Fetched-App.models",
-        "peekOfCode": "db = SQLAlchemy()\nclass Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = 'follows'\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey('users.id', ondelete=\"cascade\"),\n        primary_key=True,\n    )\n    user_following_id = db.Column(",
+        "peekOfCode": "db = SQLAlchemy()\nclass Follows(db.Model):\n    \"\"\"Connection of a follower <-> followed_user.\"\"\"\n    __tablename__ = \"follows\"\n    user_being_followed_id = db.Column(\n        db.Integer,\n        db.ForeignKey(\"users.id\", ondelete=\"cascade\"),\n        primary_key=True,\n    )\n    user_following_id = db.Column(",
         "detail": "Far-Fetched-App.models",
         "documentation": {}
     }
