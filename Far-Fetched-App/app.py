@@ -292,4 +292,5 @@ def add_header(req):
     return req
 
 if __name__ == '__main__':
+    print(os.environ)
     app.run(debug=True, use_reloader=True)
