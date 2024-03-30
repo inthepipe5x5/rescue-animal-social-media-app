@@ -7,6 +7,7 @@ from forms import UserAddForm, LoginForm, UserEditForm
 import os
 from models import db, User
 from dotenv import load_dotenv
+from PetFinderAPI import PetFinderPetPyAPI
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
 
@@ -27,6 +28,8 @@ app_config_instance = Config()
 flask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'
 app_config_instance.config_app(app=app,obj=config[flask_env_type])
 
+#create API wrapper class instance
+pet_finder_API = PetFinderPetPyAPI
 
 ##############################################################################
 # User signup/login/logout
@@ -40,6 +43,12 @@ def add_user_to_g():
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
     else:
         g.user = None
+
+@app.before_request
+def add_api_auth_token_to_g():
+    """Add auth token to g. Auth token lasts for an hour"""
+    
+    g.auth_token = PetFinderPetPyAPI.get_authentication_token()
 
 
 def do_login(user):

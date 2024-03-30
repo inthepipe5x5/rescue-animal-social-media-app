@@ -191,7 +191,7 @@ class User(db.Model):
 #     )
 #     status_preference = db.models.ForeignKey("user_preferences.type_of_interaction_preference") #may remove as overlaps with user_preferences table
 #     species_preference = db.Column(db.Array(db.String))
-#     breeds_preference = db.Column(db.Array(db.String)) 
+#     breeds_preference = db.Column(db.Array(db.String))
 #     animal_coat_preference = db.Column(db.Array(db.String)) #eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
 #     animal_coat_color_preference = db.Column(db.Array(db.String)) #eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
 #     animal_age_preference = db.Column(db.ARRAY(db.String)) #will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
@@ -205,7 +205,7 @@ class User(db.Model):
 #     shots_current = db.Column(db.boolean)
 #     special_needs = db.Column(db.boolean)
 #     spayed_neutered = db.Column(db.boolean)
-    
+
 #     #environmental preferences
 #     child_friendly = db.Column(db.boolean)
 #     dogs_friendly = db.Column(db.boolean)
@@ -271,16 +271,16 @@ class User(db.Model):
 
 # class UserResidence(db.Model):
 #     """Table to store user residence and living situation where the rescue animals could be housed as well"""
-    
+
 #     __tablename__ = "user_residence"
-    
+
 #     id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
 #     user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-    
+
 #     #residence location
 #     is_urban = db.Column(db.Boolean)
 #     is_rural = db.Column(db.Boolean)
-    
+
 #     #resident type
 #     dwelling_type = db.Column(db.String, nullable=True)
 #     dwelling_size = db.Column(db.string)
@@ -293,23 +293,24 @@ class User(db.Model):
 
 # class UserCurrentPets(db.Model):
 #     """Table to capture user information regarding the pets living in their residence"""
-    
+
 #     __tablename__ = 'user_current_pets'
-    
+
 #     id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
 #     user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-    
+
 #     user_has_pets = db.Column(db.Boolean)
 #     pet_quantity = db.Column(db.Integer)
 #     pet_type = db.Column(db.ARRAY(db.String))
 #     pets_age = db.Column(db.Array(db.Integer))
 #     user_pets_has_medical_conditions = db.Column(db.Boolean)
-    
+
 #     user_pets_friendly_to_new_dogs = db.Column(db.Boolean)
 #     user_pets_friendly_to_new_cats = db.Column(db.Boolean)
 #     user_pets_friendly_to_new_birds = db.Column(db.Boolean)
 #     user_pets_friendly_to_new_bunnies = db.Column(db.Boolean)
 #     user_pets_friendly_to_new_misc_animal_types = db.Column(db.Boolean)
+
 
 def connect_db(app):
     """Connect this database to provided Flask app.

@@ -1,66 +1,78 @@
 import os
 import dotenv
-from flask import Flask, jsonify
 import requests
 import datetime
+from ratelimit import limits, RateLimitException
+from backoff import expo, on_exception
 
-class PetFinderAPI():
+from petpy import Petfinder
+
+
+class PetFinderPetPyAPI:
     """
     API class with methods to store access PetFinder API
     """
-    BASE_API_URL = os.environ.get("PETFINDER_API_URL","https://api.petfinder.com/v2")
+
+    BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
-        BASE_API_URL = "https://"+BASE_API_URL
-        
-    auth_token = None 
-    auth_token_time = None #not sure this should be stored in the class
-    
+        BASE_API_URL = "https://" + BASE_API_URL
+    petpy_api_instance = Petfinder(
+        key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
+    )
+    auth_token = petpy_api_instance._authenticate()
+    auth_token_time = None  # not sure this should be stored in the class
+
     def get_authentication_token(self):
         """
         method to query PetFinder API for an authentication token that is required to access API
         """
-        headers = {
-            "Authorization": "BEARER" + " " + os.environ.get('API_KEY', "/")
-        }
-
-        response = requests.get(self.BASE_API_URL,headers=headers)
-
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            # Convert the response JSON data to a Python dictionary
+        try:
+            response = self.petpy_api_instance._authenticate()
+        finally:
             data = response.json()
             self.auth_token = data.access_token
-            self.auth_token_time = datetime.now() #store time of token to be determined later when a new token is required
-            return jsonify(data)
-        elif response.status_code == 403: #403 is "Access denied due to insufficient access"
-            self.get_authentication_token()
-        else:
-            # If the request was not successful, return an error message
-            return jsonify({'error': 'Failed to fetch data'}), 500
-    
-    def validate_auth_token(self,jsonify_data):
+            self.auth_token_time = (
+                datetime.datetime.now()
+            )  # store time of token to be determined later when a new token is required
+            self.auth_token_expiry_time_in_seconds = data.expires_in
+            return data
+
+    @on_exception(expo, RateLimitException, max_tries=10)
+    @limits(calls=50, period=1)
+    @limits(calls=1000, period=86400)
+    def validate_auth_token(self, jsonify_data):
         """Validate if auth_token is valid or if needs a new token
+        
+        RETURNS AUTH_TOKEN IF VALID 
+        RETURNS FALSE IF NOT VALID
 
         Args:
-            jsonify_data (_type_): JSON auth token data from PetFinder API 
+            jsonify_data (_type_): JSON auth token data from PetFinder API
         """
-        current_time = datetime.now()
-        
-        if abs((self.auth_token_time - current_time).total_seconds()) <= 3600: #checks if token has expired by comparing delta of token received time to current time
-            #reset stored token and token time
+        token_valid_duration_in_seconds = jsonify_data.expires_in or 3600
+        current_time = datetime.datetime.now()
+        expiry_time = self.auth_token_time + datetime.timedelta(seconds=token_valid_duration_in_seconds)
+
+        if current_time > expiry_time or (
+            abs((self.auth_token_time - current_time).total_seconds()) <= 3600
+        ):
+            # Token has expired or is about to expire within an hour
+            # Reset stored token and token time
             self.auth_token = None
             self.auth_token_time = None
-            
-            #get new token
+
+            # Get new token
             self.get_authentication_token()
-        
-        else: 
-            return jsonify_data 
-    
+            return False  # Token not valid, return False
+            
+        else:
+            return jsonify_data.auth_token  # Token is valid, return the authentication token
+
+
     def create_custom_url_for_api_request(self, category, action, params):
-        """Create a url to make an API request based off passed in params object. 
-        
-        
+        """Create a url to make an API request based off passed in params object.
+
+
         GET https://api.petfinder.com/v2/{CATEGORY}/{ACTION}?{parameter_1}={value_1}&{parameter_2}={value_2}
 
         Args:
@@ -69,15 +81,5 @@ class PetFinderAPI():
             params (OBJECT {str:str}): params Python OBJECT will be iterated on to create the key:value string queries to the url separated by question marks eg. `?{parameter_1}={value_1}`
         """
 
-        #WRITE CODE HERE     
+        # WRITE CODE HERE
         pass
-    
-    
-    def get_animals_by_type(self):
-        """GET method to get types of animals available from PetFinder API
-        """
-        
-        #WRITE CODE HERE     
-        pass
-    
-    
