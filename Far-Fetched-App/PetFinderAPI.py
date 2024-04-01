@@ -16,11 +16,12 @@ class PetFinderPetPyAPI:
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
+    
     petpy_api_instance = Petfinder(
         key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
     )
-    auth_token = petpy_api_instance._authenticate()
     auth_token_time = None  # not sure this should be stored in the class
+    auth_token = petpy_api_instance._authenticate()
 
     def get_authentication_token(self):
         """
