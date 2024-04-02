@@ -29,13 +29,13 @@ class PetFinderPetPyAPI:
         method to query PetFinder API for an authentication token that is required to access API
         """
         try:
-            response = self.petpy_api_instance._authenticate() #might be redundant as petpy_api_instance calls this function on authentication
+            response = (
+                self.petpy_api_instance._authenticate()
+            )  # might be redundant as petpy_api_instance calls this function on authentication
         finally:
             data = response.json()
             self.auth_token = data.access_token
-            self.auth_token_time = (
-                
-            )  # store time of token to be determined later when a new token is required
+            self.auth_token_time = ()  # store time of token to be determined later when a new token is required
             self.auth_token_expiry_time_in_seconds = data.expires_in
             return data
 
@@ -97,7 +97,11 @@ class PetFinderPetPyAPI:
         pass
 
     def get_init_df_of_animal_rescue_organizations_by_distance_location(
-        self, distance=100, location="Toronto, Ontario", sortBool=True
+        self,
+        distance=100,
+        location="Toronto, Ontario",
+        sortBool=True,
+        return_df_bool=True,
     ):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
 
@@ -120,7 +124,7 @@ class PetFinderPetPyAPI:
                 distance=distance,
                 query=location,  # Search matching and partially matching name, city, or state.
                 sort=sortBool,
-                return_df=True,
+                return_df=return_df_bool,
             )
 
             return init_orgs_df
