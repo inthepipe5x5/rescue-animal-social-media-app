@@ -17,23 +17,24 @@ class PetFinderPetPyAPI:
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
 
-    petpy_api_instance = Petfinder(
-        key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
-    )
-    auth_token_time = None  # not sure this should be stored in the class
-    auth_token = petpy_api_instance._authenticate()
+    def __new__(cls):
+        cls.petpy_api_instance = Petfinder(
+            key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
+        )
+        cls.auth_token_time = datetime.datetime.now()
+        cls.validate_auth_token(cls.petpy_api_instance._auth)
 
     def get_authentication_token(self):
         """
         method to query PetFinder API for an authentication token that is required to access API
         """
         try:
-            response = self.petpy_api_instance._authenticate()
+            response = self.petpy_api_instance._authenticate() #might be redundant as petpy_api_instance calls this function on authentication
         finally:
             data = response.json()
             self.auth_token = data.access_token
             self.auth_token_time = (
-                datetime.datetime.now()
+                
             )  # store time of token to be determined later when a new token is required
             self.auth_token_expiry_time_in_seconds = data.expires_in
             return data
