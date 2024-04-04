@@ -172,39 +172,79 @@ class UserPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
-    rescue_interaction_type_preference = db.Column(db.ARRAY(db.String(20))) # will store info can only be: volunteering, donation, adoption, animal foster
+    rescue_interaction_type_preference = db.Column(db.ARRAY(db.String(20)))  # will store info can only be: volunteering, donation, adoption, animal foster
+
+    user_location = db.relationship("UserLocation", back_populates="user_preferences")
+    user_animal_preferences = db.relationship("UserAnimalPreferences", back_populates="user_preferences")
+    user_animal_appearance_preferences = db.relationship("UserAnimalAppearancePreferences", back_populates="user_preferences")
+    user_animal_behavior_preferences = db.relationship("UserAnimalBehaviorPreferences", back_populates="user_preferences")
 
 
 class UserAnimalPreferences(db.Model):
-    """Table to capture specific user preferences on animals"""
+    """Table to capture user preferences on a single type of animal: Must be one of 'dog', 'cat', 'rabbit', 'small-furry', 'horse', 'bird', 'scales-fins-other', or 'barnyard'. 
+    """
 
     __tablename__ = "user_animal_preferences"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    species_preference = db.Column(db.ARRAY(db.String)) #Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’. 
-    
-    status_preference = db.Column(db.String(20)) # may remove as overlaps with user_preferences table
-    breeds_preference = db.Column(db.ARRAY(db.String))
-    animal_coat_preference = db.Column(db.ARRAY(db.String)) # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
-    animal_coat_color_preference = db.Column(db.ARRAY(db.String)) # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
-    animal_age_preference = db.Column(db.ARRAY(db.String)) # will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
-    animal_personality_tags_preferences = db.Column(db.ARRAY(db.String)) # will store user choices regarding animal personality
-    animal_physical_attributes_preferences = db.Column(db.ARRAY(db.String)) # will store user choices regarding animal size eg. x-small, small, medium, large, x-large
-    gender_preference = db.Column(db.ARRAY(db.String)) # eg. "["male", "female"]" -> user wants both
+    species_preference = db.Column(db.ARRAY(db.String))  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
 
-    # attributes preferences
-    house_trained = db.Column(db.Boolean)
-    declawed = db.Column(db.Boolean)
-    shots_current = db.Column(db.Boolean)
-    special_needs = db.Column(db.Boolean)
-    spayed_neutered = db.Column(db.Boolean)
+    user_preferences = db.relationship("UserPreferences", back_populates="user_animal_preferences")
+    user_animal_appearance_preferences = db.relationship("UserAnimalAppearancePreferences", back_populates="user_animal_preferences")
+    user_animal_behavior_preferences = db.relationship("UserAnimalBehaviorPreferences", back_populates="user_animal_preferences")
 
-    # environmental preferences
-    child_friendly = db.Column(db.Boolean)
-    dogs_friendly = db.Column(db.Boolean)
-    cats_friendly = db.Column(db.Boolean)
+
+class UserAnimalAppearancePreferences(db.Model):
+
+    """Table to capture specific user preferences on animal appearance"""
+
+    __tablename__ = "user_animal_appearance_preferences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
+    user_animal_preferences_id = db.Column(db.Integer, db.ForeignKey("user_animal_preferences.id"))
+
+    user_preferences = db.relationship("UserPreferences", back_populates="user_animal_appearance_preferences")
+    user_animal_preferences = db.relationship("UserAnimalPreferences", back_populates="user_animal_appearance_preferences")
+
+
+class UserAnimalBehaviorPreferences(db.Model):
+    """Table to capture specific user preferences on animal behavior history"""
+
+    __tablename__ = "user_animal_behavior_preferences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
+    user_animal_preferences_id = db.Column(db.Integer, db.ForeignKey("user_animal_preferences.id"))
+
+    user_preferences = db.relationship("UserPreferences", back_populates="user_animal_behavior_preferences")
+    user_animal_preferences = db.relationship("UserAnimalPreferences", back_populates="user_animal_behavior_preferences")
+
+
+class UserLocation(db.Model):
+    "Table to store user location information"
+
+    __tablename__ = "user_location"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(
+        db.Integer, db.ForeignKey("user_preferences.id")
+    )
+    address = db.Column(db.String)
+    state_province = db.Column(db.String, nullable=False)
+    postal_code = db.Column(db.String, nullable=False)
+    city = db.Column(db.String, nullable=False)
+    country = db.Column(db.String, nullable=False)
+
+    user_preferences = db.relationship("UserPreferences", back_populates="user_location")
 
 
 class UserLocation(db.Model):
@@ -282,7 +322,7 @@ class UserCurrentPets(db.Model):
     user_has_pets = db.Column(db.Boolean)
     pet_quantity = db.Column(db.Integer)
     pet_type = db.Column(db.ARRAY(db.String))
-    pets_age = db.Column(db.Array(db.String)) Accepted values: ‘baby’,’young’, ‘adult’, ‘senior’.
+    pets_age = db.Column(db.Array(db.String)) #Accepted values: ‘baby’,’young’, ‘adult’, ‘senior’.
     user_pets_has_medical_conditions = db.Column(db.Boolean)
 
     user_pets_friendly_to_new_dogs = db.Column(db.Boolean)
