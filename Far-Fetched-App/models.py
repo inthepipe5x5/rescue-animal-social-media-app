@@ -255,10 +255,9 @@ class UserLocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    address = db.Column(db.String)
     state_province = db.Column(db.String, nullable=False)
     postal_code = db.Column(db.String, nullable=False)
-    city = db.Column(db.String, nullable=False)
+    city = db.Column(db.String)
     country = db.Column(db.String, nullable=False)
 
 
@@ -271,7 +270,7 @@ class UserTravelPreferences(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
-    distance_to_location_preference = db.Column(db.Integer)
+    distance_filter_preference = db.Column(db.Integer)
     willing_to_travel = db.Column(db.Boolean) # general question, if false -> all others are defaulted to false
     willing_to_fly_by_airplane = db.Column(db.Boolean) # eg. for flight buddy opportunities
     willing_to_drive = db.Column(db.Boolean)
