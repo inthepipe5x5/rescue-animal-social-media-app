@@ -50,6 +50,7 @@ class RescueOrganization(db.Model):
         unique=True,
     )
 
+
 class MatchedRescueOrganization(db.Model):
     """Rescue Organization db.Model"""
 
@@ -222,26 +223,6 @@ class UserAnimalPreferences(db.Model):
     )
 
 
-class UserAnimalAppearancePreferences(db.Model):
-    """Table to capture specific user preferences on animal appearance"""
-
-    __tablename__ = "user_animal_appearance_preferences"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    user_animal_preferences_id = db.Column(
-        db.Integer, db.ForeignKey("user_animal_preferences.id")
-    )
-
-    user_preferences = db.relationship(
-        "UserPreferences", back_populates="user_animal_appearance_preferences"
-    )
-    user_animal_preferences = db.relationship(
-        "UserAnimalPreferences", back_populates="user_animal_appearance_preferences"
-    )
-
-
 class UserAnimalBehaviorPreferences(db.Model):
     """Table to capture specific user preferences on animal behavior history"""
 
@@ -254,11 +235,65 @@ class UserAnimalBehaviorPreferences(db.Model):
         db.Integer, db.ForeignKey("user_animal_preferences.id")
     )
 
+    # attributes preferences
+    house_trained = db.Column(db.boolean)
+    declawed = db.Column(db.boolean)
+    shots_current = db.Column(db.boolean)
+    special_needs = db.Column(db.boolean)
+    spayed_neutered = db.Column(db.boolean)
+
+    # environmental preferences
+    child_friendly = db.Column(db.boolean)
+    dogs_friendly = db.Column(db.boolean)
+    cats_friendly = db.Column(db.boolean)
+
+    # db relationships
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_behavior_preferences"
     )
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences", back_populates="user_animal_behavior_preferences"
+    )
+
+
+class UserAnimalAppearancePreferences(db.Model):
+    """Table to capture specific user preferences on animal appearance"""
+
+    __tablename__ = "user_animal_appearance_preferences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
+    user_animal_preferences_id = db.Column(
+        db.Integer, db.ForeignKey("user_animal_preferences.id")
+    )
+
+    breeds_preference = db.Column(db.Array(db.String))
+    animal_coat_preference = db.Column(
+        db.Array(db.String)
+    )  # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
+    animal_coat_color_preference = db.Column(
+        db.Array(db.String)
+    )  # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
+    animal_age_preference = db.Column(
+        db.ARRAY(db.String)
+    )  # will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
+    animal_personality_tags_preferences = db.Column(
+        db.ARRAY(db.String)
+    )  # will store user choices regarding animal personality
+    animal_physical_attributes_preferences = db.Column(
+        db.ARRAY(db.String)
+    )  # will store user choices regarding animal size eg. x-small, small, medium, large, x-large
+    gender_preference = db.Column(
+        db.ARRAY(db.String)
+    )  # eg. "["male", "female"]" -> user wants both
+
+    # db relationships
+    user_preferences = db.relationship(
+        "UserPreferences", back_populates="user_animal_appearance_preferences"
+    )
+    user_animal_preferences = db.relationship(
+        "UserAnimalPreferences", back_populates="user_animal_appearance_preferences"
     )
 
 
