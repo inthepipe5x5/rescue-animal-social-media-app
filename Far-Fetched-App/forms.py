@@ -13,7 +13,7 @@ BaseModelForm = model_form_factory(FlaskForm)
 
 class ModelForm(BaseModelForm):
     @classmethod
-    def get_session(self):
+    def get_session(cls):
         return db.session
 
 class UserAddForm(ModelForm):
