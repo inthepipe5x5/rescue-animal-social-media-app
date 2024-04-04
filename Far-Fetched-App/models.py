@@ -164,152 +164,132 @@ class User(db.Model):
 
         return False
 
+class UserPreferences(db.Model):
+    """Relational table that stores id of the other preferences tables associated with one User"""
 
-# class UserPreferences(db.Model):
-#     """Relational table that stores id of the other preferences tables associated with one User"""
+    __tablename__ = "user_preferences"
 
-#     __tablename__ = "user_preferences"
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-#     user_location_id = db.Column(db.Integer, db.ForeignKey("user_location"))
-#     animal_type_preferences = db.Column(
-#         db.Integer, db.ForeignKey("user_animal_preferences.id")
-#     )
-#     type_of_interaction_preference = db.Column(db.ARRAY(db.String(20))) #will store info eg. volunteering, donation, adoption, animal foster
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
+    rescue_interaction_type_preference = db.Column(db.ARRAY(db.String(20))) # will store info can only be: volunteering, donation, adoption, animal foster
 
 
-# class UserAnimalPreferences(db.Model):
-#     """Table to capture specific user preferences on animals"""
+class UserAnimalPreferences(db.Model):
+    """Table to capture specific user preferences on animals"""
 
-#     __tablename__ = "user_animal_preferences"
+    __tablename__ = "user_animal_preferences"
 
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-#     user_preferences_id = db.Column(
-#         db.Integer, db.ForeignKey("user_preferences.user_id")
-#     )
-#     status_preference = db.models.ForeignKey("user_preferences.type_of_interaction_preference") #may remove as overlaps with user_preferences table
-#     species_preference = db.Column(db.Array(db.String))
-#     breeds_preference = db.Column(db.Array(db.String))
-#     animal_coat_preference = db.Column(db.Array(db.String)) #eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
-#     animal_coat_color_preference = db.Column(db.Array(db.String)) #eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
-#     animal_age_preference = db.Column(db.ARRAY(db.String)) #will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
-#     animal_personality_tags_preferences = db.Column(db.ARRAY(db.String)) #will store user choices regarding animal personality
-#     animal_physical_attributes_preferences = db.Column(db.ARRAY(db.String)) #will store user choices regarding animal size eg. x-small, small, medium, large, x-large
-#     gender_preference = db.Column(db.ARRAY(db.String)) #eg. "["male", "female"]" -> user wants both
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
+    species_preference = db.Column(db.ARRAY(db.String)) #Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’. 
+    
+    status_preference = db.Column(db.String(20)) # may remove as overlaps with user_preferences table
+    breeds_preference = db.Column(db.ARRAY(db.String))
+    animal_coat_preference = db.Column(db.ARRAY(db.String)) # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
+    animal_coat_color_preference = db.Column(db.ARRAY(db.String)) # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
+    animal_age_preference = db.Column(db.ARRAY(db.String)) # will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
+    animal_personality_tags_preferences = db.Column(db.ARRAY(db.String)) # will store user choices regarding animal personality
+    animal_physical_attributes_preferences = db.Column(db.ARRAY(db.String)) # will store user choices regarding animal size eg. x-small, small, medium, large, x-large
+    gender_preference = db.Column(db.ARRAY(db.String)) # eg. "["male", "female"]" -> user wants both
 
-#     #attributes preferences
-#     house_trained = db.Column(db.boolean)
-#     declawed = db.Column(db.boolean)
-#     shots_current = db.Column(db.boolean)
-#     special_needs = db.Column(db.boolean)
-#     spayed_neutered = db.Column(db.boolean)
+    # attributes preferences
+    house_trained = db.Column(db.Boolean)
+    declawed = db.Column(db.Boolean)
+    shots_current = db.Column(db.Boolean)
+    special_needs = db.Column(db.Boolean)
+    spayed_neutered = db.Column(db.Boolean)
 
-#     #environmental preferences
-#     child_friendly = db.Column(db.boolean)
-#     dogs_friendly = db.Column(db.boolean)
-#     cats_friendly = db.Column(db.boolean)
-
-# class User_location(db.Model):
-#     "Table to store user location information"
-
-#     __tablename__ = "user_location"
-
-#     id = db.Column(
-#         db.Integer,
-#         primary_key=True,
-#     )
-#     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-#     user_preferences_id = db.Column(
-#         db.Integer, db.ForeignKey("user_preferences.user_id")
-#     )
-#     address = db.Column(db.String)
-#     state_province = db.Column(db.String, nullable=False)
-#     postal_code = db.Column(db.String, nullable=False)
-#     city = db.Column(db.String, nullable=False)
-#     country = db.Column(db.String, nullable=False)
+    # environmental preferences
+    child_friendly = db.Column(db.Boolean)
+    dogs_friendly = db.Column(db.Boolean)
+    cats_friendly = db.Column(db.Boolean)
 
 
-# class UserTravelPreferences(db.Model):
-#     "Table to store user and travel preferences"
+class UserLocation(db.Model):
+    """Table to store user location information"""
 
-#     __tablename__ = "userTravelPreferences"
+    __tablename__ = "user_location"
 
-#     id = db.Column(
-#         db.Integer,
-#         primary_key=True,
-#     )
-#     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-#     user_preferences_id = db.Column(
-#         db.Integer, db.ForeignKey("users.user_preferences.id")
-#     )
-
-#     distance_to_location_preference = db.Column(db.Integer)
-#     willing_to_travel = db.Column(
-#         db.Boolean
-#     )  # general question, if false -> all others are defaulted to false
-#     willing_to_fly_by_airplane = db.Column(
-#         db.Boolean
-#     )  # eg. for flight buddy opportunities
-#     willing_to_drive = db.Column(db.Boolean)
-#     willing_to_carpool = db.Column(db.Boolean)
-#     willing_to_transport = db.Column(
-#         db.Boolean
-#     )  # transport rescue animals, supplies, be the carpool driver
-#     willing_to_take_transit = db.Column(db.Boolean)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
+    address = db.Column(db.String)
+    state_province = db.Column(db.String, nullable=False)
+    postal_code = db.Column(db.String, nullable=False)
+    city = db.Column(db.String, nullable=False)
+    country = db.Column(db.String, nullable=False)
 
 
-# class UserResources(db.Model):
-#     """Table to store user resources and capacity to volunteer or care for an animal"""
+class UserTravelPreferences(db.Model):
+    """Table to store user and travel preferences"""
 
-#     id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-#     user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-#     possesses_car = db.Column(db.Boolean)
-#     possesses_valid_drivers_license = db.Column(db.Boolean)
+    __tablename__ = "user_travel_preferences"
 
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
-# class UserResidence(db.Model):
-#     """Table to store user residence and living situation where the rescue animals could be housed as well"""
-
-#     __tablename__ = "user_residence"
-
-#     id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-#     user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-
-#     #residence location
-#     is_urban = db.Column(db.Boolean)
-#     is_rural = db.Column(db.Boolean)
-
-#     #resident type
-#     dwelling_type = db.Column(db.String, nullable=True)
-#     dwelling_size = db.Column(db.string)
-#     potential_hazards_description = db.Column(db.string)
-#     has_yard = db.Column(db.Boolean)
-#     has_pool = db.Column(db.Boolean)
-#     has_fence_surrounding_dwelling = db.Column(db.Boolean)
-#     has_doggie_door = db.Column(db.Boolean)
+    distance_to_location_preference = db.Column(db.Integer)
+    willing_to_travel = db.Column(db.Boolean) # general question, if false -> all others are defaulted to false
+    willing_to_fly_by_airplane = db.Column(db.Boolean) # eg. for flight buddy opportunities
+    willing_to_drive = db.Column(db.Boolean)
+    willing_to_carpool = db.Column(db.Boolean)
+    willing_to_transport = db.Column(db.Boolean) # transport rescue animals, supplies, be the carpool driver
+    willing_to_take_transit = db.Column(db.Boolean)
 
 
-# class UserCurrentPets(db.Model):
-#     """Table to capture user information regarding the pets living in their residence"""
+class UserResources(db.Model):
+    """Table to store user resources and capacity to volunteer or care for an animal"""
 
-#     __tablename__ = 'user_current_pets'
+    id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+    user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+    possesses_car = db.Column(db.Boolean)
+    possesses_valid_drivers_license = db.Column(db.Boolean)
 
-#     id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
-#     user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
 
-#     user_has_pets = db.Column(db.Boolean)
-#     pet_quantity = db.Column(db.Integer)
-#     pet_type = db.Column(db.ARRAY(db.String))
-#     pets_age = db.Column(db.Array(db.Integer))
-#     user_pets_has_medical_conditions = db.Column(db.Boolean)
+class UserResidence(db.Model):
+    """Table to store user residence and living situation where the rescue animals could be housed as well"""
 
-#     user_pets_friendly_to_new_dogs = db.Column(db.Boolean)
-#     user_pets_friendly_to_new_cats = db.Column(db.Boolean)
-#     user_pets_friendly_to_new_birds = db.Column(db.Boolean)
-#     user_pets_friendly_to_new_bunnies = db.Column(db.Boolean)
-#     user_pets_friendly_to_new_misc_animal_types = db.Column(db.Boolean)
+    __tablename__ = "user_residence"
+
+    id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+    user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+
+    #residence location
+    is_urban = db.Column(db.Boolean)
+    is_rural = db.Column(db.Boolean)
+
+    #resident type
+    dwelling_type = db.Column(db.String, nullable=True)
+    dwelling_size = db.Column(db.string)
+    potential_hazards_description = db.Column(db.string)
+    has_yard = db.Column(db.Boolean)
+    has_pool = db.Column(db.Boolean)
+    has_fence_surrounding_dwelling = db.Column(db.Boolean)
+    has_doggie_door = db.Column(db.Boolean)
+
+
+class UserCurrentPets(db.Model):
+    """Table to capture user information regarding the pets living in their residence"""
+
+    __tablename__ = 'user_current_pets'
+
+    id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+    user_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=True)
+
+    user_has_pets = db.Column(db.Boolean)
+    pet_quantity = db.Column(db.Integer)
+    pet_type = db.Column(db.ARRAY(db.String))
+    pets_age = db.Column(db.Array(db.String)) Accepted values: ‘baby’,’young’, ‘adult’, ‘senior’.
+    user_pets_has_medical_conditions = db.Column(db.Boolean)
+
+    user_pets_friendly_to_new_dogs = db.Column(db.Boolean)
+    user_pets_friendly_to_new_cats = db.Column(db.Boolean)
+    user_pets_friendly_to_new_birds = db.Column(db.Boolean)
+    user_pets_friendly_to_new_bunnies = db.Column(db.Boolean)
+    user_pets_friendly_to_new_misc_animal_types = db.Column(db.Boolean)
 
 
 def connect_db(app):

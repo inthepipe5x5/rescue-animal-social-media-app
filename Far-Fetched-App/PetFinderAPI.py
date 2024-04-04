@@ -4,7 +4,7 @@ import requests
 import datetime
 from ratelimit import limits, RateLimitException
 from backoff import expo, on_exception
-
+from models import User, UserPreferences
 from petpy import Petfinder
 
 
@@ -131,3 +131,52 @@ class PetFinderPetPyAPI:
         except Exception as e:
             print(f"An error occurred: {e}")
             return None
+        
+    def map_user_preferences(self, user_preferences):
+        """
+        Function to map user preferences to a dictionary object.
+
+        Args:
+            user_preferences (UserPreferences): UserPreferences object containing user preferences.
+
+        Returns:
+            dict: Dictionary containing mapped user preferences.
+        """
+        mapped_preferences = {}
+        
+        # Extract the necessary preferences from the user_preferences object
+        #mandatory preferences
+        
+        mapped_preferences['location_preference'] = user_preferences.location_preference if user_preferences.location_preference else []
+        mapped_preferences['distance_preference'] = user_preferences.distance_preference if user_preferences.distance_preference else []
+        mapped_preferences['status_preference'] = user_preferences.rescue_interaction_type_preference if user_preferences.rescue_interaction_type_preferences_preference else []
+        mapped_preferences['animal_type_preferences'] = user_preferences.animal_type_preferences if user_preferences.animal_type_preferences else []
+        
+        mapped_preferences['species_preference'] = user_preferences.species_preference if user_preferences.species_preference else []
+        
+        #optional preferences
+        mapped_preferences['breeds_preference'] = user_preferences.breeds_preference if user_preferences.breeds_preference else []
+        
+        # Other preferences...
+
+        return mapped_preferences
+        
+
+    def get_animals_as_per_user_preferences(self, list_of_orgs, user_id, animal_type_preferences, species_preference, breeds_preference):
+        """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
+
+        Args:
+            list_of_orgs (ARR or Pandas DataFrame): list of organization IDs from API in a Python List (Array) or a Pandas DataFrame format.
+            user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
+        """
+
+        user = User.query.get_or_404(id=user_id)
+        user_preferences = UserPreferences.query.get_or_404(id=user_id)
+        matching_animals = self.petpy_api_instance.animals(
+            type=animal_type_preferences,
+            species=species_preference,
+            breeds=breeds_preference,
+            location=list_of_orgs,
+        )
+
+        return matching_animals
