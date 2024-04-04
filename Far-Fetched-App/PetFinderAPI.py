@@ -100,7 +100,7 @@ class PetFinderPetPyAPI:
         self,
         distance=100,
         location="Toronto, Ontario",
-        sortBool=True,
+        sortFilter="distance",
         return_df_bool=True,
     ):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
@@ -123,8 +123,9 @@ class PetFinderPetPyAPI:
                 location=location,
                 distance=distance,
                 query=location,  # Search matching and partially matching name, city, or state.
-                sort=sortBool,
+                sort=sortFilter,
                 return_df=return_df_bool,
+                count=100
             )
 
             return init_orgs_df
