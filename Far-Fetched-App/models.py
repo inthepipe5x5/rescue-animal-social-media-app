@@ -184,11 +184,9 @@ class UserPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
-    rescue_interaction_type_preference = db.Column(
-        db.ARRAY(db.String(20))
-    )  # will store info can only be: volunteering, donation, adoption, animal foster
 
     user_location = db.relationship("UserLocation", back_populates="user_preferences")
+
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences", back_populates="user_preferences"
     )
@@ -208,9 +206,12 @@ class UserAnimalPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    species_preference = db.Column(
+    species = db.Column(
         db.ARRAY(db.String)
     )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
+    rescue_interaction_type_preference = db.Column(
+        db.ARRAY(db.String(20))
+    )  # will store info can only be: volunteering, donation, adoption, animal foster
 
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_preferences"
@@ -233,6 +234,9 @@ class UserAnimalBehaviorPreferences(db.Model):
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
     user_animal_preferences_id = db.Column(
         db.Integer, db.ForeignKey("user_animal_preferences.id")
+    )
+    user_animal_preferences_species = db.Column(
+        db.Integer, db.ForeignKey("user_animal_preferences.species")
     )
 
     # attributes preferences
@@ -267,6 +271,17 @@ class UserAnimalAppearancePreferences(db.Model):
     user_animal_preferences_id = db.Column(
         db.Integer, db.ForeignKey("user_animal_preferences.id")
     )
+    user_animal_preferences_species = db.Column(
+        db.Integer, db.ForeignKey("user_animal_preferences.species")
+    )
+    userAnimalAppearanceCategory = db.Column(
+        db.String
+    )  # a column that accepts "gender", "coat", "personality", etc. any of the other appearance types
+    userAnimalAppearanceCategoryValue = db.Column(
+        db.String
+    )  # accepts a value corresponding to userAnimalAppearanceCategory saved
+
+    # so when querying -> search by category & categoryValue that matches the API search params
 
     breeds_preference = db.Column(db.Array(db.String))
     animal_coat_preference = db.Column(

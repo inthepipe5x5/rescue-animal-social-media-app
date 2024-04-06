@@ -1,13 +1,14 @@
-import dotenv
 from flask import Flask, render_template, request, flash, redirect, session, g, url_for
 # from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError
-import pdb #MAKE SURE TO REMOVE IN PRODUCTION
-from forms import UserAddForm, LoginForm, UserEditForm
-import os
-from models import db, User
 from dotenv import load_dotenv
+import pdb #MAKE SURE TO REMOVE IN PRODUCTION
+import os
+
+from models import db, User
+from forms import UserAddForm, LoginForm, UserEditForm, MandatoryOnboardingForm, userSearchOptionsPreferencesForm, SpecificAnimalAppearancePreferenceForm
 from PetFinderAPI import PetFinderPetPyAPI
+
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
 
@@ -44,11 +45,21 @@ def add_user_to_g():
     else:
         g.user = None
 
-@app.before_request
-def add_api_auth_token_to_g():
-    """Add auth token to g. Auth token lasts for an hour"""
+# @app.before_request
+# def add_api_auth_token_to_g():
+#     """Add auth token to g. Auth token lasts for an hour"""
     
-    g.auth_token = PetFinderPetPyAPI.get_authentication_token()
+#     g.auth_token = PetFinderPetPyAPI.get_authentication_token()
+
+@app.before_request
+def add_user_animal_types_to_g():
+    """Add the animal types preferred by the user to 'g'
+    """
+    if ANIMAL_TYPES in session:
+           # Get animal types selected by the user from the previous form submission
+           g.animal_types = UserAnimalPreferences.get_or_404(UserAnimalPreferences.user_id == session[CURR_USER_KEY])
+    else:
+        g.animal_types = None
 
 
 def do_login(user):

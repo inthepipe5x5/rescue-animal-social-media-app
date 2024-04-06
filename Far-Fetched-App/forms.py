@@ -1,5 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField, SelectMultipleField
+from wtforms import (
+    StringField,
+    PasswordField,
+    TextAreaField,
+    SelectMultipleField,
+    BooleanField,
+)
 from wtforms.validators import DataRequired, Email, Length
 from wtforms_alchemy import model_form_factory
 from models import (
@@ -8,6 +14,7 @@ from models import (
     UserAnimalBehaviorPreferences,
     UserAnimalAppearancePreferences,
 )
+from PetFinderAPI import pf_api
 
 
 class MessageForm(FlaskForm):
@@ -86,23 +93,131 @@ class MandatoryOnboardingForm(FlaskForm):
     )
 
 
-class SpecificAnimalBehaviorPreferenceForm(ModelForm):
-    """To capture user preferences for specific animal species. To be used to as optional filters on animals by behaviour
+class userSearchOptionsPreferencesForm(ModelForm):
+    """Form to capture user preferences for specific animal traits: behavior, medical history, physical traits
+    If none, user prefers to omit during search process. Intended to be linked to UserPreferences or
 
     Args:
-        ModelForm (_type_): _description_
+        ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
     """
 
-    class Meta:
-        model = UserAnimalBehaviorPreferences
+    behavior_medical_bool = BooleanField(
+        "Search by animal behavior or medical history?", default=False
+    )
+    # behavior options
+
+    # breeds
+    breeds_preference = BooleanField(
+        "Are you looking for specific breeds?", default=False
+    )
+
+    # physical traits
+    appearance_bool = BooleanField("Search by & appearance?", default=False)
+
+
+class SpecificAnimalBehaviorPreferenceForm(ModelForm):
+    """To capture user preferences for specific animal species. To be used to as optional filters on animals by behavior
+
+    Args:
+        ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
+    """
+
+    # class Meta:
+    #     model = UserAnimalBehaviorPreferences
+
+    # medical/behavior/attributes preferences
+    house_trained = BooleanField("House Trained", default=False)
+    declawed = BooleanField("Declawed", default=False)
+    shots_current = BooleanField("Immunizations are up to date", default=False)
+    special_needs = BooleanField("Special Needs", default=False)
+    spayed_neutered = BooleanField("Spayed/Neutered", default=False)
+
+    # animal reactivity preferences
+    child_friendly = BooleanField("Friendly to children?", default=False)
+    dogs_friendly = BooleanField("Friendly to dogs", default=False)
+    cats_friendly = BooleanField("Friendly to cats", default=False)
 
 
 class SpecificAnimalAppearancePreferenceForm(ModelForm):
     """To capture user preferences for specific animal species. To be used to as optional filters on animals by appearance
 
     Args:
-        ModelForm (_type_): _description_
+        ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
     """
 
-    class Meta:
-        model = UserAnimalAppearancePreferences
+    # class Meta:
+    #     model = UserAnimalAppearancePreferences
+
+    breeds_preferences = SelectMultipleField(
+        "", choices=[], default=False
+    )
+
+    animal_coat_preference = SelectMultipleField(
+        "Animal Coat Preference",
+        choices=[
+            ("Hairless", "Hairless"),
+            ("Short", "Short"),
+            ("Medium", "Medium"),
+            ("Long", "Long"),
+            ("Wire", "Wire"),
+            ("Curly", "Curly"),
+        ],
+        default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
+    )
+
+    animal_coat_color_preference = SelectMultipleField(
+        "Animal Coat Color Preference",
+        choices=[
+            ("Hairless", "Hairless"),
+            ("Short", "Short"),
+            ("Medium", "Medium"),
+            ("Long", "Long"),
+            ("Wire", "Wire"),
+            ("Curly", "Curly"),
+        ],
+        default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
+    )
+
+    animal_age_preference = SelectMultipleField(
+        "Animal Age Preference",
+        choices=[
+            ("baby", "baby"),
+            ("young", "young"),
+            ("adult", "adult"),
+            ("senior", "senior"),
+        ],
+        default=["baby", "young", "adult", "senior"],
+    )
+
+    animal_personality_tags_preferences = SelectMultipleField(
+        "Animal Personality Tags Preferences",
+        choices=[
+            ("cute", "Cute"),
+            ("intelligent", "Intelligent"),
+            ("friendly", "Friendly"),
+            ("affectionate", "Affectionate"),
+            ("energetic", "Energetic"),
+            ("calm", "Calm"),
+            ("curious", "Curious"),
+            ("loyal", "Loyal"),
+            # Add more choices as needed
+        ],
+        default=[],
+    )
+
+    animal_physical_attributes_preferences = SelectMultipleField(
+        "Animal Physical Attributes Preferences",
+        choices=[
+            ("small", "Small"),
+            ("medium", "Medium"),
+            ("large", "Large"),
+            ("xlarge", "Extra Large"),
+        ],
+        default=["small", "medium", "large", "xlarge"],
+    )
+
+    gender_preference = SelectMultipleField(
+        "Gender Preference",
+        choices=[("male", "Male"), ("female", "Female")],
+        default=["male", "female"],
+    )

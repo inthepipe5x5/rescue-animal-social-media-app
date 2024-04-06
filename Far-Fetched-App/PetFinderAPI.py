@@ -8,7 +8,7 @@ from models import User, UserPreferences
 from petpy import Petfinder
 
 
-class PetFinderPetPyAPI:
+class PetFinderPetPyAPI():
     """
     API class with methods to store access PetFinder API
     """
@@ -18,11 +18,12 @@ class PetFinderPetPyAPI:
         BASE_API_URL = "https://" + BASE_API_URL
 
     def __new__(cls):
-        cls.petpy_api_instance = Petfinder(
+        cls.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
         cls.auth_token_time = datetime.datetime.now()
-        cls.validate_auth_token(cls.petpy_api_instance._auth)
+        cls.breed_choices = cls.petpy_api.breeds()
+        cls.validate_auth_token(token_data=cls.petpy_api._auth)
 
     def get_authentication_token(self):
         """
@@ -30,8 +31,8 @@ class PetFinderPetPyAPI:
         """
         try:
             response = (
-                self.petpy_api_instance._authenticate()
-            )  # might be redundant as petpy_api_instance calls this function on authentication
+                self.petpy_api._authenticate()
+            )  # might be redundant as petpy_api calls this function on authentication
         finally:
             data = response.json()
             self.auth_token = data.access_token
@@ -42,7 +43,7 @@ class PetFinderPetPyAPI:
     @on_exception(expo, RateLimitException, max_tries=10)
     @limits(calls=50, period=1)
     @limits(calls=1000, period=86400)
-    def validate_auth_token(self, jsonify_data):
+    def validate_auth_token(self, token_data):
         """Validate if auth_token is valid or if a new token is needed.
 
         Returns:
@@ -50,13 +51,13 @@ class PetFinderPetPyAPI:
             False if not valid.
 
         Args:
-            jsonify_data (dict): JSON auth token data from PetFinder API.
+            token_data (dict): JSON auth token data from PetFinder API.
         """
-        if not isinstance(jsonify_data, dict):
-            raise TypeError("jsonify_data must be a dictionary.")
+        if not isinstance(token_data, dict):
+            raise TypeError("token_data must be a dictionary.")
 
         try:
-            token_valid_duration_in_seconds = jsonify_data.get("expires_in", 3600)
+            token_valid_duration_in_seconds = token_data.get("expires_in", 3600)
             current_time = datetime.datetime.now()
             expiry_time = self.auth_token_time + datetime.timedelta(
                 seconds=token_valid_duration_in_seconds
@@ -67,12 +68,9 @@ class PetFinderPetPyAPI:
                 or abs((self.auth_token_time - current_time).total_seconds()) <= 3600
             ):
                 # Token has expired or will expire within the next hour
-                self.auth_token = None
-                self.auth_token_time = None
-                self.get_authentication_token()  # Get a new token
-                return self.auth_token
+                return False
             else:
-                return jsonify_data.get("auth_token")
+                return token_data
         except Exception as e:
             # Handle any exceptions here
             print("An error occurred:", e)
@@ -119,7 +117,7 @@ class PetFinderPetPyAPI:
             )
 
         try:
-            init_orgs_df = self.petpy_api_instance.organizations(
+            init_orgs_df = self.petpy_api.organizations(
                 location=location,
                 distance=distance,
                 query=location,  # Search matching and partially matching name, city, or state.
@@ -173,7 +171,7 @@ class PetFinderPetPyAPI:
 
         user = User.query.get_or_404(id=user_id)
         user_preferences = UserPreferences.query.get_or_404(id=user_id)
-        matching_animals = self.petpy_api_instance.animals(
+        matching_animals = self.petpy_api.animals(
             type=animal_type_preferences,
             species=species_preference,
             breeds=breeds_preference,
@@ -181,3 +179,5 @@ class PetFinderPetPyAPI:
         )
 
         return matching_animals
+
+pf_api = PetFinderPetPyAPI()
