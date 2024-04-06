@@ -38,16 +38,20 @@ class UserAddForm(ModelForm):
     class Meta:
         model = User
 
+    location = StringField(
+        "Please Enter Your Location (Country, state/province, city OR postal code)",
+        validators=[DataRequired()],
+    )
 
 class UserEditForm(ModelForm):
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[Length(min=6)])
     image_url = TextAreaField("(Optional) Image URL")
-    location = StringField(
-        "Location (Country, state/province, city OR postal code)",
-        validators=[DataRequired()],
-    )
+    # location = StringField(
+    #     "Location (Country, state/province, city OR postal code)",
+    #     validators=[DataRequired()],
+    # )
     bio = TextAreaField("(Optional) Tell me about yourself!")
 
 
@@ -65,10 +69,6 @@ class MandatoryOnboardingForm(FlaskForm):
         FlaskForm (_type_): FlaskForm is a base class provided by Flask-WTF for creating forms in Flask applications.
     """
 
-    location = StringField(
-        "Please Enter Your Location (Country, state/province, city OR postal code)",
-        validators=[DataRequired()],
-    )
 
     # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
     animal_type_emojis = {
@@ -83,7 +83,7 @@ class MandatoryOnboardingForm(FlaskForm):
     }
 
     # Define the SelectMultipleField with the emoji labels
-    requested_animal_types = SelectMultipleField(
+    animal_types = SelectMultipleField(
         "What kind of animal rescue are you interested in? Select the animals you want to search for",
         choices=[
             (str_key, emoji_value)
@@ -93,13 +93,13 @@ class MandatoryOnboardingForm(FlaskForm):
     )
 
 
-class userSearchOptionsPreferencesForm(ModelForm):
-    """Form to capture user preferences for specific animal traits: behavior, medical history, physical traits
-    If none, user prefers to omit during search process. Intended to be linked to UserPreferences or
+# class userSearchOptionsPreferencesForm(ModelForm):
+#     """Form to capture user preferences for specific animal traits: behavior, medical history, physical traits
+#     If none, user prefers to omit during search process. Intended to be linked to UserPreferences or
 
-    Args:
-        ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
-    """
+#     Args:
+#         ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
+#     """
 
     behavior_medical_bool = BooleanField(
         "Search by animal behavior or medical history?", default=False
@@ -107,12 +107,12 @@ class userSearchOptionsPreferencesForm(ModelForm):
     # behavior options
 
     # breeds
-    breeds_preference = BooleanField(
-        "Are you looking for specific breeds?", default=False
+    breeds_preference_bool = BooleanField(
+        "Searching for specific breeds?", default=False
     )
 
     # physical traits
-    appearance_bool = BooleanField("Search by & appearance?", default=False)
+    appearance_bool = BooleanField("Search by physical traits?", default=False)
 
 
 class SpecificAnimalBehaviorPreferenceForm(ModelForm):
@@ -200,6 +200,10 @@ class SpecificAnimalAppearancePreferenceForm(ModelForm):
             ("calm", "Calm"),
             ("curious", "Curious"),
             ("loyal", "Loyal"),
+            ('active', 'Active'),
+            ('lazy', 'Lazy'),
+            ('gentle', 'Gentle'),
+            ('sweet', 'Sweet')
             # Add more choices as needed
         ],
         default=[],

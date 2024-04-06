@@ -102,8 +102,8 @@ class User(db.Model):
 
     bio = db.Column(db.Text)
 
-    location = db.Column(db.String(80))
-    # user_residence = db.relationship("user_residence", back_populates="user")
+    location = db.Column(db.models.ForeignKey("user_location", verbose_name=("UserLocation"), on_delete=models.CASCADE))
+    location = db.relationship("user_residence", back_populates="user")
 
     password = db.Column(
         db.Text,
@@ -137,7 +137,7 @@ class User(db.Model):
         return len(found_user_list) == 1
 
     @classmethod
-    def signup(cls, username, email, password, image_url):
+    def signup(cls, username, email, password, image_url, location):
         """Sign up user.
 
         Hashes password and adds user to system.
@@ -149,7 +149,7 @@ class User(db.Model):
             username=username,
             email=email,
             password=hashed_pwd,
-            image_url=image_url,
+            image_url=image_url, location=location
         )
 
         db.session.add(user)

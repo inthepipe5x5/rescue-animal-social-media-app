@@ -17,13 +17,13 @@ class PetFinderPetPyAPI():
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
 
-    def __new__(cls):
-        cls.petpy_api = Petfinder(
+    def __init__(self):
+        self.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
-        cls.auth_token_time = datetime.datetime.now()
-        cls.breed_choices = cls.petpy_api.breeds()
-        cls.validate_auth_token(token_data=cls.petpy_api._auth)
+        self.auth_token_time = datetime.datetime.now()
+        self.breed_choices = self.petpy_api.breeds()
+        self.validate_auth_token(token_data=cls.petpy_api._auth)
 
     def get_authentication_token(self):
         """
@@ -94,7 +94,7 @@ class PetFinderPetPyAPI():
         # WRITE CODE HERE
         pass
 
-    def get_init_df_of_animal_rescue_organizations_by_distance_location(
+    def get_init_rescue_organizations(
         self,
         distance=100,
         location="Toronto, Ontario",
