@@ -13,6 +13,8 @@ from models import (
     User,
     UserAnimalBehaviorPreferences,
     UserAnimalAppearancePreferences,
+    UserLocation,
+    UserTravelPreferences
 )
 from PetFinderAPI import pf_api
 
@@ -21,6 +23,12 @@ class MessageForm(FlaskForm):
     """Form for adding/editing messages."""
 
     text = TextAreaField("text", validators=[DataRequired()])
+
+class LoginForm(FlaskForm):
+    """Login form."""
+
+    username = StringField("Username", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[Length(min=6)])
 
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -43,32 +51,13 @@ class UserAddForm(ModelForm):
         validators=[DataRequired()],
     )
 
-class UserEditForm(ModelForm):
-    username = StringField("Username", validators=[DataRequired()])
-    email = StringField("E-mail", validators=[DataRequired(), Email()])
-    password = PasswordField("Password", validators=[Length(min=6)])
-    image_url = TextAreaField("(Optional) Image URL")
-    # location = StringField(
-    #     "Location (Country, state/province, city OR postal code)",
-    #     validators=[DataRequired()],
-    # )
-    bio = TextAreaField("(Optional) Tell me about yourself!")
 
+# class MandatoryOnboardingForm(FlaskForm):
+#     """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
 
-class LoginForm(FlaskForm):
-    """Login form."""
-
-    username = StringField("Username", validators=[DataRequired()])
-    password = PasswordField("Password", validators=[Length(min=6)])
-
-
-class MandatoryOnboardingForm(FlaskForm):
-    """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
-
-    Args:
-        FlaskForm (_type_): FlaskForm is a base class provided by Flask-WTF for creating forms in Flask applications.
-    """
-
+#     Args:
+#         FlaskForm (_type_): FlaskForm is a base class provided by Flask-WTF for creating forms in Flask applications.
+#     """
 
     # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
     animal_type_emojis = {
@@ -86,14 +75,26 @@ class MandatoryOnboardingForm(FlaskForm):
     animal_types = SelectMultipleField(
         "What kind of animal rescue are you interested in? Select the animals you want to search for",
         choices=[
-            (str_key, emoji_value)
-            for str_key, emoji_value in animal_type_emojis.items()
+        (str_value, emoji_key)
+        for str_value, emoji_key in animal_type_emojis.items()
         ],
         coerce=str, default=['dog', 'cat']
     )
 
+    #Rescue Action Type
+    rescue_action_type = SelectMultipleField(
+        "Select all the aspects of animal rescue you want to get involved in", 
+        choices=[
+        ('volunteer', 'Looking to Volunteer'),
+        ('foster', 'Animal Fostering'),
+        ('adopter', 'Looking to Adopt'),
+        ('donation', 'Donation')
+        ], 
+    coerce=str, default=['volunteer', 'foster', 'adopter','donation']
+    )
+    
 
-# class userSearchOptionsPreferencesForm(ModelForm):
+# class userSearchOptionsPreferencesForm(BaseUserForm):
 #     """Form to capture user preferences for specific animal traits: behavior, medical history, physical traits
 #     If none, user prefers to omit during search process. Intended to be linked to UserPreferences or
 
@@ -101,19 +102,42 @@ class MandatoryOnboardingForm(FlaskForm):
 #         ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
 #     """
 
-    behavior_medical_bool = BooleanField(
-        "Search by animal behavior or medical history?", default=False
+    # behavior_medical_bool = BooleanField(
+    #     "Search by animal behavior or medical history?", default=False
+    # )
+    # # behavior options
+
+    # # breeds
+    # breeds_preference_bool = BooleanField(
+    #     "Searching for specific breeds?", default=False
+    # )
+
+    # # physical traits
+    # appearance_bool = BooleanField("Search by physical traits?", default=False)
+
+class UserEditForm(ModelForm):
+    class Meta:
+        model=UserLocation
+        
+    username = StringField("Username", validators=[DataRequired()])
+    email = StringField("E-mail", validators=[DataRequired(), Email()])
+    password = PasswordField("Password", validators=[Length(min=6)])
+    image_url = TextAreaField("(Optional) Image URL")
+    location = StringField(
+        "Location (Country, state/province, city OR postal code)",
+        validators=[DataRequired()],
     )
-    # behavior options
+    bio = TextAreaField("(Optional) Tell me about yourself!")
 
-    # breeds
-    breeds_preference_bool = BooleanField(
-        "Searching for specific breeds?", default=False
-    )
+class UserLocationForm(ModelForm):
+    """Form for adding user location information"""
+    class Meta:
+        model=UserLocation
 
-    # physical traits
-    appearance_bool = BooleanField("Search by physical traits?", default=False)
-
+class UserTravelForm(ModelForm):
+    """Optional form for adding user travel preferences"""
+    class Meta:
+        model=UserTravelPreferences
 
 class SpecificAnimalPreferencesForm(FlaskForm):
     """To capture user preferences for specific animal species. To be used to as optional filters on animals by behavior and appearance
@@ -143,7 +167,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
     )
-    animal_coat_color_preference = SelectMultipleField(
+    coat_color_preferences = SelectMultipleField(
         "Animal Coat Color Preference",
         choices=[
             ("Hairless", "Hairless"),

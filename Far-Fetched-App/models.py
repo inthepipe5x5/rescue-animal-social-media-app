@@ -102,7 +102,7 @@ class User(db.Model):
 
     bio = db.Column(db.Text)
 
-    location = db.Column(db.models.ForeignKey("user_location", verbose_name=("UserLocation"), on_delete=models.CASCADE))
+    location = db.Column(db.String, db.ForeignKey("user_location", verbose_name=("UserLocation"), ondelete='cascade'))
     location = db.relationship("user_residence", back_populates="user")
 
     password = db.Column(
@@ -184,9 +184,20 @@ class UserPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
-
-    user_location = db.relationship("UserLocation", back_populates="user_preferences")
-
+    
+    #unique table data columns
+    species_global = db.Column(
+        db.ARRAY(db.String)
+    )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
+    rescue_action_type_global_preference = db.Column(
+        db.ARRAY(db.String(20))
+    )  # will store info can only be: volunteering, donation, adoption, animal foster
+    
+    
+    #relationships
+    user_location = db.relationship(
+        "UserLocation", back_populates="user_preferences"
+    )
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences", back_populates="user_preferences"
     )
@@ -202,17 +213,17 @@ class UserAnimalPreferences(db.Model):
     """Table to capture user preferences on a single type of animal: Must be one of 'dog', 'cat', 'rabbit', 'small-furry', 'horse', 'bird', 'scales-fins-other', or 'barnyard'."""
 
     __tablename__ = "user_animal_preferences"
-
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    species = db.Column(
-        db.ARRAY(db.String)
-    )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
+    
+    #table unique data columns
+    current_species = db.Column(db.String(20)) #captures the specific type of animal species for this preference
     rescue_interaction_type_preference = db.Column(
         db.ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
-
+    
+    #db.relationships
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_preferences"
     )
@@ -318,16 +329,14 @@ class UserLocation(db.Model):
     __tablename__ = "user_location"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    state_province = db.Column(db.String, nullable=False)
-    postal_code = db.Column(db.String, nullable=False)
-    city = db.Column(db.String)
-    country = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"), nullable=False)
+    state_province = db.Column(db.String(100), nullable=False)
+    postal_code = db.Column(db.String(20), nullable=False)
+    city = db.Column(db.String(100))
+    country = db.Column(db.String(100), nullable=False)
 
-    user_preferences = db.relationship(
-        "UserPreferences", back_populates="user_location"
-    )
+    user_preferences = db.relationship("UserPreferences", back_populates="user_location")
 
 
 class UserTravelPreferences(db.Model):
@@ -340,18 +349,11 @@ class UserTravelPreferences(db.Model):
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
     distance_filter_preference = db.Column(db.Integer)
-    willing_to_travel = db.Column(
-        db.Boolean
-    )  # general question, if false -> all others are defaulted to false
-    willing_to_fly_by_airplane = db.Column(
-        db.Boolean
-    )  # eg. for flight buddy opportunities
+    
+    willing_to_fly_by_airplane = db.Column(db.Boolean)  # eg. for flight buddy opportunities
     willing_to_drive = db.Column(db.Boolean)
     willing_to_carpool = db.Column(db.Boolean)
-    willing_to_transport = db.Column(
-        db.Boolean
-    )  # transport rescue animals, supplies, be the carpool driver
-    willing_to_take_transit = db.Column(db.Boolean)
+    willing_to_volunteer_transport = db.Column(db.Boolean)  # transport rescue animals, supplies, be the carpool driver
 
 
 class UserResources(db.Model):

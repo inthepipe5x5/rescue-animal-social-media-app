@@ -376,15 +376,21 @@ def animal_preferences(animal_type):
 
     # Query the PetFinder API to get breeds based on the selected animal types
     breed_choices = pf_api.breeds(animal_type)
-
-    # Populate breed choices in the form
-    form.breeds_preference.choices = [
-        (name, name.capitalize()) for name in breed_choices
-    ]
+    if breed_choices:
+        print(breed_choices)
+        # Populate breed choices in the form
+        form.breeds_preference.choices = [
+            (name, name.capitalize()) for name in breed_choices
+        ]
+    coat_color_choices = pf_api.animal_types(animal_type).coat
+    if coat_color_choices:
+        form.coat_color_preferences.choices = [
+            (name, name.capitalize()) for name in coat_color_choices
+        ]
 
     if form.validate_on_submit():
         # Process form submission
-        existing_animal_preferences = 
+        existing_animal_preferences = animal_preferences.query.get_or_404()
         form.populate_obj(existing_animal_preferences)
 
         # Redirect to the next form or route
