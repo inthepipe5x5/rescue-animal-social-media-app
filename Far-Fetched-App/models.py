@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import ARRAY
 
 bcrypt = Bcrypt()
 db = SQLAlchemy()
@@ -102,42 +103,36 @@ class User(db.Model):
 
     bio = db.Column(db.Text)
 
-    location = db.Column(db.String, db.ForeignKey("user_location", verbose_name=("UserLocation"), ondelete='cascade'))
-    location = db.relationship("user_residence", back_populates="user")
-
     password = db.Column(
         db.Text,
         nullable=False,
     )
+    
+    location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
+
     registration_date = db.Column(db.DateTime)
 
     animal_handling_experience = db.Column(
         db.String,
         db.ForeignKey("user_animal_handling_history.id"),
     )
-    matched_agencies = db.relationship("UserMatchedAgencies", back_populates="user")
-    followed_agencies = db.relationship("FollowedAgencies", back_populates="user")
+    preferences = db.relationship('UserPreferences', back_populates='user')
+    animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
+    locations = db.relationship("UserLocation", back_populates="user")
+    matched_orgs = db.relationship("UserMatchedOrg", back_populates="user")
+    followed_orgs = db.relationship("FollowedOrg", back_populates="user")
     user_reviews = db.relationship("UserReviews", back_populates="user")
 
-    following = db.relationship(
-        "User",
-        secondary="follows",
-        primaryjoin=(Follows.user_following_id == id),
-        overlaps="followers",
-        secondaryjoin=(Follows.user_being_followed_id == id),
-    )
-
     def __repr__(self):
-        return f"<User #{self.id}: {self.username}, {self.email}, {self.bio}, {self.location}>"
+        return f"<User #{self.id}: {self.username}, {self.email}, {self.bio}, {self.locations}>"
 
-    def is_following(self, other_user):
+    def is_following(self, specific_org):
         """Is this user following any rescue agencies?"""
 
-        found_user_list = [user for user in self.following if user == other_user]
-        return len(found_user_list) == 1
+        return specific_org in self.followed_orgs
 
     @classmethod
-    def signup(cls, username, email, password, image_url, location):
+    def signup(cls, username, email, password, image_url, location, bio):
         """Sign up user.
 
         Hashes password and adds user to system.
@@ -149,8 +144,11 @@ class User(db.Model):
             username=username,
             email=email,
             password=hashed_pwd,
-            image_url=image_url, location=location
+            image_url=image_url,
+            bio=bio,
         )
+        if location:
+            user.location = location
 
         db.session.add(user)
         return user
@@ -168,10 +166,8 @@ class User(db.Model):
 
         user = cls.query.filter_by(username=username).first()
 
-        if user:
-            is_auth = bcrypt.check_password_hash(user.password, password)
-            if is_auth:
-                return user
+        if user and bcrypt.check_password_hash(user.password, password):
+            return user
 
         return False
 
@@ -184,20 +180,18 @@ class UserPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
-    
-    #unique table data columns
+
+    # unique table data columns
     species_global = db.Column(
-        db.ARRAY(db.String)
+        ARRAY(db.String)
     )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
     rescue_action_type_global_preference = db.Column(
-        db.ARRAY(db.String(20))
+        ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
-    
-    
-    #relationships
-    user_location = db.relationship(
-        "UserLocation", back_populates="user_preferences"
-    )
+
+    # relationships
+    user = db.relationship('User', back_populates='preferences')
+    user_location = db.relationship("UserLocation", back_populates="user_preferences")
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences", back_populates="user_preferences"
     )
@@ -216,14 +210,16 @@ class UserAnimalPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-    
-    #table unique data columns
-    current_species = db.Column(db.String(20)) #captures the specific type of animal species for this preference
+
+    # table unique data columns
+    current_species = db.Column(
+        db.String(20)
+    )  # captures the specific type of animal species for this preference
     rescue_interaction_type_preference = db.Column(
-        db.ARRAY(db.String(20))
+        ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
-    
-    #db.relationships
+
+    # db.relationships
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_preferences"
     )
@@ -251,18 +247,20 @@ class UserAnimalBehaviorPreferences(db.Model):
     )
 
     # attributes preferences
-    house_trained = db.Column(db.boolean)
-    declawed = db.Column(db.boolean)
-    shots_current = db.Column(db.boolean)
-    special_needs = db.Column(db.boolean)
-    spayed_neutered = db.Column(db.boolean)
+    house_trained = db.Column(db.Boolean)
+    declawed = db.Column(db.Boolean)
+    shots_current = db.Column(db.Boolean)
+    special_needs = db.Column(db.Boolean)
+    spayed_neutered = db.Column(db.Boolean)
 
     # environmental preferences
-    child_friendly = db.Column(db.boolean)
-    dogs_friendly = db.Column(db.boolean)
-    cats_friendly = db.Column(db.boolean)
+    child_friendly = db.Column(db.Boolean)
+    dogs_friendly = db.Column(db.Boolean)
+    cats_friendly = db.Column(db.Boolean)
 
     # db relationships
+    user=db.relationship("User", back_populates="locations", foreign_keys=[user_id])
+    
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_behavior_preferences"
     )
@@ -294,27 +292,29 @@ class UserAnimalAppearancePreferences(db.Model):
 
     # so when querying -> search by category & categoryValue that matches the API search params
 
-    breeds_preference = db.Column(db.Array(db.String))
+    breeds_preference = db.Column(ARRAY(db.String))
     animal_coat_preference = db.Column(
-        db.Array(db.String)
+        ARRAY(db.String)
     )  # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
     animal_coat_color_preference = db.Column(
-        db.Array(db.String)
+        ARRAY(db.String)
     )  # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
     animal_age_preference = db.Column(
-        db.ARRAY(db.String)
+        ARRAY(db.String)
     )  # will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
     animal_personality_tags_preferences = db.Column(
-        db.ARRAY(db.String)
+        ARRAY(db.String)
     )  # will store user choices regarding animal personality
     animal_physical_attributes_preferences = db.Column(
-        db.ARRAY(db.String)
+        ARRAY(db.String)
     )  # will store user choices regarding animal size eg. x-small, small, medium, large, x-large
     gender_preference = db.Column(
-        db.ARRAY(db.String)
+        ARRAY(db.String)
     )  # eg. "["male", "female"]" -> user wants both
 
     # db relationships
+    user=db.relationship("User", back_populates="user_animal_appearance_preferences", foreign_keys=[user_id])
+    
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_appearance_preferences"
     )
@@ -329,14 +329,20 @@ class UserLocation(db.Model):
     __tablename__ = "user_location"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
-    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_preferences_id = db.Column(
+        db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
+    )
     state_province = db.Column(db.String(100), nullable=False)
     postal_code = db.Column(db.String(20), nullable=False)
     city = db.Column(db.String(100))
     country = db.Column(db.String(100), nullable=False)
 
-    user_preferences = db.relationship("UserPreferences", back_populates="user_location")
+    user=db.relationship("User", back_populates="locations", foreign_keys=[user_id])
+    
+    user_preferences = db.relationship(
+        "UserPreferences", back_populates="user_location"
+    )
 
 
 class UserTravelPreferences(db.Model):
@@ -349,11 +355,15 @@ class UserTravelPreferences(db.Model):
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
     distance_filter_preference = db.Column(db.Integer)
-    
-    willing_to_fly_by_airplane = db.Column(db.Boolean)  # eg. for flight buddy opportunities
+
+    willing_to_fly_by_airplane = db.Column(
+        db.Boolean
+    )  # eg. for flight buddy opportunities
     willing_to_drive = db.Column(db.Boolean)
     willing_to_carpool = db.Column(db.Boolean)
-    willing_to_volunteer_transport = db.Column(db.Boolean)  # transport rescue animals, supplies, be the carpool driver
+    willing_to_volunteer_transport = db.Column(
+        db.Boolean
+    )  # transport rescue animals, supplies, be the carpool driver
 
 
 class UserResources(db.Model):
@@ -379,8 +389,8 @@ class UserResidence(db.Model):
 
     # resident type
     dwelling_type = db.Column(db.String, nullable=True)
-    dwelling_size = db.Column(db.string)
-    potential_hazards_description = db.Column(db.string)
+    dwelling_size = db.Column(db.String)
+    potential_hazards_description = db.Column(db.String)
     has_yard = db.Column(db.Boolean)
     has_pool = db.Column(db.Boolean)
     has_fence_surrounding_dwelling = db.Column(db.Boolean)
@@ -397,9 +407,9 @@ class UserCurrentPets(db.Model):
 
     user_has_pets = db.Column(db.Boolean)
     pet_quantity = db.Column(db.Integer)
-    pet_type = db.Column(db.ARRAY(db.String))
+    pet_type = db.Column(ARRAY(db.String))
     pets_age = db.Column(
-        db.Array(db.String)
+        ARRAY(db.String)
     )  # Accepted values: ‘baby’,’young’, ‘adult’, ‘senior’.
     user_pets_has_medical_conditions = db.Column(db.Boolean)
 

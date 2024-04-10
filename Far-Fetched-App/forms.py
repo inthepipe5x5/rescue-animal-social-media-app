@@ -16,7 +16,7 @@ from models import (
     UserLocation,
     UserTravelPreferences
 )
-from PetFinderAPI import pf_api
+# from PetFinderAPI import pf_api
 
 
 class MessageForm(FlaskForm):
@@ -46,18 +46,18 @@ class UserAddForm(ModelForm):
     class Meta:
         model = User
 
-    location = StringField(
-        "Please Enter Your Location (Country, state/province, city OR postal code)",
-        validators=[DataRequired()],
-    )
+    # location = StringField(
+    #     "Please Enter Your Location (Country, state/province, city OR postal code)",
+    #     validators=[DataRequired()],
+    # )
 
 
-# class MandatoryOnboardingForm(FlaskForm):
-#     """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
+class MandatoryOnboardingForm(FlaskForm):
+    """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
 
-#     Args:
-#         FlaskForm (_type_): FlaskForm is a base class provided by Flask-WTF for creating forms in Flask applications.
-#     """
+    Args:
+        FlaskForm (_type_): FlaskForm is a base class provided by Flask-WTF for creating forms in Flask applications.
+    """
 
     # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
     animal_type_emojis = {

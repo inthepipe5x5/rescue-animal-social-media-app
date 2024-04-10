@@ -23,7 +23,7 @@ class PetFinderPetPyAPI():
         )
         self.auth_token_time = datetime.datetime.now()
         self.breed_choices = self.petpy_api.breeds()
-        self.validate_auth_token(token_data=cls.petpy_api._auth)
+        self.validate_auth_token(token_data=self.petpy_api._auth)
 
     def get_authentication_token(self):
         """
@@ -169,8 +169,8 @@ class PetFinderPetPyAPI():
             user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
         """
 
-        user = User.query.get_or_404(id=user_id)
-        user_preferences = UserPreferences.query.get_or_404(id=user_id)
+        user = User.query.get_or_404(User.id==user_id)
+        user_preferences = UserPreferences.query.get_or_404(User.id==user_id)
         matching_animals = self.petpy_api.animals(
             type=animal_type_preferences,
             species=species_preference,
@@ -180,4 +180,4 @@ class PetFinderPetPyAPI():
 
         return matching_animals
 
-pf_api = PetFinderPetPyAPI()
+# pf_api = PetFinderPetPyAPI()
