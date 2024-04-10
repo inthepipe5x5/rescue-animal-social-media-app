@@ -149,7 +149,7 @@ class PetFinderPetPyAPI():
         mapped_preferences['location_preference'] = user_preferences.location_preference if user_preferences.location_preference else []
         mapped_preferences['distance_preference'] = user_preferences.distance_preference if user_preferences.distance_preference else []
         mapped_preferences['status_preference'] = user_preferences.rescue_interaction_type_preference if user_preferences.rescue_interaction_type_preferences_preference else []
-        mapped_preferences['animal_type_preferences'] = user_preferences.animal_type_preferences if user_preferences.animal_type_preferences else []
+        mapped_preferences['specific_animal_type_preferences'] = user_preferences.specific_animal_type_preferences if user_preferences.specific_animal_type_preferences else []
         
         mapped_preferences['species_preference'] = user_preferences.species_preference if user_preferences.species_preference else []
         

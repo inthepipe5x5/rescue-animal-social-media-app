@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, flash, redirect, session, g, url_for
+from flask import Flask, render_template, request, flash, redirect, session, g, url_for, jsonify
 
 # from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError
@@ -19,10 +19,10 @@ from forms import (
     UserAddForm,
     LoginForm,
     UserEditForm,
-    MandatoryOnboardingForm,
+    # MandatoryOnboardingForm,
     # userSearchOptionsPreferencesForm,
-    UserAnimalBehaviorPreferences,
-    SpecificAnimalAppearancePreferenceForm
+    # UserAnimalBehaviorPreferences,
+    SpecificAnimalPreferencesForm
 )
 from PetFinderAPI import pf_api
 
@@ -79,13 +79,13 @@ def add_user_to_g():
 
 def add_user_animal_types_to_g():
     """Add the animal types preferred by the user to 'g'"""
-    if ANIMAL_TYPES in session:
+    if 'ANIMAL_TYPES' in session:
         # Get animal types selected by the user from the previous form submission
-        session[ANIMAL_TYPES] = UserAnimalPreferences.get_or_404(
+        session['ANIMAL_TYPES'] = UserAnimalPreferences.get_or_404(
             UserAnimalPreferences.user_id == session[CURR_USER_KEY]
         )
     else:
-        session[ANIMAL_TYPES] = None
+        session['ANIMAL_TYPES'] = None
 
 
 def do_login(user):
@@ -304,6 +304,27 @@ def delete_user():
 
 
 ##############################################################################
+# Route to get updated API data
+@app.route('/get_data_results', methods=['GET'])
+def get_data_results():
+    if 'api_data' in session:
+        return jsonify(session['api_data'])
+    return jsonify({})  # Return empty JSON if no data in session
+
+# Route to handle form submissions and API calls
+@app.route('/submit_section', methods=['POST'])
+def submit_section():
+    section_data = request.form
+    # Make API call using section_data
+    mapped_preferences_data = pf_api.map_user_preferences(section_data)
+    api_data = pf_api.petpy_api.animals(mapped_preferences_data)
+    # Store API data in session
+    session['api_data'] = api_data
+    return 'API data received'
+##############################################################################
+
+
+
 @app.route("/options/new", methods=["GET", "POST"])
 def new_mandatory_options():
     """Sign Up Route -> mandatory onboarding form of user preferences to sort content for users
