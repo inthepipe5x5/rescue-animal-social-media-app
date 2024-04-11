@@ -135,9 +135,9 @@ class User(db.Model):
         nullable=False,
     )
 
-    location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
+    # location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
 
-    rescue_interaction_type_preference = db.Column(
+    rescue_interaction_type_preference = db.Column('interaction_type',
         ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
 
@@ -274,7 +274,7 @@ class UserAnimalPreferences(db.Model):
     # )
     user = db.relationship(
         "User",
-        back_populates="animal_preferences",
+        back_populates="user_animal_preferences",
         foreign_keys=[user_id],
         remote_side="User.id",
     )

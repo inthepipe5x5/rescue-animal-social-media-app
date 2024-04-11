@@ -24,13 +24,12 @@ from forms import (
     # UserAnimalBehaviorPreferences,
     SpecificAnimalPreferencesForm
 )
-from PetFinderAPI import pf_api
+from PetFinderAPI import PetFinderPetPyAPI
+
+pf_api = PetFinderPetPyAPI()
 
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
-session["ANIMAL_TYPES"] = (
-    []
-)  # session[ANIMAL_TYPES] = python list of 6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
 
 # RESOLVE THIS: commented out font_awesome as there an import error to be resolved
 # font_awesome = FontAwesome(app)
@@ -41,6 +40,9 @@ load_dotenv()
 
 # create Flask app
 app = Flask(__name__)
+# session["ANIMAL_TYPES"] = (
+#     []
+# )  # session[ANIMAL_TYPES] = python list of 6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
 
 # create config instance
 app_config_instance = Config()
@@ -77,15 +79,15 @@ def add_user_to_g():
 #     g.auth_token = PetFinderPetPyAPI.get_authentication_token()
 
 
-def add_user_animal_types_to_g():
-    """Add the animal types preferred by the user to 'g'"""
-    if 'ANIMAL_TYPES' in session:
-        # Get animal types selected by the user from the previous form submission
-        session['ANIMAL_TYPES'] = UserAnimalPreferences.get_or_404(
-            UserAnimalPreferences.user_id == session[CURR_USER_KEY]
-        )
-    else:
-        session['ANIMAL_TYPES'] = None
+# def add_user_animal_types_to_g():
+#     """Add the animal types preferred by the user to 'g'"""
+#     if 'ANIMAL_TYPES' in session:
+#         # Get animal types selected by the user from the previous form submission
+#         session['ANIMAL_TYPES'] = UserAnimalPreferences.get_or_404(
+#             UserAnimalPreferences.user_id == session[CURR_USER_KEY]
+#         )
+#     else:
+#         session['ANIMAL_TYPES'] = None
 
 
 def do_login(user):
@@ -391,7 +393,7 @@ def edit_mandatory_options():
     else:
         return redirect(url_for('login')) #user is redirected to login as they do not have the right credentials
 
-@app.route("/options/animal_preferences/<str:animal_type>", methods=["GET", "POST"])
+@app.route("/options/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     form = SpecificAnimalPreferencesForm()
 

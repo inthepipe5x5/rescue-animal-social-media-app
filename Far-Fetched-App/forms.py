@@ -45,7 +45,7 @@ class UserAddForm(ModelForm):
 
     class Meta:
         model = User
-
+        exclude=['rescue_interaction_type_preference']
     # location = StringField(
     #     "Please Enter Your Location (Country, state/province, city OR postal code)",
     #     validators=[DataRequired()],
