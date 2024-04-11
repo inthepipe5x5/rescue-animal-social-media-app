@@ -82,7 +82,12 @@ class UserLocation(db.Model):
     city = db.Column(db.String(100))
     country = db.Column(db.String(100), nullable=False)
 
-    user = db.relationship("User", back_populates="location", foreign_keys=[user_id], remote_side='User.id')
+    user = db.relationship(
+        "User",
+        back_populates="location",
+        foreign_keys=[user_id],
+        remote_side="UserLocation.user_id",
+    )
 
     # user_preferences = db.relationship(
     #     "UserPreferences",
@@ -142,10 +147,13 @@ class User(db.Model):
         db.String,
         db.ForeignKey("user_animal_handling_history.id"),
     )
-    user_animal_preferences = db.relationship("UserAnimalPreferences", back_populates="user")
+    user_animal_preferences = db.relationship(
+        "UserAnimalPreferences", back_populates="user"
+    )
     # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
     location = db.relationship(
-        "UserLocation", back_populates="user", foreign_keys=[UserLocation.user_id], remote_side=UserLocation.id
+        "UserLocation",
+        back_populates="user",
     )
     matched_rescue_orgs = db.relationship(
         "MatchedRescueOrganization", back_populates="user"
@@ -243,7 +251,9 @@ class UserAnimalPreferences(db.Model):
     # user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
     # table unique data columns
-    species = db.Column(db.String(20), default="dog")  # captures the specific type of animal species for this preference
+    species = db.Column(
+        db.String(20), default="dog"
+    )  # captures the specific type of animal species for this preference
 
     user_preference_name = db.Column(db.String(100), nullable=False)
     user_preference_data = db.Column(db.String(100), nullable=False)
@@ -262,7 +272,12 @@ class UserAnimalPreferences(db.Model):
     # user_animal_behavior_preferences = db.relationship(
     #     "UserAnimalBehaviorPreferences", back_populates="user_animal_preferences", foreign_keys=[user_animal_behavior_preferences_id], remote_side=[id]
     # )
-    user=db.relationship("User", back_populates="user_animal_preferences", foreign_keys=[user_id])
+    user = db.relationship(
+        "User",
+        back_populates="animal_preferences",
+        foreign_keys=[user_id],
+        remote_side="User.id",
+    )
 
 
 # class UserAnimalBehaviorPreferences(db.Model):
@@ -355,7 +370,6 @@ class UserAnimalPreferences(db.Model):
 #     user_animal_preferences = db.relationship(
 #         "UserAnimalPreferences", back_populates="user_animal_appearance_preferences"
 # )
-
 
 
 # User Application Data Tables
