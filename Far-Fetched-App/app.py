@@ -400,12 +400,12 @@ def animal_preferences(animal_type):
     if breed_choices:
         print(breed_choices)
         # Populate breed choices in the form
-        form.breeds.choices = [
+        form.AppearancePreferencesSection.breeds.choices = [
             (name, name.capitalize()) for name in breed_choices
         ]
     coat_color_choices = pf_api.animal_types(animal_type).coat
     if coat_color_choices:
-        form.color.choices = [
+        form.AppearancePreferencesSection.color.choices = [
             (name, name.capitalize()) for name in coat_color_choices
         ]
 

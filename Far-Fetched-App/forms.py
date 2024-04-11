@@ -140,82 +140,95 @@ class UserTravelForm(ModelForm):
         model=UserTravelPreferences
 
 class SpecificAnimalPreferencesForm(FlaskForm):
-    """To capture user preferences for specific animal species. To be used to as optional filters on animals by behavior and appearance
-    """
+    """To capture user preferences for specific animal species. To be used as optional filters on animals by behavior and appearance."""
 
-    # Behavior Preferences
-    
-    #Medical Preferences
-    house_trained = BooleanField("House Trained", default=False)
-    declawed = BooleanField("Declawed", default=False)
-    shots_current = BooleanField("Immunizations are up to date", default=False)
-    special_needs = BooleanField("Special Needs", default=False)
-    spayed_neutered = BooleanField("Spayed/Neutered", default=False)
-    
-    #dog_cat_child_friendliness
-    child_friendly = BooleanField("Friendly to children?", default=False)
-    dogs_friendly = BooleanField("Friendly to dogs", default=False)
-    cats_friendly = BooleanField("Friendly to cats", default=False)
+    # Medical Preferences
+    class MedicalPreferencesSection:
+        declawed = BooleanField("Declawed", default=False)
+        shots_current = BooleanField("Immunizations are up to date", default=False)
+        special_needs = BooleanField("Special Needs", default=False)
+        spayed_neutered = BooleanField("Spayed/Neutered", default=False)
+
+    # Animal Training & Socialization Preferences
+    class TrainingSocializationSection:
+        house_trained = BooleanField("House Trained", default=False)
+        child_friendly = BooleanField("Friendly to children?", default=False)
+        dogs_friendly = BooleanField("Friendly to dogs", default=False)
+        cats_friendly = BooleanField("Friendly to cats", default=False)
 
     # Appearance Preferences
-    breeds_preferences = SelectMultipleField("", choices=[], default=False)
-    color = SelectMultipleField(
-        "Animal Coat Preference",
-        choices=[],
-        default=[],
-    )
-    coat = SelectMultipleField(
-        "Animal Coat Color Preference",
-        choices=[
-            ("Hairless", "Hairless"),
-            ("Short", "Short"),
-            ("Medium", "Medium"),
-            ("Long", "Long"),
-            ("Wire", "Wire"),
-            ("Curly", "Curly"),
-        ],
-        default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
-    )
-    age = SelectMultipleField(
-        "Animal Age Preference",
-        choices=[
-            ("baby", "baby"),
-            ("young", "young"),
-            ("adult", "adult"),
-            ("senior", "senior"),
-        ],
-        default=["baby", "young", "adult", "senior"],
-    )
-    animal_personality_tags_preferences = SelectMultipleField(
-        "Animal Personality Tags Preferences",
-        choices=[
-            ("cute", "Cute"),
-            ("intelligent", "Intelligent"),
-            ("friendly", "Friendly"),
-            ("affectionate", "Affectionate"),
-            ("energetic", "Energetic"),
-            ("calm", "Calm"),
-            ("curious", "Curious"),
-            ("loyal", "Loyal"),
-            ('active', 'Active'),
-            ('lazy', 'Lazy'),
-            ('gentle', 'Gentle'),
-            ('sweet', 'Sweet')
-        ],
-        default=[],
-    )
-    size = SelectMultipleField(
-        "Animal Physical Attributes Preferences",
-        choices=[
-            ("small", "Small"),
-            ("medium", "Medium"),
-            ("large", "Large"),
-            ("xlarge", "Extra Large"),
-        ],
-        default=["small", "medium", "large", "xlarge"],
-    )
-    gender = SelectMultipleField(
-        "Gender Preference",
-        choices=[("male", "Male"), ("female", "Female")],
-        default=["male", "female"],
-    )
+    class AppearancePreferencesSection:
+        breeds = SelectMultipleField("", choices=[], default=False)
+
+        # Coat Preferences
+        color = SelectMultipleField(
+            "Animal Coat Preference",
+            choices=[],
+            default=[],
+        )
+        coat = SelectMultipleField(
+            "Animal Coat Color Preference",
+            choices=[
+                ("Hairless", "Hairless"),
+                ("Short", "Short"),
+                ("Medium", "Medium"),
+                ("Long", "Long"),
+                ("Wire", "Wire"),
+                ("Curly", "Curly"),
+            ],
+            default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
+        )
+
+        # Age Preferences
+        age = SelectMultipleField(
+            "Animal Age Preference",
+            choices=[
+                ("baby", "baby"),
+                ("young", "young"),
+                ("adult", "adult"),
+                ("senior", "senior"),
+            ],
+            default=["baby", "young", "adult", "senior"],
+        )
+
+    # Personality Preferences
+    class PersonalityPreferencesSection:
+        animal_personality_tags_preferences = SelectMultipleField(
+            "Animal Personality Tags Preferences",
+            choices=[
+                ("cute", "Cute"),
+                ("intelligent", "Intelligent"),
+                ("friendly", "Friendly"),
+                ("affectionate", "Affectionate"),
+                ("energetic", "Energetic"),
+                ("calm", "Calm"),
+                ("curious", "Curious"),
+                ("loyal", "Loyal"),
+                ("active", "Active"),
+                ("lazy", "Lazy"),
+                ("gentle", "Gentle"),
+                ("sweet", "Sweet"),
+            ],
+            default=[],
+        )
+
+    # Size Preferences
+    class SizePreferencesSection:
+        size = SelectMultipleField(
+            "Animal Physical Attributes Preferences",
+            choices=[
+                ("small", "Small"),
+                ("medium", "Medium"),
+                ("large", "Large"),
+                ("xlarge", "Extra Large"),
+            ],
+            default=["small", "medium", "large", "xlarge"],
+        )
+
+    # Gender Preferences
+    class GenderPreferencesSection:
+        gender = SelectMultipleField(
+            "Gender Preference",
+            choices=[("male", "Male"), ("female", "Female")],
+            default=["male", "female"],
+        )
