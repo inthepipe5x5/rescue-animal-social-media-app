@@ -10,50 +10,44 @@ bcrypt = Bcrypt()
 db = SQLAlchemy()
 
 
-class Follows(db.Model):
-    """Connection of a follower <-> followed_user."""
+# class Follows(db.Model):
+#     """Connection of a follower <-> followed_followed_org."""
 
-    __tablename__ = "follows"
+#     __tablename__ = "follows"
 
-    rescue_org_being_followed_id = db.Column(
-        db.Integer,
-        db.ForeignKey("rescueOrg.id", ondelete="cascade"),
-        primary_key=True,
-    )
+#     rescue_org_being_followed_id = db.Column(
+#         db.Integer,
+#         db.ForeignKey("rescueOrg.id", ondelete="cascade"),
+#         primary_key=True,
+#     )
 
-    user_following_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id", ondelete="cascade"),
-        primary_key=True,
-    )
+#     user_following_id = db.Column(
+#         db.Integer,
+#         db.ForeignKey("users.id", ondelete="cascade"),
+#         primary_key=True,
+#     )
 
 
-class RescueOrganization(db.Model):
-    """Rescue Organization db.Model
+# class RescueOrganization(db.Model):
+#     """Rescue Organization db.Model
+#     """
 
-    Args:
-        db (_type_): _description_
+#     __tablename__ = "rescueOrg"
 
-    Returns:
-        _type_: _description_
-    """
+#     id = db.Column(
+#         db.Integer,
+#         primary_key=True,
+#     )
 
-    __tablename__ = "rescueOrg"
-
-    id = db.Column(
-        db.Integer,
-        primary_key=True,
-    )
-
-    name = db.Column(
-        db.Text,
-        nullable=False,
-        unique=True,
-    )
+#     name = db.Column(
+#         db.Text,
+#         nullable=False,
+#         unique=True,
+#     )
 
 
 class MatchedRescueOrganization(db.Model):
-    """Rescue Organization db.Model"""
+    """Matched Rescue Organization db.Model captures information about a Rescue Organization and the relationship to a specific user"""
 
     __tablename__ = "matched_rescue_org"
 
@@ -68,6 +62,7 @@ class MatchedRescueOrganization(db.Model):
     matched_datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
     followed_by_user_bool = db.Column(db.Boolean, default=False)
 
+    user = db.relationship("User", foreign_keys=[matched_user_id], back_populates="matched_rescue_orgs")
 
 class User(db.Model):
     """User in the system."""
@@ -117,19 +112,19 @@ class User(db.Model):
         db.ForeignKey("user_animal_handling_history.id"),
     )
     preferences = db.relationship('UserPreferences', back_populates='user')
-    animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
-    locations = db.relationship("UserLocation", back_populates="user")
-    matched_orgs = db.relationship("UserMatchedOrg", back_populates="user")
-    followed_orgs = db.relationship("FollowedOrg", back_populates="user")
-    user_reviews = db.relationship("UserReviews", back_populates="user")
+    # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
+    location = db.relationship("UserLocation", foreign_keys=[location_id], back_populates="user")
+    matched_rescue_orgs = db.relationship("MatchedRescueOrganization", back_populates="user")
+    # followed_orgs = db.relationship("FollowedOrg", back_populates="user")
+    # user_reviews = db.relationship("UserReviews", back_populates="user")
 
     def __repr__(self):
-        return f"<User #{self.id}: {self.username}, {self.email}, {self.bio}, {self.locations}>"
+        return f"<User #{self.id}: {self.username}, {self.email}, {self.bio}, {self.location}>"
 
-    def is_following(self, specific_org):
-        """Is this user following any rescue agencies?"""
+    # def is_following(self, specific_org):
+    #     """Is this user following any rescue agencies?"""
 
-        return specific_org in self.followed_orgs
+    #     return specific_org in self.followed_orgs
 
     @classmethod
     def signup(cls, username, email, password, image_url, location, bio):
@@ -178,20 +173,20 @@ class UserPreferences(db.Model):
     __tablename__ = "user_preferences"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-    user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    # user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
 
-    # unique table data columns
-    species_global = db.Column(
-        ARRAY(db.String)
-    )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
-    rescue_action_type_global_preference = db.Column(
-        ARRAY(db.String(20))
-    )  # will store info can only be: volunteering, donation, adoption, animal foster
+    # # unique table data columns
+    # species_global = db.Column(
+    #     ARRAY(db.String), default=['dog', 'cat']
+    # )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
+    # rescue_action_type_global_preference = db.Column(
+    #     ARRAY(db.String(20))
+    # )  # will store info can only be: volunteering, donation, adoption, animal foster
 
     # relationships
     user = db.relationship('User', back_populates='preferences')
-    user_location = db.relationship("UserLocation", back_populates="user_preferences")
+    # user_location = db.relationship("UserLocation", back_populates="user_preferences")
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences", back_populates="user_preferences"
     )
@@ -212,22 +207,25 @@ class UserAnimalPreferences(db.Model):
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
     # table unique data columns
-    current_species = db.Column(
+    species = db.Column(
         db.String(20)
     )  # captures the specific type of animal species for this preference
     rescue_interaction_type_preference = db.Column(
         ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
 
+    user_animal_appearance_preferences_id = db.Column(db.Integer, db.ForeignKey('user_animal_appearance_preferences.id'))
+    user_animal_behavior_preferences_id = db.Column(db.Integer, db.ForeignKey('user_animal_behavior_preferences.id'))
+    
     # db.relationships
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_preferences"
     )
     user_animal_appearance_preferences = db.relationship(
-        "UserAnimalAppearancePreferences", back_populates="user_animal_preferences"
+        "UserAnimalAppearancePreferences", back_populates="user_animal_preferences", foreign_keys=[user_animal_appearance_preferences_id], remote_side=[id]
     )
     user_animal_behavior_preferences = db.relationship(
-        "UserAnimalBehaviorPreferences", back_populates="user_animal_preferences"
+        "UserAnimalBehaviorPreferences", back_populates="user_animal_preferences", foreign_keys=[user_animal_behavior_preferences_id], remote_side=[id]
     )
 
 
@@ -237,14 +235,14 @@ class UserAnimalBehaviorPreferences(db.Model):
     __tablename__ = "user_animal_behavior_preferences"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    # user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
     user_animal_preferences_id = db.Column(
         db.Integer, db.ForeignKey("user_animal_preferences.id")
     )
-    user_animal_preferences_species = db.Column(
-        db.Integer, db.ForeignKey("user_animal_preferences.species")
-    )
+    # user_animal_preferences_species = db.Column(
+    #     db.Integer, db.ForeignKey("user_animal_preferences.species")
+    # )
 
     # attributes preferences
     house_trained = db.Column(db.Boolean)
@@ -259,13 +257,13 @@ class UserAnimalBehaviorPreferences(db.Model):
     cats_friendly = db.Column(db.Boolean)
 
     # db relationships
-    user=db.relationship("User", back_populates="locations", foreign_keys=[user_id])
+    # user=db.relationship("User", back_populates="user_animal_behavior_preferences", foreign_keys=[user_id])
     
     user_preferences = db.relationship(
-        "UserPreferences", back_populates="user_animal_behavior_preferences"
+        "UserPreferences", back_populates="user_animal_behavior_preferences", foreign_keys=[user_preferences_id]
     )
     user_animal_preferences = db.relationship(
-        "UserAnimalPreferences", back_populates="user_animal_behavior_preferences"
+        "UserAnimalPreferences", back_populates="user_animal_behavior_preferences", foreign_keys=[user_animal_preferences_id]
     )
 
 
@@ -275,7 +273,7 @@ class UserAnimalAppearancePreferences(db.Model):
     __tablename__ = "user_animal_appearance_preferences"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    # user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
     user_animal_preferences_id = db.Column(
         db.Integer, db.ForeignKey("user_animal_preferences.id")
@@ -313,7 +311,7 @@ class UserAnimalAppearancePreferences(db.Model):
     )  # eg. "["male", "female"]" -> user wants both
 
     # db relationships
-    user=db.relationship("User", back_populates="user_animal_appearance_preferences", foreign_keys=[user_id])
+    # user=db.relationship("User", back_populates="user_animal_appearance_preferences", foreign_keys=[user_id])
     
     user_preferences = db.relationship(
         "UserPreferences", back_populates="user_animal_appearance_preferences"
@@ -329,7 +327,7 @@ class UserLocation(db.Model):
     __tablename__ = "user_location"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user_preferences_id = db.Column(
         db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
     )
@@ -338,10 +336,10 @@ class UserLocation(db.Model):
     city = db.Column(db.String(100))
     country = db.Column(db.String(100), nullable=False)
 
-    user=db.relationship("User", back_populates="locations", foreign_keys=[user_id])
+    user=db.relationship("User", back_populates="location", foreign_keys=[user_id])
     
     user_preferences = db.relationship(
-        "UserPreferences", back_populates="user_location"
+        "UserPreferences", back_populates="user_location", foreign_keys=[user_preferences_id]
     )
 
 
