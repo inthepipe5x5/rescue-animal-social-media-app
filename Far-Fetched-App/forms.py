@@ -11,8 +11,8 @@ from wtforms_alchemy import model_form_factory
 from models import (
     db,
     User,
-    UserAnimalBehaviorPreferences,
-    UserAnimalAppearancePreferences,
+    # UserAnimalBehaviorPreferences,
+    # UserAnimalAppearancePreferences,
     UserLocation,
     UserTravelPreferences
 )

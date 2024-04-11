@@ -67,6 +67,30 @@ class MatchedRescueOrganization(db.Model):
     )
 
 
+class UserLocation(db.Model):
+    """Table to store user location information"""
+
+    __tablename__ = "user_location"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    # user_preferences_id = db.Column(
+    #     db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
+    # )
+    state_province = db.Column(db.String(100), nullable=False)
+    postal_code = db.Column(db.String(20), nullable=False)
+    city = db.Column(db.String(100))
+    country = db.Column(db.String(100), nullable=False)
+
+    user = db.relationship("User", back_populates="location", foreign_keys=[user_id], remote_side='User.id')
+
+    # user_preferences = db.relationship(
+    #     "UserPreferences",
+    #     back_populates="user_location",
+    #     foreign_keys=[user_preferences_id],
+    # )
+
+
 class User(db.Model):
     """User in the system."""
 
@@ -118,10 +142,10 @@ class User(db.Model):
         db.String,
         db.ForeignKey("user_animal_handling_history.id"),
     )
-    preferences = db.relationship("UserPreferences", back_populates="user")
+    user_animal_preferences = db.relationship("UserAnimalPreferences", back_populates="user")
     # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
     location = db.relationship(
-        "UserLocation", foreign_keys=[location_id], back_populates="user"
+        "UserLocation", back_populates="user", foreign_keys=[UserLocation.user_id], remote_side=UserLocation.id
     )
     matched_rescue_orgs = db.relationship(
         "MatchedRescueOrganization", back_populates="user"
@@ -228,7 +252,7 @@ class UserAnimalPreferences(db.Model):
     # user_animal_behavior_preferences_id = db.Column(db.Integer, db.ForeignKey('user_animal_behavior_preferences.id'))
 
     # db.relationships
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     # user_preferences = db.relationship(
     #     "UserPreferences", back_populates="user_animal_preferences"
     # )
@@ -238,6 +262,7 @@ class UserAnimalPreferences(db.Model):
     # user_animal_behavior_preferences = db.relationship(
     #     "UserAnimalBehaviorPreferences", back_populates="user_animal_preferences", foreign_keys=[user_animal_behavior_preferences_id], remote_side=[id]
     # )
+    user=db.relationship("User", back_populates="user_animal_preferences", foreign_keys=[user_id])
 
 
 # class UserAnimalBehaviorPreferences(db.Model):
@@ -331,29 +356,6 @@ class UserAnimalPreferences(db.Model):
 #         "UserAnimalPreferences", back_populates="user_animal_appearance_preferences"
 # )
 
-
-class UserLocation(db.Model):
-    """Table to store user location information"""
-
-    __tablename__ = "user_location"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    user_preferences_id = db.Column(
-        db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
-    )
-    state_province = db.Column(db.String(100), nullable=False)
-    postal_code = db.Column(db.String(20), nullable=False)
-    city = db.Column(db.String(100))
-    country = db.Column(db.String(100), nullable=False)
-
-    user = db.relationship("User", back_populates="location", foreign_keys=[user_id])
-
-    user_preferences = db.relationship(
-        "UserPreferences",
-        back_populates="user_location",
-        foreign_keys=[user_preferences_id],
-    )
 
 
 # User Application Data Tables

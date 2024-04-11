@@ -10,16 +10,16 @@ from models import (
     db,
     User,
     UserLocation,
-    UserPreferences,
+    # UserPreferences,
     UserAnimalPreferences,
-    UserAnimalBehaviorPreferences,
-    UserAnimalAppearancePreferences,
+    # UserAnimalBehaviorPreferences,
+    # UserAnimalAppearancePreferences,
 )
 from forms import (
     UserAddForm,
     LoginForm,
     UserEditForm,
-    # MandatoryOnboardingForm,
+    MandatoryOnboardingForm,
     # userSearchOptionsPreferencesForm,
     # UserAnimalBehaviorPreferences,
     SpecificAnimalPreferencesForm
