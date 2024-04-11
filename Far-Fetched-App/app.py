@@ -274,7 +274,7 @@ def profile():
                 db.session.add(logged_in_user)
                 db.session.commit()  # commit to db
                 flash("Changes saved successfully", "success")  # show success to user
-                return redirect(url_for("users_show", user_id=logged_in_user.id))
+                return redirect(url_for("users_show", user_id=g.user.id))
             else:
                 db.session.rollback()
                 flash(
@@ -393,19 +393,19 @@ def edit_mandatory_options():
 
 @app.route("/options/animal_preferences/<str:animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
-    form = SpecificAnimalAppearancePreferenceForm()
+    form = SpecificAnimalPreferencesForm()
 
     # Query the PetFinder API to get breeds based on the selected animal types
     breed_choices = pf_api.breeds(animal_type)
     if breed_choices:
         print(breed_choices)
         # Populate breed choices in the form
-        form.breeds_preference.choices = [
+        form.breeds.choices = [
             (name, name.capitalize()) for name in breed_choices
         ]
     coat_color_choices = pf_api.animal_types(animal_type).coat
     if coat_color_choices:
-        form.coat_color_preferences.choices = [
+        form.color.choices = [
             (name, name.capitalize()) for name in coat_color_choices
         ]
 

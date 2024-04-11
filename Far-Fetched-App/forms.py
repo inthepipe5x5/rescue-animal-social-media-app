@@ -144,30 +144,27 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     """
 
     # Behavior Preferences
+    
+    #Medical Preferences
     house_trained = BooleanField("House Trained", default=False)
     declawed = BooleanField("Declawed", default=False)
     shots_current = BooleanField("Immunizations are up to date", default=False)
     special_needs = BooleanField("Special Needs", default=False)
     spayed_neutered = BooleanField("Spayed/Neutered", default=False)
+    
+    #dog_cat_child_friendliness
     child_friendly = BooleanField("Friendly to children?", default=False)
     dogs_friendly = BooleanField("Friendly to dogs", default=False)
     cats_friendly = BooleanField("Friendly to cats", default=False)
 
     # Appearance Preferences
     breeds_preferences = SelectMultipleField("", choices=[], default=False)
-    animal_coat_preference = SelectMultipleField(
+    color = SelectMultipleField(
         "Animal Coat Preference",
-        choices=[
-            ("Hairless", "Hairless"),
-            ("Short", "Short"),
-            ("Medium", "Medium"),
-            ("Long", "Long"),
-            ("Wire", "Wire"),
-            ("Curly", "Curly"),
-        ],
-        default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
+        choices=[],
+        default=[],
     )
-    coat_color_preferences = SelectMultipleField(
+    coat = SelectMultipleField(
         "Animal Coat Color Preference",
         choices=[
             ("Hairless", "Hairless"),
@@ -179,7 +176,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=["Hairless", "Short", "Medium", "Long", "Wire", "Curly"],
     )
-    animal_age_preference = SelectMultipleField(
+    age = SelectMultipleField(
         "Animal Age Preference",
         choices=[
             ("baby", "baby"),
@@ -207,7 +204,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=[],
     )
-    animal_physical_attributes_preferences = SelectMultipleField(
+    size = SelectMultipleField(
         "Animal Physical Attributes Preferences",
         choices=[
             ("small", "Small"),
@@ -217,7 +214,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=["small", "medium", "large", "xlarge"],
     )
-    gender_preference = SelectMultipleField(
+    gender = SelectMultipleField(
         "Gender Preference",
         choices=[("male", "Male"), ("female", "Female")],
         default=["male", "female"],
