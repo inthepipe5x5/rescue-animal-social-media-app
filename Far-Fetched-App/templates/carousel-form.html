@@ -1,4 +1,26 @@
 {% extends 'base.html' %} {% block content %}
+
+<div id="search-results-container">
+  {% if not results %}
+  <h3>Error 404: Nothing found!</h3>
+  {% else %}
+  <ul id="search-results-list" class="list-group">
+    {% for animal in results.animals %}
+    <div class="row">
+      <div class="col-sm-3">
+        <h4 id="result-name">{{ animal.name }}</h4>
+        <p>{{ animal.description }}</p>
+        <p class="{{ animal.name }}">
+          <span class="fa fa-map-marker"></span>{{ animal.distance }}, {{ animal.city }}, {{ animal.state }}
+        </p>
+      </div>
+    </div>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+
 <form action="" method="post">
   {% csrf_token %}
   <div
