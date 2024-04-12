@@ -30,9 +30,10 @@ from forms import (
     LoginForm,
     UserEditForm,
     MandatoryOnboardingForm,
+    UserLocationForm,
     # userSearchOptionsPreferencesForm,
     # UserAnimalBehaviorPreferences,
-    SpecificAnimalPreferencesForm,
+    SpecificAnimalPreferencesForm
 )
 from PetFinderAPI import pf_api #PetFinderPetPyAPI
 
@@ -62,11 +63,11 @@ flask_env_type = (
     if os.environ.get("FLASK_ENV") is not None
     else "default"
 )
-app_config_instance.config_app(app=app, obj=config[flask_env_type])
+app_config_instance.config_app(app=app, obj=config[flask_env_type]) # type: ignore
 
 #store default user_preference 
 default_options_obj = {
-    "location": {"country": "CA", "city": "Toronto", "state": "Ontario"},
+    "location": {"country": "CA", "city": "Toronto", "state": "ON"},
     "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
     "distance": 100,
     "sort":'-recent',
@@ -118,8 +119,8 @@ def do_logout():
         del session[CURR_USER_KEY]
 
 
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
+@app.route("/signup/user", methods=["GET", "POST"])
+def signup_user():
     """Handle user signup.
 
     Create new user and add to DB. Redirect to home page.
@@ -141,11 +142,13 @@ def signup():
                 location=form.location.data,
                 bio=form.bio.data,
             )
+            db.session.add(user)
             db.session.commit()
 
-            init_orgs = pf_api.get_orgs_df()
+            # init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
+            db.rollback()
             return render_template("users/signup.html", form=form)
 
         do_login(user)
@@ -179,9 +182,8 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS
     if not CURR_USER_KEY in session:
-        do_login()
+        do_login(g.user)
 
     do_logout()
     flash("logged out successfully")
@@ -333,7 +335,7 @@ def get_data_results():
 def submit_section():
     section_data = request.form
     # Make API call using section_data
-    mapped_preferences_data = pf_api.map_user_preferences(section_data)
+    mapped_preferences_data = pf_api.map_user_form_data(section_data)
     api_data = pf_api.petpy_api.animals(mapped_preferences_data)
     # Store API data in session
     session["api_data"] = api_data
@@ -343,8 +345,8 @@ def submit_section():
 ##############################################################################
 
 
-@app.route("/options/new", methods=["GET", "POST"])
-def new_mandatory_options():
+@app.route("/signup/location", methods=["GET", "POST"]) # type: ignore
+def signup_location():
     """Sign Up Route -> mandatory onboarding form of user preferences to sort content for users
 
     Returns:
@@ -353,65 +355,68 @@ def new_mandatory_options():
             OR
         - Additional user preference options
     """
-    form = MandatoryOnboardingForm()
+    
+    u_location_form = UserLocationForm()
+    
+    if u_location_form.validate_on_submit():
+        data = u_location_form.data
+        mapped_data = pf_api.map_user_form_data(form_data=data)
+        mapped_location = mapped_data['location']
+        
+        # Check if user has an existing location
+        existing_location = UserLocation.query.filter_by(user_id=g.user.id).first()
 
-    if form.validate_on_submit():
-        # Process form submission
+        if existing_location:
+            # Update existing location
+            existing_location.populate_by_obj(mapped_location)
+        else:
+            # Create new location
+            new_user_location = UserLocation(
+                user_id=g.user.id,
+                country=mapped_location['country'],
+                state=mapped_location['state'],
+                city=mapped_location['city']
+            ) # type: ignore
+            db.session.add(new_user_location)
+        
+        #update the preferences in session
+        session['user_preference'] = {**mapped_data, **session['user_preference']}
+        
+        #commit changes to db
+        db.session.commit()
+        return redirect(url_for('signup_user'))
+    else:
+        return render_template('signup.html', form=u_location_form)
+    
+@app.route('/signup/preferences', methods=['GET', 'POST'])
+def signup_preferences():
+    u_pref_form = MandatoryOnboardingForm()
+    
+    if u_pref_form.validate_on_submit():
+        # Process u_pref_form submission
 
-        submitted_animal_types = form.animal_types.data
+        submitted_animal_types = u_pref_form.animal_types.data
+        rescue_action_type = u_pref_form.rescue_action_type.data
+        
         session["user_preferences"]['animal_types'] = submitted_animal_types
         
-        # Create UserPreferences
-        new_user_preferences = UserPreferences(user_id=g.user.id)
-        db.session.add(new_user_preferences)
+        # Create new user
+        new_user = User(rescue_action_type=rescue_action_type)
+        
+        db.session.add(new_user)
         db.session.commit()
 
-        # If CURR_PREFERENCES is available, update it with the newly created UserPreferences
-        if "CURR_PREFERENCES" in session:
-            session["CURR_PREFERENCES"] = new_user_preferences
+        # Redirect to the next u_pref_form or route
+        return redirect(url_for("signup_location"))
 
-        # Create UserLocation
-        new_user_location = UserLocation(
-            user_id=g.user.id, user_preferences_id=new_user_preferences.id
-        )
-        db.session.add(new_user_location)
-        db.session.commit()
-
-        # Redirect to the next form or route
-        return redirect(url_for("next_route"))
-
-    return render_template("mandatory_options.html", form=form)
+    return render_template('signup.html', form=u_pref_form)
 
 
-@app.route("/options/edit")
-def edit_mandatory_options():
-
-    if "CURR_PREFERENCES" in session:
-        pass
-    else:
-        return redirect(url_for("new_mandatory_options"))
-
-    # Initialize form
-    if g.user:
-        saved_location_obj = UserLocation.query.filter_by(user_id=g.user.id).first()
-        if saved_location_obj:
-            curr_location = (
-                saved_location_obj.postal_code
-                or f"{saved_location_obj.country}, {saved_location_obj.state_province}"
-            )
-        else:
-            curr_location = None  # Handle the case where user location is not found
-
-        animal_types = session.get("ANIMAL_TYPES", [])
-        form = MandatoryOnboardingForm(
-            location=curr_location, animal_types=animal_types
-        )
-        return render_template("mandatory_options.html", form=form)
-    else:
-        return redirect(
-            url_for("login")
-        )  # user is redirected to login as they do not have the right credentials
-
+@app.route('/carousel', methods=['GET', 'POST'])
+def carousel_form_test():
+    form = UserAddForm()
+    
+    return render_template("carousel-form.html", form=form)
 
 @app.route("/options/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):

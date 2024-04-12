@@ -108,13 +108,13 @@ class User(db.Model):
 
     email = db.Column(
         db.Text,
-        nullable=False,
+        # nullable=False,
         unique=True,
     )
 
     username = db.Column(
         db.Text,
-        nullable=False,
+        # nullable=False,
         unique=True,
     )
 
@@ -137,7 +137,7 @@ class User(db.Model):
 
     # location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
 
-    rescue_interaction_type_preference = db.Column('interaction_type',
+    rescue_action_type = db.Column('interaction_type',
         ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
 

@@ -16,7 +16,7 @@ load_dotenv()
 
 class PetFinderPetPyAPI:
     """
-    API class with methods to store access PetFinder API
+    API class with methods to store access PetFinder API and help functions to map user preference data to API search parameters
     """
 
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")

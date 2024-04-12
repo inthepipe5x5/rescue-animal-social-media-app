@@ -45,7 +45,7 @@ class UserAddForm(ModelForm):
 
     class Meta:
         model = User
-        exclude=['rescue_interaction_type_preference', 'registration_date']
+        exclude=['rescue_action_type', 'registration_date']
         
     
     # location = StringField(
@@ -63,14 +63,14 @@ class MandatoryOnboardingForm(FlaskForm):
 
     # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
     animal_type_emojis = {
-        "dog": "🐶",
-        "cat": "🐱",
-        "rabbit": "🐰",
-        "small-furry": "🐹",
-        "horse": "🐴",
-        "bird": "🐦",
-        "scales-fins-other": "🐠",
-        "barnyard": "🐄",
+        "dog": "🐶 Dog",
+        "cat": "🐱 Cat",
+        "rabbit": "🐰 Rabbit",
+        "small-furry": "🐹 Small-Furry",
+        "horse": "🐴 Horse",
+        "bird": "🐦Birds",
+        "scales-fins-other": "🐠 Scales, Fins, Other",
+        "barnyard": "🐄 Barnyard",
     }
 
     # Define the SelectMultipleField with the emoji labels
@@ -80,7 +80,7 @@ class MandatoryOnboardingForm(FlaskForm):
         (str_value, emoji_key)
         for str_value, emoji_key in animal_type_emojis.items()
         ],
-        coerce=str, default=['dog', 'cat']
+        coerce=str, default=['dog', 'cat'], validators=[DataRequired()]
     )
 
     #Rescue Action Type
@@ -119,7 +119,7 @@ class MandatoryOnboardingForm(FlaskForm):
 
 class UserEditForm(ModelForm):
     class Meta:
-        model=UserLocation
+        model=User
         
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])
