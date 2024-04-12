@@ -359,7 +359,8 @@ def new_mandatory_options():
         # Process form submission
 
         submitted_animal_types = form.animal_types.data
-        session["ANIMAL_TYPES"] = submitted_animal_types
+        session["user_preferences"]['animal_types'] = submitted_animal_types
+        
         # Create UserPreferences
         new_user_preferences = UserPreferences(user_id=g.user.id)
         db.session.add(new_user_preferences)

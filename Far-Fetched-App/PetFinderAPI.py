@@ -123,8 +123,9 @@ class PetFinderPetPyAPI:
         try:
             del u_pref["animal_types"]
             init_orgs_df = self.petpy_api.organizations(**u_pref)
-
-            return init_orgs_df
+            # Filter DataFrame based on 'type' column
+            filtered_df = init_orgs_df[init_orgs_df['type'].isin(animal_types)]
+            return filtered_df
         except Exception as e:
             print(f"An error occurred while retrieving organizations: {e}")
             return None
@@ -153,58 +154,19 @@ class PetFinderPetPyAPI:
             print(f"An error occurred while retrieving organizations: {e}")
             return None 
 
-    def map_user_preferences(self, user_preferences):
+    def map_user_form_data(self, form_data):
         """
         Function to map user preferences to a dictionary object.
 
         Args:
-            user_preferences (UserPreferences): UserPreferences object containing user preferences.
+            form_data (DICTIONARY): DICTIONARY object of user preferences form data.
 
         Returns:
             dict: Dictionary containing mapped user preferences.
         """
-        mapped_preferences = {}
+        mapped_data_obj = {**{key:value for key, value in form_data if form_data[key]}, **default_options_obj}
 
-        # Extract the necessary preferences from the user_preferences object
-        # mandatory preferences
-
-        mapped_preferences["location_preference"] = (
-            user_preferences.location_preference
-            if user_preferences.location_preference
-            else []
-        )
-        mapped_preferences["distance_preference"] = (
-            user_preferences.distance_preference
-            if user_preferences.distance_preference
-            else []
-        )
-        mapped_preferences["status_preference"] = (
-            user_preferences.rescue_interaction_type_preference
-            if user_preferences.rescue_interaction_type_preferences_preference
-            else []
-        )
-        mapped_preferences["specific_animal_type_preferences"] = (
-            user_preferences.specific_animal_type_preferences
-            if user_preferences.specific_animal_type_preferences
-            else []
-        )
-
-        mapped_preferences["species_preference"] = (
-            user_preferences.species_preference
-            if user_preferences.species_preference
-            else []
-        )
-
-        # optional preferences
-        mapped_preferences["breeds_preference"] = (
-            user_preferences.breeds_preference
-            if user_preferences.breeds_preference
-            else []
-        )
-
-        # Other preferences...
-
-        return mapped_preferences
+        return mapped_data_obj
 
     def get_animals_as_per_user_preferences(
         self,
