@@ -77,10 +77,10 @@ class UserLocation(db.Model):
     # user_preferences_id = db.Column(
     #     db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
     # )
-    state_province = db.Column(db.String(100), nullable=False)
-    postal_code = db.Column(db.String(20), nullable=False)
-    city = db.Column(db.String(100))
     country = db.Column(db.String(100), nullable=False)
+    state = db.Column(db.String(100), nullable=False)
+    postal_code = db.Column(db.String(7), nullable=False)
+    city = db.Column(db.String(100))
 
     user = db.relationship(
         "User",

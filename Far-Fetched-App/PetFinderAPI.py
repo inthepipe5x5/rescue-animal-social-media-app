@@ -1,11 +1,14 @@
 import os
 from dotenv import load_dotenv
-import requests
 import datetime
+import requests
+
 from ratelimit import limits, RateLimitException
 from backoff import expo, on_exception
-from models import User#, #UserPreferences
 from petpy import Petfinder
+
+
+from models import User#, #UserPreferences
 
 load_dotenv()
 

@@ -1,4 +1,14 @@
-from flask import Flask, render_template, request, flash, redirect, session, g, url_for, jsonify
+from flask import (
+    Flask,
+    render_template,
+    request,
+    flash,
+    redirect,
+    session,
+    g,
+    url_for,
+    jsonify,
+)
 
 # from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError
@@ -22,7 +32,7 @@ from forms import (
     MandatoryOnboardingForm,
     # userSearchOptionsPreferencesForm,
     # UserAnimalBehaviorPreferences,
-    SpecificAnimalPreferencesForm
+    SpecificAnimalPreferencesForm,
 )
 from PetFinderAPI import PetFinderPetPyAPI
 
@@ -40,9 +50,8 @@ load_dotenv()
 
 # create Flask app
 app = Flask(__name__)
-# session["ANIMAL_TYPES"] = (
-#     []
-# )  # session[ANIMAL_TYPES] = python list of 6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
+
+
 
 # create config instance
 app_config_instance = Config()
@@ -55,6 +64,16 @@ flask_env_type = (
 )
 app_config_instance.config_app(app=app, obj=config[flask_env_type])
 
+#store default user_preference 
+default_options_obj = {
+    "location": {"country": "Canada", "city": "Toronto", "state": "Ontario"},
+    "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
+    "distance": 100,
+    "sort":'-recent',
+    "custom": False
+} 
+
+session["user_preferences"] = default_options_obj
 # create API wrapper class instance
 # pet_finder_API = pf_api
 
@@ -70,13 +89,6 @@ def add_user_to_g():
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
     else:
         g.user = None
-
-
-# @app.before_request
-# def add_api_auth_token_to_g():
-#     """Add auth token to g. Auth token lasts for an hour"""
-
-#     g.auth_token = PetFinderPetPyAPI.get_authentication_token()
 
 
 # def add_user_animal_types_to_g():
@@ -123,13 +135,14 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
-                location=form.location.data
+                location=form.location.data,
+                bio=form.bio.data,
             )
             db.session.commit()
-            
+
             init_orgs = pf_api.get_init_df_of_animal_rescue_organizations(
-            location=form.location.data, 
-        )
+                location=form.location.data,
+            )
         except IntegrityError:
             flash("Username already taken", "danger")
             return render_template("users/signup.html", form=form)
@@ -307,24 +320,26 @@ def delete_user():
 
 ##############################################################################
 # Route to get updated API data
-@app.route('/get_data_results', methods=['GET'])
+@app.route("/get_data_results", methods=["GET"])
 def get_data_results():
-    if 'api_data' in session:
-        return jsonify(session['api_data'])
+    if "api_data" in session:
+        return jsonify(session["api_data"])
     return jsonify({})  # Return empty JSON if no data in session
 
+
 # Route to handle form submissions and API calls
-@app.route('/submit_section', methods=['POST'])
+@app.route("/submit_section", methods=["POST"])
 def submit_section():
     section_data = request.form
     # Make API call using section_data
     mapped_preferences_data = pf_api.map_user_preferences(section_data)
     api_data = pf_api.petpy_api.animals(mapped_preferences_data)
     # Store API data in session
-    session['api_data'] = api_data
-    return 'API data received'
-##############################################################################
+    session["api_data"] = api_data
+    return "API data received"
 
+
+##############################################################################
 
 
 @app.route("/options/new", methods=["GET", "POST"])
@@ -338,7 +353,6 @@ def new_mandatory_options():
         - Additional user preference options
     """
     form = MandatoryOnboardingForm()
-
 
     if form.validate_on_submit():
         # Process form submission
@@ -366,14 +380,15 @@ def new_mandatory_options():
 
     return render_template("mandatory_options.html", form=form)
 
-@app.route('/options/edit')
+
+@app.route("/options/edit")
 def edit_mandatory_options():
-    
-    if 'CURR_PREFERENCES' in session:
+
+    if "CURR_PREFERENCES" in session:
         pass
     else:
-        return redirect(url_for('new_mandatory_options'))
-    
+        return redirect(url_for("new_mandatory_options"))
+
     # Initialize form
     if g.user:
         saved_location_obj = UserLocation.query.filter_by(user_id=g.user.id).first()
@@ -389,9 +404,12 @@ def edit_mandatory_options():
         form = MandatoryOnboardingForm(
             location=curr_location, animal_types=animal_types
         )
-        return render_template('mandatory_options.html', form=form)
+        return render_template("mandatory_options.html", form=form)
     else:
-        return redirect(url_for('login')) #user is redirected to login as they do not have the right credentials
+        return redirect(
+            url_for("login")
+        )  # user is redirected to login as they do not have the right credentials
+
 
 @app.route("/options/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
