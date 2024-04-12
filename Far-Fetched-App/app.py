@@ -34,9 +34,9 @@ from forms import (
     # UserAnimalBehaviorPreferences,
     SpecificAnimalPreferencesForm,
 )
-from PetFinderAPI import PetFinderPetPyAPI
+from PetFinderAPI import pf_api #PetFinderPetPyAPI
 
-pf_api = PetFinderPetPyAPI()
+# pf_api = PetFinderPetPyAPI()
 
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -66,11 +66,14 @@ app_config_instance.config_app(app=app, obj=config[flask_env_type])
 
 #store default user_preference 
 default_options_obj = {
-    "location": {"country": "Canada", "city": "Toronto", "state": "Ontario"},
+    "location": {"country": "CA", "city": "Toronto", "state": "Ontario"},
     "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
     "distance": 100,
     "sort":'-recent',
-    "custom": False
+    "count":100,
+    "pages":4,
+    'return_df': True
+    # "custom": False
 } 
 
 session["user_preferences"] = default_options_obj
@@ -140,9 +143,7 @@ def signup():
             )
             db.session.commit()
 
-            init_orgs = pf_api.get_init_df_of_animal_rescue_organizations(
-                location=form.location.data,
-            )
+            init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
             return render_template("users/signup.html", form=form)

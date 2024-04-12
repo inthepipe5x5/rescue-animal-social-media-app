@@ -5,14 +5,16 @@ import requests
 
 from ratelimit import limits, RateLimitException
 from backoff import expo, on_exception
+from flask import session
 from petpy import Petfinder
 
-
-from models import User#, #UserPreferences
+from models import User  # , #UserPreferences
+from app import default_options_obj
 
 load_dotenv()
 
-class PetFinderPetPyAPI():
+
+class PetFinderPetPyAPI:
     """
     API class with methods to store access PetFinder API
     """
@@ -22,10 +24,8 @@ class PetFinderPetPyAPI():
         BASE_API_URL = "https://" + BASE_API_URL
 
     def __init__(self):
-        print('test string 123')
-        print(
-            os.environ.get("API_KEY"), os.environ.get("API_SECRET")
-        )
+        print("test string 123")
+        print(os.environ.get("API_KEY"), os.environ.get("API_SECRET"))
         self.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
@@ -102,13 +102,7 @@ class PetFinderPetPyAPI():
         # WRITE CODE HERE
         pass
 
-    def get_init_rescue_organizations(
-        self,
-        distance=100,
-        location="Toronto, Ontario",
-        sortFilter="distance",
-        return_df_bool=True,
-    ):
+    def get_orgs_df(self):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
 
         Args:
@@ -119,26 +113,46 @@ class PetFinderPetPyAPI():
         Returns:
             pandas.DataFrame: DataFrame of animal rescue organizations.
         """
-        if not location or not distance:
-            raise TypeError(
-                f"Invalid location or distance parameters: {distance}, {location}"
-            )
+        u_pref = session["user_preferences"]
+        animal_types = u_pref.animal_types
 
+        if u_pref.modified == True:
+            pass
+        else:
+            u_pref = {**default_options_obj}
         try:
-            init_orgs_df = self.petpy_api.organizations(
-                location=location,
-                distance=distance,
-                query=location,  # Search matching and partially matching name, city, or state.
-                sort=sortFilter,
-                return_df=return_df_bool,
-                count=100
-            )
+            del u_pref["animal_types"]
+            init_orgs_df = self.petpy_api.organizations(**u_pref)
 
             return init_orgs_df
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred while retrieving organizations: {e}")
             return None
+    
+    def get_animals_df(self, params_obj=session.get("user_preferences", default_options_obj)):
+        """Get DataFrame of animal rescue organizations within a specified distance of a location.
+
+        Args:
+            params_obj (DICT) dictionary of search parameters
+        Returns:
+            pandas.DataFrame: DataFrame of animal rescue organizations.
+        """
+        try:
+            animal_types = params_obj.get("animal_types", [])
+            
+            # Fetch data from API
+            animals_df = self.petpy_api.animals(**params_obj)
+            
+            # Filter DataFrame based on 'animal_types'
+            if animal_types:
+                animals_df = animals_df[animals_df['type'].isin(animal_types)]
+            
+            return animals_df
         
+        except Exception as e:
+            print(f"An error occurred while retrieving organizations: {e}")
+            return None 
+
     def map_user_preferences(self, user_preferences):
         """
         Function to map user preferences to a dictionary object.
@@ -150,26 +164,56 @@ class PetFinderPetPyAPI():
             dict: Dictionary containing mapped user preferences.
         """
         mapped_preferences = {}
-        
+
         # Extract the necessary preferences from the user_preferences object
-        #mandatory preferences
-        
-        mapped_preferences['location_preference'] = user_preferences.location_preference if user_preferences.location_preference else []
-        mapped_preferences['distance_preference'] = user_preferences.distance_preference if user_preferences.distance_preference else []
-        mapped_preferences['status_preference'] = user_preferences.rescue_interaction_type_preference if user_preferences.rescue_interaction_type_preferences_preference else []
-        mapped_preferences['specific_animal_type_preferences'] = user_preferences.specific_animal_type_preferences if user_preferences.specific_animal_type_preferences else []
-        
-        mapped_preferences['species_preference'] = user_preferences.species_preference if user_preferences.species_preference else []
-        
-        #optional preferences
-        mapped_preferences['breeds_preference'] = user_preferences.breeds_preference if user_preferences.breeds_preference else []
-        
+        # mandatory preferences
+
+        mapped_preferences["location_preference"] = (
+            user_preferences.location_preference
+            if user_preferences.location_preference
+            else []
+        )
+        mapped_preferences["distance_preference"] = (
+            user_preferences.distance_preference
+            if user_preferences.distance_preference
+            else []
+        )
+        mapped_preferences["status_preference"] = (
+            user_preferences.rescue_interaction_type_preference
+            if user_preferences.rescue_interaction_type_preferences_preference
+            else []
+        )
+        mapped_preferences["specific_animal_type_preferences"] = (
+            user_preferences.specific_animal_type_preferences
+            if user_preferences.specific_animal_type_preferences
+            else []
+        )
+
+        mapped_preferences["species_preference"] = (
+            user_preferences.species_preference
+            if user_preferences.species_preference
+            else []
+        )
+
+        # optional preferences
+        mapped_preferences["breeds_preference"] = (
+            user_preferences.breeds_preference
+            if user_preferences.breeds_preference
+            else []
+        )
+
         # Other preferences...
 
         return mapped_preferences
-        
 
-    def get_animals_as_per_user_preferences(self, list_of_orgs, user_id, animal_type_preferences, species_preference, breeds_preference):
+    def get_animals_as_per_user_preferences(
+        self,
+        list_of_orgs,
+        user_id,
+        animal_type_preferences,
+        species_preference,
+        breeds_preference,
+    ):
         """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
 
         Args:
@@ -177,8 +221,8 @@ class PetFinderPetPyAPI():
             user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
         """
 
-        user = User.query.get_or_404(User.id==user_id)
-        user_preferences = UserPreferences.query.get_or_404(User.id==user_id)
+        user = User.query.get_or_404(User.id == user_id)
+        user_preferences = UserPreferences.query.get_or_404(User.id == user_id)
         matching_animals = self.petpy_api.animals(
             type=animal_type_preferences,
             species=species_preference,
@@ -188,4 +232,5 @@ class PetFinderPetPyAPI():
 
         return matching_animals
 
-# pf_api = PetFinderPetPyAPI()
+
+pf_api = PetFinderPetPyAPI()
