@@ -1,0 +1,54 @@
+{% extends 'base.html' %} {% block body_class %}onboarding{% endblock %} {%
+block content %}
+
+<div class="row justify-content-md-center">
+  <div class="col-md-7 col-lg-5">
+    <h2 class="join-message">Join Far Fetched today!</h2>
+    <h3 class='join-message'>Narrow Down your Search</h3>
+    
+    <form method="POST" id="{{form.__name__}}">
+      {{ form.hidden_tag() }} {% for field in form if field.widget.input_type !=
+      'hidden' %} {% if field.widget.input_type == 'select' %}
+      <div class="form-group">
+        {{ field.label(class="form-label") }}
+        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+          {% for value, label in field.choices %}
+          <label class="btn btn-outline-primary">
+            <input
+              type="checkbox"
+              name="{{ field.name }}"
+              value="{{ value }}"
+            />{{ label }}
+          </label>
+          {% endfor %}
+        </div>
+        {% for error in field.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% elif field.type == 'BooleanField' %}
+      <div class="form-group">
+        <div class="form-check form-switch">
+          {{ field(class="form-check-input") }} {{
+          field.label(class="form-check-label") }}
+        </div>
+        {% for error in field.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="form-group">
+        {{ field.label(class="form-label") }} {{ field(class="form-control") }}
+        {% for error in field.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endfor %}
+
+      <button class="btn btn-primary btn-lg btn-block">
+        {% if next == true %} Continue {% else %} Submit {% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

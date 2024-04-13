@@ -347,8 +347,16 @@ def signup_preferences():
         submitted_animal_types = u_pref_form.animal_types.data
         rescue_action_type = u_pref_form.rescue_action_type.data
         
-        # session["user_preferences"]['animal_types'] = submitted_animal_types
-        
+        if 'user_preferences' in session:
+            session["user_preferences"]['animal_types'] = submitted_animal_types
+        else:
+            session['user_preferences'] = pf_api.default_options_obj
+            session["user_preferences"]['animal_types'] = submitted_animal_types
+            
+        session['rescue_action_type'] = rescue_action_type
+        # print(session['animal_types'])
+        # print(session['rescue_action_type'])
+        print(submitted_animal_types, rescue_action_type)
         # Create new user
         new_user = User(rescue_action_type=rescue_action_type)
         
@@ -358,7 +366,7 @@ def signup_preferences():
         # Redirect to the next u_pref_form or route
         return redirect(url_for("signup_location"))
 
-    return render_template('users/signup.html', form=u_pref_form)
+    return render_template('users/form.html', form=u_pref_form, next=True)
 
 
 @app.route("/signup/location", methods=["GET", "POST"]) # type: ignore
@@ -396,13 +404,13 @@ def signup_location():
             db.session.add(new_user_location)
         
         #update the preferences in session
-        session['user_preference'] = {**mapped_data, **session['user_preference']}
+        session['user_preferences'] = {**mapped_data, **session['user_preferences']}
         
         #commit changes to db
         db.session.commit()
         return redirect(url_for('signup_user'))
     else:
-        return render_template('users/signup.html', form=u_location_form)
+        return render_template('users/form.html', form=u_location_form, next=True)
     
 
 
