@@ -118,8 +118,8 @@ class MandatoryOnboardingForm(FlaskForm):
     # appearance_bool = BooleanField("Search by physical traits?", default=False)
 
 class UserEditForm(ModelForm):
-    class Meta:
-        model=User
+    # class Meta:
+    #     model=User
         
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])

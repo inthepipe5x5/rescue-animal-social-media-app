@@ -137,7 +137,7 @@ class User(db.Model):
 
     # location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
 
-    rescue_action_type = db.Column('interaction_type',
+    rescue_action_type = db.Column('rescue_action_type',
         ARRAY(db.String(20))
     )  # will store info can only be: volunteering, donation, adoption, animal foster
 

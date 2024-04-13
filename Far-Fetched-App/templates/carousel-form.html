@@ -1,4 +1,5 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} 
+{% block content %}
 
 <div id="search-results-container">
   {% if not results %}
@@ -20,15 +21,10 @@
   {% endif %}
 </div>
 
-
 <form action="" method="post">
   {% csrf_token %}
-  <div
-    id="questionCarousel"
-    class="carousel slide"
-    data-ride="carousel"
-    data-interval="false"
-  >
+  
+  <div id="questionCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
     <ol class="carousel-indicators">
       {% for question in questions %}
       <li
@@ -105,4 +101,5 @@
   </div>
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+
 {% endblock %}

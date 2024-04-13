@@ -65,19 +65,9 @@ flask_env_type = (
 )
 app_config_instance.config_app(app=app, obj=config[flask_env_type]) # type: ignore
 
-#store default user_preference 
-default_options_obj = {
-    "location": {"country": "CA", "city": "Toronto", "state": "ON"},
-    "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
-    "distance": 100,
-    "sort":'-recent',
-    "count":100,
-    "pages":4,
-    'return_df': True
-    # "custom": False
-} 
+#set default saved user_preferences
+# session["user_preferences"] = pf_api.default_options_obj
 
-session["user_preferences"] = default_options_obj
 # create API wrapper class instance
 # pet_finder_API = pf_api
 
@@ -398,7 +388,7 @@ def signup_preferences():
         submitted_animal_types = u_pref_form.animal_types.data
         rescue_action_type = u_pref_form.rescue_action_type.data
         
-        session["user_preferences"]['animal_types'] = submitted_animal_types
+        # session["user_preferences"]['animal_types'] = submitted_animal_types
         
         # Create new user
         new_user = User(rescue_action_type=rescue_action_type)

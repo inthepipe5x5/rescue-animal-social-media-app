@@ -3,13 +3,13 @@ from dotenv import load_dotenv
 import datetime
 import requests
 
+from flask import sessions
 from ratelimit import limits, RateLimitException
 from backoff import expo, on_exception
-from flask import session
 from petpy import Petfinder
 
+
 from models import User  # , #UserPreferences
-from app import default_options_obj
 
 load_dotenv()
 
@@ -22,6 +22,18 @@ class PetFinderPetPyAPI:
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
+    
+    #store default user_preference 
+    default_options_obj = {
+        "location": {"country": "CA", "city": "Toronto", "state": "ON"},
+        "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
+        "distance": 100,
+        "sort":'-recent',
+        "count":100,
+        "pages":4,
+        'return_df': True
+        # "custom": False
+    } 
 
     def __init__(self):
         print("test string 123")
@@ -113,13 +125,13 @@ class PetFinderPetPyAPI:
         Returns:
             pandas.DataFrame: DataFrame of animal rescue organizations.
         """
-        u_pref = session["user_preferences"]
+        u_pref = sessions["user_preferences"]
         animal_types = u_pref.animal_types
 
         if u_pref.modified == True:
             pass
         else:
-            u_pref = {**default_options_obj}
+            u_pref = {**self.default_options_obj}
         try:
             del u_pref["animal_types"]
             init_orgs_df = self.petpy_api.organizations(**u_pref)
@@ -130,7 +142,7 @@ class PetFinderPetPyAPI:
             print(f"An error occurred while retrieving organizations: {e}")
             return None
     
-    def get_animals_df(self, params_obj=session.get("user_preferences", default_options_obj)):
+    def get_animals_df(self, params_obj):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
 
         Args:
