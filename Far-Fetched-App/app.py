@@ -333,6 +333,32 @@ def submit_section():
 
 
 ##############################################################################
+@app.route('/signup', methods=['GET'])
+def signup():
+    return redirect(url_for('signup_preferences'))
+
+@app.route('/signup/preferences', methods=['GET', 'POST'])
+def signup_preferences():
+    u_pref_form = MandatoryOnboardingForm()
+    
+    if u_pref_form.validate_on_submit():
+        # Process u_pref_form submission
+
+        submitted_animal_types = u_pref_form.animal_types.data
+        rescue_action_type = u_pref_form.rescue_action_type.data
+        
+        # session["user_preferences"]['animal_types'] = submitted_animal_types
+        
+        # Create new user
+        new_user = User(rescue_action_type=rescue_action_type)
+        
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Redirect to the next u_pref_form or route
+        return redirect(url_for("signup_location"))
+
+    return render_template('users/signup.html', form=u_pref_form)
 
 
 @app.route("/signup/location", methods=["GET", "POST"]) # type: ignore
@@ -376,30 +402,8 @@ def signup_location():
         db.session.commit()
         return redirect(url_for('signup_user'))
     else:
-        return render_template('signup.html', form=u_location_form)
+        return render_template('users/signup.html', form=u_location_form)
     
-@app.route('/signup/preferences', methods=['GET', 'POST'])
-def signup_preferences():
-    u_pref_form = MandatoryOnboardingForm()
-    
-    if u_pref_form.validate_on_submit():
-        # Process u_pref_form submission
-
-        submitted_animal_types = u_pref_form.animal_types.data
-        rescue_action_type = u_pref_form.rescue_action_type.data
-        
-        # session["user_preferences"]['animal_types'] = submitted_animal_types
-        
-        # Create new user
-        new_user = User(rescue_action_type=rescue_action_type)
-        
-        db.session.add(new_user)
-        db.session.commit()
-
-        # Redirect to the next u_pref_form or route
-        return redirect(url_for("signup_location"))
-
-    return render_template('signup.html', form=u_pref_form)
 
 
 @app.route('/carousel', methods=['GET', 'POST'])

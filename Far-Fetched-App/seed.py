@@ -14,10 +14,12 @@ db.create_all()
 with open('fake-user-generator/users.csv') as users:
     db.session.bulk_insert_mappings(User, DictReader(users))
 
-with open('fake-user-generator/messages.csv') as messages:
-    db.session.bulk_insert_mappings(Message, DictReader(messages))
+#NEED TO REWORK THE FOLLOWING GENERATORS
+    
+# with open('fake-user-generator/messages.csv') as messages:
+#     db.session.bulk_insert_mappings(Message, DictReader(messages))
 
-with open('fake-user-generator/follows.csv') as follows:
-    db.session.bulk_insert_mappings(Follows, DictReader(follows))
+# with open('fake-user-generator/follows.csv') as follows:
+#     db.session.bulk_insert_mappings(Follows, DictReader(follows))
 
 db.session.commit()
