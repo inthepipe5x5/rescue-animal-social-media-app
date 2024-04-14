@@ -1,24 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-  
+<div class="container-fluid">
   <div class="row">
-    <!--<div class="col"> -->
+    <div class="col">
       <div class="home-hero">
-        <h1>Interested in getting involved with animal rescue?</h1>
-        <p>Find your local animal rescues!</p>
-        <p>Want to save your results? Learn more about animal rescue?</p>
-        <a href="/signup" class="btn btn-primary">Sign up</a>
+        <div class="row justify-content-center align-items-center h-100">
+          <div class="col-md-8 text-center">
+            <h1>Interested in getting involved with animal rescue?</h1>
+            <p>Find your local animal rescues!</p>
+            <p>Want to save your results? Learn more about animal rescue?</p>
+            <a href="/signup" class="btn btn-primary">Sign up</a>
+          </div>
+        </div>
       </div>
-      <!--</div> -->
     </div>
-    {% if results %}
-      <div class="row">
-      {% block results %}
-      {% endblock %}
-      </div>
-    {% endif %}
+  </div>
+  {% if results %}
+  <div class="row">
+    {% block results %}
+    {% endblock %}
+  </div>
+  {% endif %}
+</div>
 
 </div> <!-- End of the container -->
 
