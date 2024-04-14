@@ -23,7 +23,11 @@
   <div class="container-fluid">
     <div class="navbar-header">
       <a href="/" class="navbar-brand">
-        <img src="../static/images/ff-logo.svg" alt="logo"></img>
+       <!--
+         <img src="../static/images/ff-logo.svg" alt="logo"></img>
+       --> 
+        <img src="../static/favicon.ico" alt="logo"></img>
+        <h4> Far Fetched </h4>
       </a>
     </div>
     <ul class="nav navbar-nav navbar-right">
@@ -56,9 +60,14 @@
   {% for category, message in get_flashed_messages(with_categories=True) %}
   <div class="alert alert-{{ category }}">{{ message }}</div>
   {% endfor %}
-
-  {% block content %}
-  {% endblock %}
+  <div class="row">
+    {% block content %}
+    {% endblock %}
+  </div>
+  <div class="row">
+    {% block results %}
+    {% endblock %}
+  </div>
 
 </div>
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

@@ -36,7 +36,6 @@ class PetFinderPetPyAPI:
     } 
 
     def __init__(self):
-        print("test string 123")
         print(os.environ.get("API_KEY"), os.environ.get("API_SECRET"))
         self.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
@@ -130,7 +129,7 @@ class PetFinderPetPyAPI:
 
         try:
             del params_obj["animal_types"]
-            init_orgs_df = self.petpy_api.organizations(**u_pref)
+            init_orgs_df = self.petpy_api.organizations(**params_obj)
             # Filter DataFrame based on 'type' column
             # filtered_df = init_orgs_df[init_orgs_df['type'].isin(animal_types)]
             return init_orgs_df

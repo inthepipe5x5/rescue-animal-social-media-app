@@ -312,8 +312,8 @@ def delete_user():
 
 ##############################################################################
 # Route to get updated API data
-@app.route("/get_data_results", methods=["GET"])
-def get_data_results():
+@app.route("/get_data_results_in_session", methods=["GET"])
+def get_data_results_in_session():
     if "api_data" in session:
         return jsonify(session["api_data"])
     return jsonify({})  # Return empty JSON if no data in session
@@ -470,10 +470,12 @@ def homepage():
 
     else:
         try:
-            results = pf_api.petpy_api.animals()
+            params = {**pf_api.default_options_obj}
+            # results = pf_api.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
+            results=pf_api.get_orgs_df(**params)
             print(results)
         except Exception as e:
-            pass
+            results = None
         animal_emojis = {
             "dog": "🐶",
             "cat": "🐱",
@@ -484,8 +486,9 @@ def homepage():
             "scales-fins-other": "🦎",
             "barnyard": "🐄",
         }
-
-        return render_template("home-anon.html", results=results, animal_emojis=animal_emojis)
+        return render_template(
+            "results.html", results=results, animal_emojis=animal_emojis
+        )
 
 
 ##############################################################################
