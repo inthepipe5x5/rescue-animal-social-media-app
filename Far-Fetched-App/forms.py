@@ -69,7 +69,7 @@ class MandatoryOnboardingForm(FlaskForm):
         "small-furry": "🐹 Small-Furry",
         "horse": "🐴 Horse",
         "bird": "🐦Birds",
-        "scales-fins-other": "🐠 Scales, Fins, Other",
+        "scales-fins-other": "🦎 Scales, Fins, Other",
         "barnyard": "🐄 Barnyard",
     }
 

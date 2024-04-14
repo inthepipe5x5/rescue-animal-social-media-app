@@ -1,30 +1,58 @@
-{% extends 'base.html' %} 
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 
 <div id="search-results-container">
   {% if not results %}
   <h3>Error 404: Nothing found!</h3>
   {% else %}
   <ul id="search-results-list" class="list-group">
-    {% for animal in results.animals %}
+    
+    {% if results.animals %} {% for animal in results.animals %}
     <div class="row">
       <div class="col-sm-3">
         <h4 id="result-name">{{ animal.name }}</h4>
-        <p>{{ animal.description }}</p>
-        <p class="{{ animal.name }}">
-          <span class="fa fa-map-marker"></span>{{ animal.distance }}, {{ animal.city }}, {{ animal.state }}
-        </p>
+        <imge\ src={{animal.photos.small}} class="card-img-top"><img />
+        <h5 class="{{ animal.name }}">
+          <span class="fa fa-map-marker"></span>{{ animal.distance }}, {{
+            animal.city }}, {{ animal.state }}
+          </h5>
+          <p>{{ animal.description }}</p>
+          {% if animal.status == "adoptable" %}<div class="alert alert-success" role="alert">
+            <a href={{animal.url}} class="alert-link">Adopt me!</a>
+          </div>
+          {% endif %}
       </div>
     </div>
-    {% endfor %}
+    {% endfor %} {% endif %}
+    
+    {% elif results.organizations %} {% for animal in results.organizations %}
+    <div class="row">
+      <div class="col-sm-3">
+        <img src={{organization.photos.small}} class="card-img-top"></img>
+        <h4 id="result-name">{{ organization.name }}</h4>
+        <h5 class="{{ organization.name }}">
+          <span class="fa fa-map-marker"></span>{{ organization.distance }}, {{
+            organization.city }}, {{ organization.state }}
+          </h5>
+          <p>{{ organization.description }}</p>
+          <p>{{organization.mission_statement}}<p>
+          <a href={{animal.url}} class="alert-link">Visit Page</a>
+      </div>
+    </div>
+    {% endfor %} {% endif %}
+  
   </ul>
   {% endif %}
 </div>
 
 <form action="" method="post">
   {% csrf_token %}
-  
-  <div id="questionCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
+
+  <div
+    id="questionCarousel"
+    class="carousel slide"
+    data-ride="carousel"
+    data-interval="false"
+  >
     <ol class="carousel-indicators">
       {% for question in questions %}
       <li

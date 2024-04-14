@@ -114,7 +114,7 @@ class PetFinderPetPyAPI:
         # WRITE CODE HERE
         pass
 
-    def get_orgs_df(self):
+    def get_orgs_df(self, params_obj):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
 
         Args:
@@ -125,19 +125,15 @@ class PetFinderPetPyAPI:
         Returns:
             pandas.DataFrame: DataFrame of animal rescue organizations.
         """
-        u_pref = sessions["user_preferences"]
-        animal_types = u_pref.animal_types
+        if not params_obj:
+            params_obj = self.default_options_obj
 
-        if u_pref.modified == True:
-            pass
-        else:
-            u_pref = {**self.default_options_obj}
         try:
-            del u_pref["animal_types"]
+            del params_obj["animal_types"]
             init_orgs_df = self.petpy_api.organizations(**u_pref)
             # Filter DataFrame based on 'type' column
-            filtered_df = init_orgs_df[init_orgs_df['type'].isin(animal_types)]
-            return filtered_df
+            # filtered_df = init_orgs_df[init_orgs_df['type'].isin(animal_types)]
+            return init_orgs_df
         except Exception as e:
             print(f"An error occurred while retrieving organizations: {e}")
             return None
@@ -176,7 +172,7 @@ class PetFinderPetPyAPI:
         Returns:
             dict: Dictionary containing mapped user preferences.
         """
-        mapped_data_obj = {**{key:value for key, value in form_data if form_data[key]}, **default_options_obj}
+        mapped_data_obj = {**{key:value for key, value in form_data if form_data[key]}, **self.default_options_obj}
 
         return mapped_data_obj
 
@@ -196,7 +192,7 @@ class PetFinderPetPyAPI:
         """
 
         user = User.query.get_or_404(User.id == user_id)
-        user_preferences = UserPreferences.query.get_or_404(User.id == user_id)
+        user_preferences = UserAnimalPreferences.query.get_or_404(User.id == user_id).all()
         matching_animals = self.petpy_api.animals(
             type=animal_type_preferences,
             species=species_preference,

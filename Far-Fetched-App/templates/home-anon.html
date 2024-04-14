@@ -6,4 +6,71 @@
     <p>Sign up now to connect with your local animal rescues!</p>
     <a href="/signup" class="btn btn-primary">Sign up</a>
   </div>
-{% endblock %}
+  <div id="search-results-container">
+    {% if not results %}
+    <h3>Error 404: Nothing found!</h3>
+    {% else %}
+    <ul id="search-results-list" class="list-group">
+      
+      {% if results.animals %} {% for animal in results.animals %}
+      <div class="row">
+        <div class="col-sm-3">
+          <h4 id="result-name">{{ animal.name }}</h4>
+          <h3 id="{{ animal.name }}-type-size-age">
+            <p>
+            {% if animal.type in animal_emojis %}
+                {{ animal_emojis[animal.type] }} <!-- Display the emoji -->
+            {% else %}
+                ❓ <!-- Display a generic question mark emoji for unknown types -->
+            {% endif %}
+            
+            {% if animal.breeds %}
+              {% if animal.breeds.unknown == false and animal.breeds.mixed == true %}
+                <p>{{animal.breeds.primary}}/{{animal.breeds.secondary}}</p>
+              {% endif %}
+
+            {% else %}
+                <p>{{animal.breeds.unknown}}</p>
+            {% endif %}    
+            {% if animal.size %}<p>{{animal.size}}</p>{% endif %}
+            {% if animal.age %}<p>{{animal.age}}</p>{% endif %}
+            {% if animal.gender %}<p>{{animal.gender}}</p>{% endif %}
+            {% if animal.attributes.special_needs %}<p>♿</p>{% endif %}
+              
+          </p></h3>
+          <img src={{animal.photos[0].full}} class="card-img-top">
+          <p class="{{ animal.name }}-location">
+            <span class="fa fa-map-marker"></span>
+            <p>{{animal.contact.address.city }}, {{ animal.contact.address.state }}, {{ animal.contact.address.country }} </p>
+          </p>
+            {% if animal.description %}
+            <p>{{ animal.description }}</p>
+            {% endif %}
+            {% else %}
+            {% for tag in animal.tags %}<p>{{tag}}</p>{% endfor %}
+            {% endif %}
+            {% if animal.status == "adoptable" %}<div class="alert alert-success" role="alert">
+              <a href={{animal.url}} class="btn btn-success">Adopt me!</a>
+            </div>
+            {% endif %}
+        </div>
+      </div>
+      {% endfor %} {% endif %}{% endif %}
+      
+      {% if results.organizations %} {% for animal in results.organizations %}
+      <div class="row">
+        <div class="col-sm-3">
+          <img src={{organization.photos.full}} class="card-img-top">
+          <h4 id="result-name">{{ organization.name }}</h4>
+          <h5 class="{{ organization.name }}">
+            <span class="fa fa-map-marker"></span> {{
+              organization.city }}, {{ organization.state }}
+            </h5>
+            <p>{{ organization.description }}</p>
+            <p>{{organization.mission_statement}}<p>
+            <a href={{animal.url}} class="alert-link">Visit Page</a>
+        </div>
+      </div>
+      {% endfor %} {% endif %}
+
+      {% endblock %}

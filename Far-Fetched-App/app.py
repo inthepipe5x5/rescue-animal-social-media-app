@@ -33,9 +33,9 @@ from forms import (
     UserLocationForm,
     # userSearchOptionsPreferencesForm,
     # UserAnimalBehaviorPreferences,
-    SpecificAnimalPreferencesForm
+    SpecificAnimalPreferencesForm,
 )
-from PetFinderAPI import pf_api #PetFinderPetPyAPI
+from PetFinderAPI import pf_api  # PetFinderPetPyAPI
 
 # pf_api = PetFinderPetPyAPI()
 
@@ -53,7 +53,6 @@ load_dotenv()
 app = Flask(__name__)
 
 
-
 # create config instance
 app_config_instance = Config()
 
@@ -63,9 +62,9 @@ flask_env_type = (
     if os.environ.get("FLASK_ENV") is not None
     else "default"
 )
-app_config_instance.config_app(app=app, obj=config[flask_env_type]) # type: ignore
+app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
-#set default saved user_preferences
+# set default saved user_preferences
 # session["user_preferences"] = pf_api.default_options_obj
 
 # create API wrapper class instance
@@ -333,43 +332,44 @@ def submit_section():
 
 
 ##############################################################################
-@app.route('/signup', methods=['GET'])
+@app.route("/signup", methods=["GET"])
 def signup():
-    return redirect(url_for('signup_preferences'))
+    return redirect(url_for("signup_preferences"))
 
-@app.route('/signup/preferences', methods=['GET', 'POST'])
+
+@app.route("/signup/preferences", methods=["GET", "POST"])
 def signup_preferences():
     u_pref_form = MandatoryOnboardingForm()
-    
+
     if u_pref_form.validate_on_submit():
         # Process u_pref_form submission
 
         submitted_animal_types = u_pref_form.animal_types.data
         rescue_action_type = u_pref_form.rescue_action_type.data
-        
-        if 'user_preferences' in session:
-            session["user_preferences"]['animal_types'] = submitted_animal_types
+
+        if "user_preferences" in session:
+            session["user_preferences"]["animal_types"] = submitted_animal_types
         else:
-            session['user_preferences'] = pf_api.default_options_obj
-            session["user_preferences"]['animal_types'] = submitted_animal_types
-            
-        session['rescue_action_type'] = rescue_action_type
+            session["user_preferences"] = pf_api.default_options_obj
+            session["user_preferences"]["animal_types"] = submitted_animal_types
+
+        session["rescue_action_type"] = rescue_action_type
         # print(session['animal_types'])
         # print(session['rescue_action_type'])
         print(submitted_animal_types, rescue_action_type)
         # Create new user
         new_user = User(rescue_action_type=rescue_action_type)
-        
+
         db.session.add(new_user)
         db.session.commit()
 
         # Redirect to the next u_pref_form or route
         return redirect(url_for("signup_location"))
 
-    return render_template('users/form.html', form=u_pref_form, next=True)
+    return render_template("users/form.html", form=u_pref_form, next=True)
 
 
-@app.route("/signup/location", methods=["GET", "POST"]) # type: ignore
+@app.route("/signup/location", methods=["GET", "POST"])  # type: ignore
 def signup_location():
     """Sign Up Route -> mandatory onboarding form of user preferences to sort content for users
 
@@ -379,14 +379,14 @@ def signup_location():
             OR
         - Additional user preference options
     """
-    
+
     u_location_form = UserLocationForm()
-    
+
     if u_location_form.validate_on_submit():
         data = u_location_form.data
         mapped_data = pf_api.map_user_form_data(form_data=data)
-        mapped_location = mapped_data['location']
-        
+        mapped_location = mapped_data["location"]
+
         # Check if user has an existing location
         existing_location = UserLocation.query.filter_by(user_id=g.user.id).first()
 
@@ -397,28 +397,28 @@ def signup_location():
             # Create new location
             new_user_location = UserLocation(
                 user_id=g.user.id,
-                country=mapped_location['country'],
-                state=mapped_location['state'],
-                city=mapped_location['city']
-            ) # type: ignore
+                country=mapped_location["country"],
+                state=mapped_location["state"],
+                city=mapped_location["city"],
+            )  # type: ignore
             db.session.add(new_user_location)
-        
-        #update the preferences in session
-        session['user_preferences'] = {**mapped_data, **session['user_preferences']}
-        
-        #commit changes to db
+
+        # update the preferences in session
+        session["user_preferences"] = {**mapped_data, **session["user_preferences"]}
+
+        # commit changes to db
         db.session.commit()
-        return redirect(url_for('signup_user'))
+        return redirect(url_for("signup_user"))
     else:
-        return render_template('users/form.html', form=u_location_form, next=True)
-    
+        return render_template("users/form.html", form=u_location_form, next=True)
 
 
-@app.route('/carousel', methods=['GET', 'POST'])
+@app.route("/carousel", methods=["GET", "POST"])
 def carousel_form_test():
     form = UserAddForm()
-    
+
     return render_template("carousel-form.html", form=form)
+
 
 @app.route("/options/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
@@ -469,7 +469,23 @@ def homepage():
         return render_template("home.html")
 
     else:
-        return render_template("home-anon.html")
+        try:
+            results = pf_api.petpy_api.animals()
+            print(results)
+        except Exception as e:
+            pass
+        animal_emojis = {
+            "dog": "🐶",
+            "cat": "🐱",
+            "rabbit": "🐰",
+            "small-furry": "🐹",
+            "horse": "🐴",
+            "bird": "🐦",
+            "scales-fins-other": "🦎",
+            "barnyard": "🐄",
+        }
+
+        return render_template("home-anon.html", results=results, animal_emojis=animal_emojis)
 
 
 ##############################################################################
@@ -492,5 +508,4 @@ def add_header(req):
 
 
 if __name__ == "__main__":
-    print(os.environ)
     app.run(debug=True, use_reloader=True)
