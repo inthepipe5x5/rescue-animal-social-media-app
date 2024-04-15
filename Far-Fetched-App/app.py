@@ -330,6 +330,25 @@ def submit_section():
     session["api_data"] = api_data
     return "API data received"
 
+@app.route('/data', methods=['GET', 'POST'])
+def data():
+    """TEST ROUTE TO USE PETPY API
+
+    Args:
+        type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
+
+    Returns:
+        _type_: _description_
+    """
+    # if data_type == 'orgs':
+    # results = pf_api.petpy_api.organizations(sort='distance', country='CA', location='Toronto, ON', state='ON', pages=2)
+    results = pf_api.petpy_api.organizations(country='CA', state='ON')#(**pf_api.default_options_obj)
+    # session['api_data'] = results
+    # print(session['api_data'])
+    # return render_template('results.html', results=results)
+    print(results)
+    return jsonify(results)
+    # return render_template('results.html', results=results)
 
 ##############################################################################
 @app.route("/signup", methods=["GET"])
@@ -460,7 +479,7 @@ def homepage():
     - anon users:
     - logged in:
     """
-
+    print(g.user)
     if g.user:
         users_followed_by_current_user = g.user.following
 

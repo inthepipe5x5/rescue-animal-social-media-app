@@ -1,4 +1,4 @@
-{% extends "home-anon.html" %}
+{% extends "base.html" %}
   
   {% block results %}
     <div class="row text-center">
@@ -6,7 +6,8 @@
         <div id="search-results-container">
             {% if not results %}
             <h3 class="text muted-warning">Error 404: Nothing found!</h3>
-            {% else %}
+            {% endif %}
+            {% if results %}
             <ul id="search-results-list" class="list-group">
             {% if results.animals %}
             {% for animal in results.animals %}
