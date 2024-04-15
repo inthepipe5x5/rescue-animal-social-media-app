@@ -23,17 +23,28 @@ class PetFinderPetPyAPI:
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
-    
-    #store default user_preference 
+
+    # store default user_preference
     default_options_obj = {
         "location": "North York, ON",
         "country": "CA",
         # "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
         # "distance": 100,
-        "sort":'distance',
-        'return_df': False
+        "sort": "distance",
+        "return_df": False,
         # "custom": False
-    } 
+    }
+
+    animal_emojis = {
+        "dog": "🐶",
+        "cat": "🐱",
+        "rabbit": "🐰",
+        "small-furry": "🐹",
+        "horse": "🐴",
+        "bird": "🐦",
+        "scales-fins-other": "🦎",
+        "barnyard": "🐄",
+    }
 
     def __init__(self):
         print(os.environ.get("API_KEY"), os.environ.get("API_SECRET"))
@@ -69,16 +80,16 @@ class PetFinderPetPyAPI:
         """
         if not params_obj:
             params_obj = self.default_options_obj
-        location = params_obj.get('location')
+        location = params_obj.get("location")
         try:
-            init_orgs_df = self.petpy_api.organizations(location, sort='distance')
-            filtered_list = init_orgs_df['id'].toList()
+            init_orgs_df = self.petpy_api.organizations(location, sort="distance")
+            filtered_list = init_orgs_df["id"].toList()
             print(filtered_list)
             return filtered_list
         except Exception as e:
             print(f"An error occurred while retrieving organizations: {e}")
             return None
-    
+
     def get_animals_df(self, params_obj):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
 
@@ -89,19 +100,19 @@ class PetFinderPetPyAPI:
         """
         try:
             # animal_types = params_obj.get("animal_types", [])
-            
+
             # Fetch data from API
             animals_df = self.petpy_api.animals(**params_obj)
-            animal_types = params_obj.get('animal_types')
+            animal_types = params_obj.get("animal_types")
             # Filter DataFrame based on 'animal_types'
             if animal_types:
-                animals_df = animals_df[animals_df['type'].isin(animal_types)]
-            
+                animals_df = animals_df[animals_df["type"].isin(animal_types)]
+
             return animals_df
-        
+
         except Exception as e:
             print(f"An error occurred while retrieving organizations: {e}")
-            return None 
+            return None
 
     def map_user_form_data(self, form_data):
         """
@@ -113,7 +124,7 @@ class PetFinderPetPyAPI:
         Returns:
             dict: Dictionary containing mapped user preferences.
         """
-        mapped_data_obj = {**{key:value for key, value in form_data.items() if value}}
+        mapped_data_obj = {**{key: value for key, value in form_data.items() if value}}
         mapped_data_obj.update(self.default_options_obj)
         return mapped_data_obj
 
@@ -133,7 +144,9 @@ class PetFinderPetPyAPI:
         """
 
         user = User.query.get_or_404(User.id == user_id)
-        user_preferences = UserAnimalPreferences.query.get_or_404(User.id == user_id).all()
+        user_preferences = UserAnimalPreferences.query.get_or_404(
+            User.id == user_id
+        ).all()
         matching_animals = self.petpy_api.animals(
             type=animal_type_preferences,
             species=species_preference,
@@ -143,24 +156,30 @@ class PetFinderPetPyAPI:
 
         return matching_animals
 
+
 def animals_df_to_org_animal_count_dict(self, animals_df):
     """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.
 
     Args:
-        animals_df (DataFrame): pandas DataFrame of animals API results 
+        animals_df (DataFrame): pandas DataFrame of animals API results
     """
 
     # Group by 'organization_id' and count the number of animals in each group
-    organization_counts = animals_df.groupby('organization_id').size().reset_index(name='animal_count')
+    organization_counts = (
+        animals_df.groupby("organization_id").size().reset_index(name="animal_count")
+    )
 
     # Sort the groups by the count of animals in descending order
-    organization_counts_sorted = organization_counts.sort_values(by='animal_count', ascending=False)
+    organization_counts_sorted = organization_counts.sort_values(
+        by="animal_count", ascending=False
+    )
 
     # Convert the sorted DataFrame to a dictionary
-    org_animal_count_dict = organization_counts_sorted.set_index('organization_id')['animal_count'].to_dict()
+    org_animal_count_dict = organization_counts_sorted.set_index("organization_id")[
+        "animal_count"
+    ].to_dict()
 
     return org_animal_count_dict
 
 
-    
 pf_api = PetFinderPetPyAPI()

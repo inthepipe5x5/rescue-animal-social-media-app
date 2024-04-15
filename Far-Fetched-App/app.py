@@ -531,18 +531,9 @@ def homepage():
             print(results)
         except Exception as e:
             results = None
-        animal_emojis = {
-            "dog": "🐶",
-            "cat": "🐱",
-            "rabbit": "🐰",
-            "small-furry": "🐹",
-            "horse": "🐴",
-            "bird": "🐦",
-            "scales-fins-other": "🦎",
-            "barnyard": "🐄",
-        }
+
         return render_template(
-            "results.html", results=results, animal_emojis=animal_emojis
+            "home-anon.html", results=results, animal_emojis=animal_emojis
         )
 
 
