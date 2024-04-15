@@ -14,7 +14,7 @@ from models import (
     # UserAnimalBehaviorPreferences,
     # UserAnimalAppearancePreferences,
     UserLocation,
-    UserTravelPreferences
+    UserTravelPreferences,
 )
 from PetFinderAPI import pf_api
 
@@ -23,6 +23,7 @@ class MessageForm(FlaskForm):
     """Form for adding/editing messages."""
 
     text = TextAreaField("text", validators=[DataRequired()])
+
 
 class LoginForm(FlaskForm):
     """Login form."""
@@ -43,16 +44,21 @@ class ModelForm(BaseModelForm):
 class UserAddForm(ModelForm):
     """Form for adding users."""
 
+        # Rescue Action Type
+    rescue_action_type = SelectMultipleField(
+        "Select all the aspects of animal rescue you want to get involved in",
+        choices=[
+            ("volunteer", "Looking to Volunteer"),
+            ("foster", "Animal Fostering"),
+            ("adopter", "Looking to Adopt"),
+            ("donation", "Donation"),
+        ],
+        coerce=str,
+        default=["volunteer", "foster", "adopter", "donation"],
+    )
     class Meta:
         model = User
-        exclude=['rescue_action_type', 'registration_date']
-        
-    
-    # location = StringField(
-    #     "Please Enter Your Location (Country, state/province, city OR postal code)",
-    #     validators=[DataRequired()],
-    # )
-
+        exclude = ["rescue_action_type", "registration_date"]
 
 class MandatoryOnboardingForm(FlaskForm):
     """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
@@ -77,69 +83,57 @@ class MandatoryOnboardingForm(FlaskForm):
     animal_types = SelectMultipleField(
         "What kind of animal rescue are you interested in? Select the animals you want to search for",
         choices=[
-        (str_value, emoji_key)
-        for str_value, emoji_key in animal_type_emojis.items()
+            (str_value, emoji_key)
+            for str_value, emoji_key in animal_type_emojis.items()
         ],
-        coerce=str, default=['dog', 'cat'], validators=[DataRequired()]
+        coerce=str,
+        default=["dog", "cat"],
+        validators=[DataRequired()],
     )
 
-    #Rescue Action Type
-    rescue_action_type = SelectMultipleField(
-        "Select all the aspects of animal rescue you want to get involved in", 
-        choices=[
-        ('volunteer', 'Looking to Volunteer'),
-        ('foster', 'Animal Fostering'),
-        ('adopter', 'Looking to Adopt'),
-        ('donation', 'Donation')
-        ], 
-    coerce=str, default=['volunteer', 'foster', 'adopter','donation']
-    )
-    
 
-# class userSearchOptionsPreferencesForm(BaseUserForm):
-#     """Form to capture user preferences for specific animal traits: behavior, medical history, physical traits
-#     If none, user prefers to omit during search process. Intended to be linked to UserPreferences or
 
-#     Args:
-#         ModelForm (class): a base class provided by Flask-WTF-SQLAlchemy extension for creating forms that are automatically generated from SQLAlchemy models
-#     """
-
-    # behavior_medical_bool = BooleanField(
-    #     "Search by animal behavior or medical history?", default=False
-    # )
-    # # behavior options
-
-    # # breeds
-    # breeds_preference_bool = BooleanField(
-    #     "Searching for specific breeds?", default=False
-    # )
-
-    # # physical traits
-    # appearance_bool = BooleanField("Search by physical traits?", default=False)
 
 class UserEditForm(ModelForm):
-    # class Meta:
-    #     model=User
-        
+
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[Length(min=6)])
     image_url = TextAreaField("(Optional) Image URL")
     location = StringField(
-        "Location (Country, state/province, city OR postal code)",
+        "Primary city of residence",
         validators=[DataRequired()],
     )
-    bio = TextAreaField("(Optional) Tell me about yourself!")
+        # Rescue Action Type
+    rescue_action_type = SelectMultipleField(
+        "Select all the aspects of animal rescue you want to get involved in",
+        choices=[
+            ("volunteer", "Looking to Volunteer"),
+            ("foster", "Animal Fostering"),
+            ("adopter", "Looking to Adopt"),
+            ("donation", "Donation"),
+        ],
+        coerce=str,
+        default=["volunteer", "foster", "adopter", "donation"],
+    )
+    
+    state = StringField("State/Province - eg. 'NY'", validators=[Length(max=2)])
+    bio = TextAreaField("(Optional) Tell us about what makes you interested in animal rescue?")
+
 
 class UserLocationForm(ModelForm):
     """Form for adding user location information"""
+
     class Meta:
-        model=UserLocation
+        model = UserLocation
+
 
 class UserTravelForm(ModelForm):
     """Optional form for adding user travel preferences"""
+
     class Meta:
-        model=UserTravelPreferences
+        model = UserTravelPreferences
+
 
 class SpecificAnimalPreferencesForm(FlaskForm):
     """To capture user preferences for specific animal species. To be used as optional filters on animals by behavior and appearance."""
