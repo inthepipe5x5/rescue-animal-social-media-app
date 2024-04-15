@@ -113,8 +113,8 @@ class PetFinderPetPyAPI:
         Returns:
             dict: Dictionary containing mapped user preferences.
         """
-        mapped_data_obj = {**{key:value for key, value in form_data if form_data[key]}, **self.default_options_obj}
-
+        mapped_data_obj = {**{key:value for key, value in form_data.items() if value}}
+        mapped_data_obj.update(self.default_options_obj)
         return mapped_data_obj
 
     def get_animals_as_per_user_preferences(

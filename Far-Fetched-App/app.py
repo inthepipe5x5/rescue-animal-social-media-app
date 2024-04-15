@@ -82,7 +82,7 @@ def add_user_to_g():
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
     else:
         g.user = None
-
+        g.location_id = None
 
 # def add_user_animal_types_to_g():
 #     """Add the animal types preferred by the user to 'g'"""
@@ -322,10 +322,10 @@ def get_data_results_in_session():
 # Route to handle form submissions and API calls
 @app.route("/submit_section", methods=["POST"])
 def submit_section():
-    section_data = request.form
+    section_data = request.params
     # Make API call using section_data
     mapped_preferences_data = pf_api.map_user_form_data(section_data)
-    api_data = pf_api.petpy_api.animals(mapped_preferences_data)
+    api_data = pf_api.petpy_api.animals(**mapped_preferences_data)
     # Store API data in session
     session["api_data"] = api_data
     return "API data received"
@@ -381,11 +381,11 @@ def signup_preferences():
         # print(session['rescue_action_type'])
         print(submitted_animal_types, rescue_action_type)
         # Create new user
-        new_user = User(rescue_action_type=rescue_action_type)
-
+        new_user = User(rescue_action_type=rescue_action_type, location=g.location_id) #type: ignore
+        do_login(new_user)
         db.session.add(new_user)
         db.session.commit()
-
+        
         # Redirect to the next u_pref_form or route
         return redirect(url_for("signup_location"))
 
@@ -408,7 +408,7 @@ def signup_location():
     if u_location_form.validate_on_submit():
         data = u_location_form.data
         mapped_data = pf_api.map_user_form_data(form_data=data)
-        mapped_location = mapped_data["location"]
+        mapped_location = mapped_data.get("location")
 
         # Check if user has an existing location
         existing_location = UserLocation.query.filter_by(user_id=g.user.id).first()
@@ -418,19 +418,23 @@ def signup_location():
             existing_location.populate_by_obj(mapped_location)
         else:
             # Create new location
+            country = mapped_location.get('country')
+            state = mapped_location.get('state')
+            city = mapped_location.get('city'
+                                       )
             new_user_location = UserLocation(
                 user_id=g.user.id,
-                country=mapped_location["country"],
-                state=mapped_location["state"],
-                city=mapped_location["city"],
+                country=country,
+                state=state,
+                city=city
             )  # type: ignore
             db.session.add(new_user_location)
-
-        # update the preferences in session
-        session["user_preferences"] = {**mapped_data, **session["user_preferences"]}
+            # update the preferences in session
+            session["user_preferences"] = {**mapped_data, **pf_api.default_options_obj}
 
         # commit changes to db
         db.session.commit()
+        g.location_id = UserLocation.query.first_or_404(UserLocation.user_id==g.user.id) 
         return redirect(url_for("signup_user"))
     else:
         return render_template("users/form.html", form=u_location_form, next=True)
@@ -443,10 +447,7 @@ def carousel_form_test():
     return render_template("carousel-form.html", form=form)
 
 
-from flask import g
-
-
-@app.route("/options/animal_preferences/<animal_type>", methods=["GET", "POST"])
+@app.route("/preferences/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     form = SpecificAnimalPreferencesForm()
     # Query the PetFinder API to get breeds based on the selected animal types
