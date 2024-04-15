@@ -330,7 +330,8 @@ def submit_section():
     session["api_data"] = api_data
     return "API data received"
 
-@app.route('/data', methods=['GET', 'POST'])
+
+@app.route("/data", methods=["GET", "POST"])
 def data():
     """TEST ROUTE TO USE PETPY API
 
@@ -342,13 +343,16 @@ def data():
     """
     # if data_type == 'orgs':
     # results = pf_api.petpy_api.organizations(sort='distance', country='CA', location='Toronto, ON', state='ON', pages=2)
-    results = pf_api.petpy_api.organizations(country='CA', state='ON')#(**pf_api.default_options_obj)
+    results = pf_api.petpy_api.animal_types(
+        "dog"
+    )  # organizations(country='CA', state='ON')#(**pf_api.default_options_obj)
     # session['api_data'] = results
     # print(session['api_data'])
     # return render_template('results.html', results=results)
     print(results)
     return jsonify(results)
     # return render_template('results.html', results=results)
+
 
 ##############################################################################
 @app.route("/signup", methods=["GET"])
@@ -439,19 +443,29 @@ def carousel_form_test():
     return render_template("carousel-form.html", form=form)
 
 
+from flask import g
+
+
 @app.route("/options/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     form = SpecificAnimalPreferencesForm()
-
     # Query the PetFinder API to get breeds based on the selected animal types
-    breed_choices = pf_api.breeds(animal_type)
+    breed_choices = pf_api.petpy_api.breeds(animal_type)
+    api_form_choices = pf_api.petpy_api.animal_types(animal_type)
+    coat_choices = api_form_choices.coat
+    coat_color_choices = api_form_choices.colors
+
+    print(animal_type)
     if breed_choices:
         print(breed_choices)
         # Populate breed choices in the form
         form.AppearancePreferencesSection.breeds.choices = [
             (name, name.capitalize()) for name in breed_choices
         ]
-    coat_color_choices = pf_api.animal_types(animal_type).coat
+    if coat_choices:
+        form.AppearancePreferencesSection.color.choices = [
+            (name, name.capitalize()) for name in coat_choices
+        ]
     if coat_color_choices:
         form.AppearancePreferencesSection.color.choices = [
             (name, name.capitalize()) for name in coat_color_choices
@@ -459,11 +473,32 @@ def animal_preferences(animal_type):
 
     if form.validate_on_submit():
         # Process form submission
-        existing_animal_preferences = animal_preferences.query.get_or_404()
-        form.populate_obj(existing_animal_preferences)
+        for section_name, section in form.sections.items():
+            for field_name, field in section._fields.items():
+                user_preference_name = f"{section_name}_{field_name}"
+                user_preference_data = field.data
+
+                # Check if the user already has preferences for this field
+                existing_preference = UserAnimalPreferences.query.filter_by(
+                    user_id=g.user.id, user_preference_name=user_preference_name
+                ).first()
+                if existing_preference:
+                    # Update existing preference
+                    existing_preference.user_preference_data = user_preference_data
+                else:
+                    # Create new preference
+                    new_preference = UserAnimalPreferences(
+                        user_id=g.user.id,
+                        species=animal_type,
+                        user_preference_name=user_preference_name,
+                        user_preference_data=user_preference_data,
+                    )
+                    db.session.add(new_preference)
+
+        db.session.commit()
 
         # Redirect to the next form or route
-        return redirect(url_for("next_route"))
+        return redirect(url_for("users_show"))
 
     return render_template("animal_preferences.html", form=form)
 
@@ -491,7 +526,7 @@ def homepage():
         try:
             params = {**pf_api.default_options_obj}
             # results = pf_api.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
-            results=pf_api.get_orgs_df(**params)
+            results = pf_api.get_orgs_df(**params)
             print(results)
         except Exception as e:
             results = None
