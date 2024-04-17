@@ -137,9 +137,13 @@ class User(db.Model):
 
     # location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
 
-    rescue_action_type = db.Column('rescue_action_type',
-        ARRAY(db.String(20))
+    rescue_action_type = db.Column(
+        "rescue_action_type", ARRAY(db.String)
     )  # will store info can only be: volunteering, donation, adoption, animal foster
+
+    animal_types = db.Column(
+        "animal_types", ARRAY(db.String)
+    )  # Must be one of 6 potential values: ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’. Default='dog'
 
     registration_date = db.Column(db.DateTime)
 
@@ -185,6 +189,7 @@ class User(db.Model):
             image_url=image_url,
             bio=bio,
         )
+
         if location:
             user.location = location
 

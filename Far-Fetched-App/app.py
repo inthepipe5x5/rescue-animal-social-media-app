@@ -11,7 +11,7 @@ from flask import (
 )
 
 # from flask_font_awesome import FontAwesome
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from dotenv import load_dotenv
 import pdb  # MAKE SURE TO REMOVE IN PRODUCTION
 import os
@@ -82,8 +82,8 @@ def add_user_to_g():
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
     else:
         g.user = None
-        g.location_id = None
-
+        
+# @app.before_request
 # def add_user_animal_types_to_g():
 #     """Add the animal types preferred by the user to 'g'"""
 #     if 'ANIMAL_TYPES' in session:
@@ -94,7 +94,31 @@ def add_user_to_g():
 #     else:
 #         session['ANIMAL_TYPES'] = None
 
+@app.before_request    
+def add_country_to_g():
+    if 'country' not in session:
+        country = 'CA'  # set default country
+        session['country'] = country
+    else:
+        country = session['country']
 
+    g.country = country  # set country in global context
+
+    # check if user is logged in
+    if CURR_USER_KEY in session:
+        try:
+            user_location = UserLocation.query.filter_by(user_id=session[CURR_USER_KEY].id).first()
+            if user_location:
+                country = user_location.country
+            else:
+                country = 'CA'  # set default
+        except NoResultFound:
+            country = 'CA'  # set default
+
+        session['country'] = country
+        g.country = country
+
+    
 def do_login(user):
     """Log in user."""
 
@@ -353,6 +377,21 @@ def data():
     return jsonify(results)
     # return render_template('results.html', results=results)
 
+@app.route('/set_country', methods=['POST'])
+def set_country():
+    """Route to set country for anonymous search results
+
+    Returns:
+        _type_: _description_
+    """
+    country = request.args.get('country')
+    if not country:
+        session['country'] = 'CA'
+        
+    
+    session['country'] = country
+    print(f'Current country set to: {session["country"]}')
+    return add_country_to_g()
 
 ##############################################################################
 @app.route("/signup", methods=["GET"])
@@ -533,7 +572,7 @@ def homepage():
             results = None
 
         return render_template(
-            "home-anon.html", results=results, animal_emojis=animal_emojis
+            "home-anon.html", results=results, animal_emojis=pf_api.animal_emojis
         )
 
 
