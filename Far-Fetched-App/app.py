@@ -29,10 +29,9 @@ from forms import (
     UserAddForm,
     LoginForm,
     UserEditForm,
-    MandatoryOnboardingForm,
+    UserExperiencesForm,
     UserLocationForm,
-    # userSearchOptionsPreferencesForm,
-    # UserAnimalBehaviorPreferences,
+    AnonExperiencesForm,
     SpecificAnimalPreferencesForm,
 )
 from PetFinderAPI import pf_api  # PetFinderPetPyAPI
@@ -393,6 +392,52 @@ def set_country():
     print(f'Current country set to: {session["country"]}')
     return add_country_to_g()
 
+@app.route('/set_global', methods=['GET', 'POST'])
+def set_global():
+    """Route to set the global options for country of origin and animal types"""
+
+    # Check if the user is logged in
+    if g.user:
+        form = UserExperiencesForm(animal_types=g.user.animal_types)
+    else:
+        form = AnonExperiencesForm()
+
+    # Validate form submission
+    if form.validate_on_submit():
+        # Save preferences for logged-in users
+        if g.user:
+            save_user_preferences(form)
+            return redirect(url_for('home.html'))
+        else:
+            # Redirect anonymous users to login if animal types are selected
+            if isinstance(form.animal_types.data, list):
+                return redirect(url_for('login'))
+            else:
+                # Set global country and animal type for anonymous users
+                session['country'] = form.country.data
+                session['animal_type'] = form.animal_types.data
+                add_country_to_g()
+
+    return render_template('set_global.html', form=form)
+
+
+def save_user_preferences(form):
+    """Save user preferences for logged-in users."""
+
+    session['country'] = form.country.data
+    user = User.query.get_or_404(id=g.user.id)
+    user.animal_types = form.animal_types.data
+    db.session.add(user)
+    db.session.commit()
+    update_global_variables()
+
+
+def update_global_variables():
+    """Update global variables after saving user preferences."""
+    add_country_to_g()
+    add_user_to_g()
+
+        
 ##############################################################################
 @app.route("/signup", methods=["GET"])
 def signup():
@@ -401,7 +446,7 @@ def signup():
 
 @app.route("/signup/preferences", methods=["GET", "POST"])
 def signup_preferences():
-    u_pref_form = MandatoryOnboardingForm()
+    u_pref_form = UserExperiencesForm()
 
     if u_pref_form.validate_on_submit():
         # Process u_pref_form submission

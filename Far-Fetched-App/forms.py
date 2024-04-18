@@ -5,9 +5,12 @@ from wtforms import (
     TextAreaField,
     SelectMultipleField,
     BooleanField,
+    SelectField
 )
 from wtforms.validators import DataRequired, Email, Length
 from wtforms_alchemy import model_form_factory
+import pycountry
+
 from models import (
     db,
     User,
@@ -44,7 +47,7 @@ class ModelForm(BaseModelForm):
 class UserAddForm(ModelForm):
     """Form for adding users."""
 
-        # Rescue Action Type
+    # Rescue Action Type
     rescue_action_type = SelectMultipleField(
         "Select all the aspects of animal rescue you want to get involved in",
         choices=[
@@ -59,14 +62,79 @@ class UserAddForm(ModelForm):
     class Meta:
         model = User
         exclude = ["rescue_action_type", "registration_date"]
+class CountryForm(ModelForm):    
+    
+    country=SelectField(
+        'Country To Search'
+        choices=[(alpha_2, name) for alpha_2, name in pycountry.countries.items()], default='CA'
+        )
 
-class MandatoryOnboardingForm(FlaskForm):
+class UserExperiencesForm(FlaskForm):
     """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
 
     Args:
         FlaskForm (_type_): FlaskForm is a base class provided by Flask-WTF for creating forms in Flask applications.
     """
+    # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
+    animal_type_emojis = {
+        "dog": "🐶 Dog",
+        "cat": "🐱 Cat",
+        "rabbit": "🐰 Rabbit",
+        "small-furry": "🐹 Small-Furry",
+        "horse": "🐴 Horse",
+        "bird": "🐦Birds",
+        "scales-fins-other": "🦎 Scales, Fins, Other",
+        "barnyard": "🐄 Barnyard",
+    }
 
+
+    # Define the SelectMultipleField with the emoji labels
+    animal_types = SelectMultipleField(
+        "What kind of animal rescue are you interested in? Select the animals you want to search for",
+        choices=[
+            (str_value, emoji_key)
+            for str_value, emoji_key in animal_type_emojis.items()
+        ],
+        coerce=str,
+        default=[["dog", "cat"]],
+        validators=[DataRequired()],
+    )
+
+    country = CountryForm()
+
+class AnonExperiencesForm(UserExperiencesForm):
+    
+    # Define the SelectMultipleField with the emoji labels
+    animal_types = SelectField(
+        "What kind of animal rescue are you interested in? Select the animals you want to search for",
+        choices=[
+            (str_value, emoji_key)
+            for str_value, emoji_key in UserExperiencesForm.animal_type_emojis.items()
+        ],
+        coerce=str,
+        default=["dog"],
+        validators=[DataRequired()],
+    )
+
+class UserEditForm(ModelForm):
+
+    username = StringField("Username", validators=[DataRequired()])
+    email = StringField("E-mail", validators=[DataRequired(), Email()])
+    password = PasswordField("Password", validators=[Length(min=6)])
+    image_url = TextAreaField("(Optional) Image URL")
+        # Rescue Action Type
+    rescue_action_type = SelectMultipleField(
+        "Select all the aspects of animal rescue you want to get involved in",
+        choices=[
+            ("volunteer", "Looking to Volunteer"),
+            ("foster", "Animal Fostering"),
+            ("adopter", "Looking to Adopt"),
+            ("donation", "Donation"),
+        ],
+        coerce=str,
+        default=["volunteer", "foster", "adopter", "donation"],
+    )
+    
     # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
     animal_type_emojis = {
         "dog": "🐶 Dog",
@@ -90,32 +158,6 @@ class MandatoryOnboardingForm(FlaskForm):
         default=["dog", "cat"],
         validators=[DataRequired()],
     )
-
-
-
-
-class UserEditForm(ModelForm):
-
-    username = StringField("Username", validators=[DataRequired()])
-    email = StringField("E-mail", validators=[DataRequired(), Email()])
-    password = PasswordField("Password", validators=[Length(min=6)])
-    image_url = TextAreaField("(Optional) Image URL")
-    location = StringField(
-        "Primary city of residence",
-        validators=[DataRequired()],
-    )
-        # Rescue Action Type
-    rescue_action_type = SelectMultipleField(
-        "Select all the aspects of animal rescue you want to get involved in",
-        choices=[
-            ("volunteer", "Looking to Volunteer"),
-            ("foster", "Animal Fostering"),
-            ("adopter", "Looking to Adopt"),
-            ("donation", "Donation"),
-        ],
-        coerce=str,
-        default=["volunteer", "foster", "adopter", "donation"],
-    )
     
     state = StringField("State/Province - eg. 'NY'", validators=[Length(max=2)])
     bio = TextAreaField("(Optional) Tell us about what makes you interested in animal rescue?")
@@ -126,7 +168,8 @@ class UserLocationForm(ModelForm):
 
     class Meta:
         model = UserLocation
-
+        exclude = ['country']
+    country = CountryForm()
 
 class UserTravelForm(ModelForm):
     """Optional form for adding user travel preferences"""
