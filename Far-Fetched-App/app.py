@@ -20,10 +20,7 @@ from models import (
     db,
     User,
     UserLocation,
-    # UserPreferences,
     UserAnimalPreferences,
-    # UserAnimalBehaviorPreferences,
-    # UserAnimalAppearancePreferences,
 )
 from forms import (
     UserAddForm,
@@ -40,7 +37,9 @@ from PetFinderAPI import pf_api  # PetFinderPetPyAPI
 
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
-
+ANIMAL_TYPES = jsonify.loads(
+    os.environ.get("ANIMAL_TYPES", "['dog']")
+)  # default value is string "['dog']" so jsonify.loads will turn into python list"
 # RESOLVE THIS: commented out font_awesome as there an import error to be resolved
 # font_awesome = FontAwesome(app)
 from config import config, Config
@@ -81,43 +80,55 @@ def add_user_to_g():
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
     else:
         g.user = None
-        
-# @app.before_request
-# def add_user_animal_types_to_g():
-#     """Add the animal types preferred by the user to 'g'"""
-#     if 'ANIMAL_TYPES' in session:
-#         # Get animal types selected by the user from the previous form submission
-#         session['ANIMAL_TYPES'] = UserAnimalPreferences.get_or_404(
-#             UserAnimalPreferences.user_id == session[CURR_USER_KEY]
-#         )
-#     else:
-#         session['ANIMAL_TYPES'] = None
 
-@app.before_request    
-def add_country_to_g():
-    if 'country' not in session:
-        country = 'CA'  # set default country
-        session['country'] = country
+
+@app.before_request
+def add_animal_types_to_g():
+    """Add the animal types preferred by the user to 'g'"""
+
+    if "ANIMAL_TYPES" in session:
+        # Get animal types selected by the user from the session
+        if g.user:
+            animal_types = session["ANIMAL_TYPES"]
+
+        else:
+            # If anon user => Set default animal types to the first value to only search one animal type at once
+            animal_types = [session["ANIMAL_TYPES"][0]]
+
+        # Store the animal types in the 'g' object for access in the views
+        g.animal_types = animal_types
     else:
-        country = session['country']
+        # If ANIMAL_TYPES not in session, set to default from os.environ
+        g.animal_types = jsonify.loads(os.environ.get("ANIMAL_TYPES", '["dog"]'))
+
+
+@app.before_request
+def add_country_to_g():
+    if "country" not in session:
+        country = "CA"  # set default country
+        session["country"] = country
+    else:
+        country = session["country"]
 
     g.country = country  # set country in global context
 
     # check if user is logged in
     if CURR_USER_KEY in session:
         try:
-            user_location = UserLocation.query.filter_by(user_id=session[CURR_USER_KEY].id).first()
+            user_location = UserLocation.query.filter_by(
+                user_id=session[CURR_USER_KEY].id
+            ).first()
             if user_location:
                 country = user_location.country
             else:
-                country = 'CA'  # set default
+                country = "CA"  # set default
         except NoResultFound:
-            country = 'CA'  # set default
+            country = "CA"  # set default
 
-        session['country'] = country
+        session["country"] = country
         g.country = country
 
-    
+
 def do_login(user):
     """Log in user."""
 
@@ -213,7 +224,9 @@ def list_users():
     Can take a 'q' param in querystring to search by that username.
     """
 
-    search = request.args.get("q")
+    search = request.args.get(
+        "q"
+    )  # NEED TO MAKE THIS Q TO SEARCH ANIMAL PERSONALITIES OR BREEDS INSTEAD
 
     if not search:
         users = User.query.all()
@@ -376,29 +389,39 @@ def data():
     return jsonify(results)
     # return render_template('results.html', results=results)
 
-@app.route('/set_country', methods=['POST'])
+
+@app.route("/set_country", methods=["POST"])
 def set_country():
-    """Route to set country for anonymous search results
+    """Route to set country for anonymous search results. Does not set any other options
 
     Returns:
         _type_: _description_
     """
-    country = request.args.get('country')
+    country = request.args.get("country")
     if not country:
-        session['country'] = 'CA'
-        
-    
-    session['country'] = country
+        session["country"] = "CA"
+
+    session["country"] = country
     print(f'Current country set to: {session["country"]}')
     return add_country_to_g()
 
-@app.route('/set_global', methods=['GET', 'POST'])
+
+@app.route("/set_global", methods=["GET", "POST"])
 def set_global():
-    """Route to set the global options for country of origin and animal types"""
+    """Route to set the global options for country of origin and animal types
+    Form data will set session
+    save_user_preference() -> take values in session and update db
+
+    """
 
     # Check if the user is logged in
     if g.user:
-        form = UserExperiencesForm(animal_types=g.user.animal_types)
+        user_location = UserLocation.query.filter_by(user_id=g.user.id).first()
+        if user_location:
+            country = user_location.country
+        else:
+            country = "CA"  # set to default country location
+        form = UserExperiencesForm(animal_types=g.user.animal_types, country=country)
     else:
         form = AnonExperiencesForm()
 
@@ -406,38 +429,63 @@ def set_global():
     if form.validate_on_submit():
         # Save preferences for logged-in users
         if g.user:
-            save_user_preferences(form)
-            return redirect(url_for('home.html'))
+            save_user_preferences_to_db(form)
+            return redirect(url_for("homepage"))
         else:
             # Redirect anonymous users to login if animal types are selected
             if isinstance(form.animal_types.data, list):
-                return redirect(url_for('login'))
+                return redirect(url_for("login"))
             else:
                 # Set global country and animal type for anonymous users
-                session['country'] = form.country.data
-                session['animal_type'] = form.animal_types.data
-                add_country_to_g()
+                save_form_data_to_session(
+                    COUNTRY=form.country.data, ANIMAL_TYPES=form.animal_types.data
+                )
+                update_global_variables()
 
-    return render_template('set_global.html', form=form)
+    return render_template("form.html", form=form)
 
 
-def save_user_preferences(form):
+def save_user_preferences_to_db(form):
     """Save user preferences for logged-in users."""
+    at_data = form.animal_types.data
+    if at_data:
+        # Update user's animal types
+        user = g.user
+        user.animal_types = at_data
 
-    session['country'] = form.country.data
-    user = User.query.get_or_404(id=g.user.id)
-    user.animal_types = form.animal_types.data
-    db.session.add(user)
+    country_data = form.country.data
+    if country_data:
+        # Update or create user's location
+        user_location = UserLocation.query.filter_by(user_id=user.id).first()
+        if not user_location:
+            user_location = UserLocation(user_id=user.id)
+        user_location.country = form.country.data
+    
+    # Commit changes
     db.session.commit()
+
+    save_form_data_to_session(
+        COUNTRY=user_location.country, ANIMAL_TYPES=user.animal_types
+    )
     update_global_variables()
+
+
+def save_form_data_to_session(**kwargs):
+    if kwargs:
+        for key, value in kwargs:
+            if key.lower() in ["country", "animal_types"]:
+                session.get(key.upper(), value)
+                print(f'Saved session["{key}"] as {value}')
 
 
 def update_global_variables():
     """Update global variables after saving user preferences."""
+
     add_country_to_g()
+    add_animal_types_to_g
     add_user_to_g()
 
-        
+
 ##############################################################################
 @app.route("/signup", methods=["GET"])
 def signup():
@@ -465,11 +513,11 @@ def signup_preferences():
         # print(session['rescue_action_type'])
         print(submitted_animal_types, rescue_action_type)
         # Create new user
-        new_user = User(rescue_action_type=rescue_action_type, location=g.location_id) #type: ignore
+        new_user = User(rescue_action_type=rescue_action_type, location=g.location_id)  # type: ignore
         do_login(new_user)
         db.session.add(new_user)
         db.session.commit()
-        
+
         # Redirect to the next u_pref_form or route
         return redirect(url_for("signup_location"))
 
@@ -502,15 +550,11 @@ def signup_location():
             existing_location.populate_by_obj(mapped_location)
         else:
             # Create new location
-            country = mapped_location.get('country')
-            state = mapped_location.get('state')
-            city = mapped_location.get('city'
-                                       )
+            country = mapped_location.get("country")
+            state = mapped_location.get("state")
+            city = mapped_location.get("city")
             new_user_location = UserLocation(
-                user_id=g.user.id,
-                country=country,
-                state=state,
-                city=city
+                user_id=g.user.id, country=country, state=state, city=city
             )  # type: ignore
             db.session.add(new_user_location)
             # update the preferences in session
@@ -518,7 +562,9 @@ def signup_location():
 
         # commit changes to db
         db.session.commit()
-        g.location_id = UserLocation.query.first_or_404(UserLocation.user_id==g.user.id) 
+        g.location_id = UserLocation.query.first_or_404(
+            UserLocation.user_id == g.user.id
+        )
         return redirect(url_for("signup_user"))
     else:
         return render_template("users/form.html", form=u_location_form, next=True)
