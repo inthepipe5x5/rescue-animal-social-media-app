@@ -394,7 +394,12 @@ def set_country():
 
 @app.route('/set_global', methods=['GET', 'POST'])
 def set_global():
-    """Route to set the global options for country of origin and animal types"""
+    """Route to set the global options for country of origin and animal types
+    
+    If GET -> return form page
+    If POST -> set 'country' and/or 'animal_type' in sessions
+    
+    """
 
     # Check if the user is logged in
     if g.user:
