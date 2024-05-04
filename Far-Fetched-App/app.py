@@ -82,16 +82,21 @@ def add_user_to_g():
     else:
         g.user = None
         
-# @app.before_request
-# def add_user_animal_types_to_g():
-#     """Add the animal types preferred by the user to 'g'"""
-#     if 'ANIMAL_TYPES' in session:
-#         # Get animal types selected by the user from the previous form submission
-#         session['ANIMAL_TYPES'] = UserAnimalPreferences.get_or_404(
-#             UserAnimalPreferences.user_id == session[CURR_USER_KEY]
-#         )
-#     else:
-#         session['ANIMAL_TYPES'] = None
+@app.before_request
+def add_animal_types_to_g():
+    """Add the animal types preferred by the user to 'g'"""
+    #if logged in user, set session['animal_types'] to the saved LIST in DB
+    if CURR_USER_KEY in session :
+        # Get animal types selected by the user from the previous form submission
+        user_pref = UserAnimalPreferences.get_or_404(
+            UserAnimalPreferences.user_id == session[CURR_USER_KEY]
+        )
+        if user_pref: 
+            session['animal_types'] = user_pref 
+    else:
+        #default for anon users
+        #default for logged in users with no saved preferences 
+        session['animal_types'] = ['dog'] 
 
 @app.before_request    
 def add_country_to_g():
@@ -397,7 +402,7 @@ def set_global():
     """Route to set the global options for country of origin and animal types
     
     If GET -> return form page
-    If POST -> set 'country' and/or 'animal_type' in sessions
+    If POST -> set 'country' and/or 'animal_types' in sessions
     
     """
 
@@ -424,17 +429,33 @@ def set_global():
                 return redirect(url_for('login'))
             else:
                 # Set global country and animal type for anonymous users
-                session['country'] = form.country.data
-                session['animal_type'] = form.animal_types.data
-                add_country_to_g()
+                save_anon_preferences()
 
     return render_template('form.html', form=form)
 
+# HELPER FUNCTIONS FOR PREFERENCE ROUTES
+def save_anon_preferences(form):
+    """Helper function to set ANON preferences from form
+
+    Args:
+        form (_type_): _description_
+    """
+    session['country'] = form.country.data
+    if 'animal_types' in session:
+        if isinstance(form.animal_types.data, str):
+            session['animal_types'] = [form.animal_types.data][:1] #save STR value of form to list and slice and return just first value in list
+        elif isinstance(form.animal_types.data, list): #check if list or string
+            session['animal_types'] = form.animal_types.data[:1] #only save the first value of the list for anon users
+    update_global_variables()
 
 def save_user_preferences(form):
-    """Save user preferences for logged-in users."""
-
+    """Helper function to SAVE user preferences for LOGGED-IN users to DB & update Flask sessions"""
+    
+    #save form data to session
     session['country'] = form.country.data
+    session['animal_types'] = form.animal_types.data
+    
+    # saving location form data to db
     user_location = UserLocation.query.filter_by(user_id=g.user.id).first()
     if user_location:
         user_location.country = session['country']
@@ -444,17 +465,21 @@ def save_user_preferences(form):
         db.session.add(user_location)
     db.session.commit()
     
+    #save new user preferences to the database
     user = User.query.get_or_404(id=g.user.id)
     user.animal_types = form.animal_types.data
     session[CURR_USER_KEY] = user.id
     db.session.add(user)
     db.session.commit()
+    
+    #update global Flask app variables after committing to db
     update_global_variables()
 
 
 def update_global_variables():
     """Update global variables after saving user preferences."""
     add_country_to_g()
+    add_animal_types_to_g()
     add_user_to_g()
 
         
@@ -474,11 +499,11 @@ def signup_preferences():
         submitted_animal_types = u_pref_form.animal_types.data
         rescue_action_type = u_pref_form.rescue_action_type.data
 
-        if "user_preferences" in session:
-            session["user_preferences"]["animal_types"] = submitted_animal_types
+        if "animal_types" in session:
+            session["animal_types"] = submitted_animal_types
         else:
             session["user_preferences"] = pf_api.default_options_obj
-            session["user_preferences"]["animal_types"] = submitted_animal_types
+            session["animal_types"] = submitted_animal_types
 
         session["rescue_action_type"] = rescue_action_type
         # print(session['animal_types'])
