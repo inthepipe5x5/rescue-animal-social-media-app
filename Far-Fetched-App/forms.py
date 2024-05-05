@@ -62,19 +62,20 @@ class UserAddForm(ModelForm):
 
     class Meta:
         model = User
-        exclude = ["rescue_action_type", "registration_date"]
+        exclude = ["rescue_action_type", "registration_date", "animal_types"]
 
 
 class CountryForm(ModelForm):
+    countries_list = list(pycountry.countries)
 
     country = SelectField(
         "Country To Search",
-        choices=[(alpha_2, name) for alpha_2, name in pycountry.countries.items()],
+        choices=[(country.alpha_2, country.name) for country in countries_list],
         default="CA",
     )
 
 
-class UserExperiencesForm(FlaskForm):
+class UserExperiencesForm(CountryForm):
     """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
 
     Args:
@@ -105,8 +106,6 @@ class UserExperiencesForm(FlaskForm):
         validators=[DataRequired()],
     )
 
-    country = CountryForm()
-
 
 class AnonExperiencesForm(UserExperiencesForm):
 
@@ -121,7 +120,6 @@ class AnonExperiencesForm(UserExperiencesForm):
         default=["dog"],
         validators=[DataRequired()],
     )
-    country = CountryForm()
 
 
 class UserEditForm(ModelForm):
@@ -173,14 +171,15 @@ class UserEditForm(ModelForm):
     )
 
 
-class UserLocationForm(ModelForm):
-    """Form for adding user location information"""
+class UserLocationForm(CountryForm):
+    """
+    Form for adding user location information
+    """
 
     class Meta:
         model = UserLocation
+        # exclude country to utilize CountryForm instead
         exclude = ["country"]
-
-    country = CountryForm()
 
 
 class UserTravelForm(ModelForm):
