@@ -67,8 +67,7 @@ app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ign
 # User signup/login/logout
 
 
-# update 'g' before each request
-@app.before_request(update_global_variables())
+
 def do_login(user):
     """Log in user."""
 

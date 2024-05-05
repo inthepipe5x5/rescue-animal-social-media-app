@@ -143,10 +143,12 @@ def add_country_to_g():
         session['country'] = country
         g.country = country
 
-
-def update_global_variables():
-    """Update global variables after saving user preferences."""
-    add_country_to_g()
-    add_animal_types_to_g()
-    add_user_to_g()
+#update 'g' before each request or when needed to update g after changing something in Flask sessions
+with app.app_context():
+    @app.before_request
+    def update_global_variables():
+        """Update global variables after saving user preferences."""
+        add_country_to_g()
+        add_animal_types_to_g()
+        add_user_to_g()
 
