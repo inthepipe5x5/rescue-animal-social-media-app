@@ -411,6 +411,8 @@ def set_global():
         user_location = UserLocation.query.filter_by(user_id=g.user.id).first()
         if user_location:
             country = user_location.country
+        elif 'country' in session and not user_location:
+            country = session['country']
         else:
             country = None
         form = UserExperiencesForm(animal_types=g.user.animal_types, country=country)
@@ -421,7 +423,7 @@ def set_global():
     if form.validate_on_submit():
         # Save preferences for logged-in users
         if g.user:
-            save_user_preferences(form)
+            save_user_preferences(form=form)
             return redirect(url_for('home.html'))
         else:
             # Redirect anonymous users to login if animal types are selected
@@ -429,7 +431,7 @@ def set_global():
                 return redirect(url_for('login'))
             else:
                 # Set global country and animal type for anonymous users
-                save_anon_preferences()
+                save_anon_preferences(form=form)
 
     return render_template('form.html', form=form)
 
@@ -506,8 +508,6 @@ def signup_preferences():
             session["animal_types"] = submitted_animal_types
 
         session["rescue_action_type"] = rescue_action_type
-        # print(session['animal_types'])
-        # print(session['rescue_action_type'])
         print(submitted_animal_types, rescue_action_type)
         # Create new user
         new_user = User(rescue_action_type=rescue_action_type, location=g.location_id) #type: ignore
