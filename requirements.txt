@@ -35,6 +35,7 @@ pickleshare==0.7.5
 prompt-toolkit==2.0.5
 psycopg2-binary==2.9.9
 ptyprocess==0.6.0
+pycountry==23.12.11
 pycparser==2.19
 Pygments==2.2.0
 python-dateutil==2.9.0.post0
