@@ -26,9 +26,11 @@ class PetFinderPetPyAPI:
 
     # store default user_preference
     default_options_obj = {
-        "location": "North York, ON",
+        "location": "Toronto, ON",
+        "state": "ON",
+        # "city": "Toronto",
         "country": "CA",
-        # "animal_types": ["dog", "cat"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
+        "animal_types": ["dog"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
         # "distance": 100,
         "sort": "distance",
         "return_df": False,

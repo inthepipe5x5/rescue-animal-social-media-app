@@ -35,8 +35,7 @@ from forms import (
     SpecificAnimalPreferencesForm,
 )
 from PetFinderAPI import pf_api  # PetFinderPetPyAPI
-
-# pf_api = PetFinderPetPyAPI()
+from helper import *  # importing all helper functions for now, CHANGE THIS LATER
 
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -63,66 +62,13 @@ flask_env_type = (
 )
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
-# set default saved user_preferences
-# session["user_preferences"] = pf_api.default_options_obj
-
-# create API wrapper class instance
-# pet_finder_API = pf_api
 
 ##############################################################################
 # User signup/login/logout
 
+#update 'g' before each request 
+@app.before_request(update_global_variables())
 
-@app.before_request
-def add_user_to_g():
-    """If we're logged in, add curr user to Flask global."""
-
-    if CURR_USER_KEY in session:
-        g.user = User.query.get_or_404(session[CURR_USER_KEY])
-    else:
-        g.user = None
-        
-@app.before_request
-def add_animal_types_to_g():
-    """Add the animal types preferred by the user to 'g'"""
-    #if logged in user, set session['animal_types'] to the saved LIST in DB
-    if CURR_USER_KEY in session :
-        # Get animal types selected by the user from the previous form submission
-        user_pref = UserAnimalPreferences.get_or_404(
-            UserAnimalPreferences.user_id == session[CURR_USER_KEY]
-        )
-        if user_pref: 
-            session['animal_types'] = user_pref 
-    else:
-        #default for anon users
-        #default for logged in users with no saved preferences 
-        session['animal_types'] = ['dog'] 
-
-@app.before_request    
-def add_country_to_g():
-    if 'country' not in session:
-        country = 'CA'  # set default country
-        session['country'] = country
-    else:
-        country = session['country']
-
-    g.country = country  # set country in global context
-
-    # check if user is logged in
-    if CURR_USER_KEY in session:
-        try:
-            user_location = UserLocation.query.filter_by(user_id=session[CURR_USER_KEY].id).first()
-            if user_location:
-                country = user_location.country
-            else:
-                country = 'CA'  # set default
-        except NoResultFound:
-            country = 'CA'  # set default
-
-        session['country'] = country
-        g.country = country
-
-    
 def do_login(user):
     """Log in user."""
 
@@ -381,29 +327,30 @@ def data():
     return jsonify(results)
     # return render_template('results.html', results=results)
 
-@app.route('/set_country', methods=['POST'])
+
+@app.route("/set_country", methods=["POST"])
 def set_country():
     """Route to set country for anonymous search results
 
     Returns:
         _type_: _description_
     """
-    country = request.args.get('country')
+    country = request.args.get("country")
     if not country:
-        session['country'] = 'CA'
-        
-    
-    session['country'] = country
+        session["country"] = "CA"
+
+    session["country"] = country
     print(f'Current country set to: {session["country"]}')
     return add_country_to_g()
 
-@app.route('/set_global', methods=['GET', 'POST'])
+
+@app.route("/set_global", methods=["GET", "POST"])
 def set_global():
     """Route to set the global options for country of origin and animal types
-    
+
     If GET -> return form page
     If POST -> set 'country' and/or 'animal_types' in sessions
-    
+
     """
 
     # Check if the user is logged in
@@ -411,8 +358,8 @@ def set_global():
         user_location = UserLocation.query.filter_by(user_id=g.user.id).first()
         if user_location:
             country = user_location.country
-        elif 'country' in session and not user_location:
-            country = session['country']
+        elif "country" in session and not user_location:
+            country = session["country"]
         else:
             country = None
         form = UserExperiencesForm(animal_types=g.user.animal_types, country=country)
@@ -423,68 +370,19 @@ def set_global():
     if form.validate_on_submit():
         # Save preferences for logged-in users
         if g.user:
-            save_user_preferences(form=form)
-            return redirect(url_for('home.html'))
+            update_user_preferences(form=form)
+            return redirect(url_for("home.html"))
         else:
             # Redirect anonymous users to login if animal types are selected
             if isinstance(form.animal_types.data, list):
-                return redirect(url_for('login'))
+                return redirect(url_for("login"))
             else:
                 # Set global country and animal type for anonymous users
-                save_anon_preferences(form=form)
+                update_anon_preferences(form=form)
 
-    return render_template('form.html', form=form)
-
-# HELPER FUNCTIONS FOR PREFERENCE ROUTES
-def save_anon_preferences(form):
-    """Helper function to set ANON preferences from form
-
-    Args:
-        form (_type_): _description_
-    """
-    session['country'] = form.country.data
-    if 'animal_types' in session:
-        if isinstance(form.animal_types.data, str):
-            session['animal_types'] = [form.animal_types.data][:1] #save STR value of form to list and slice and return just first value in list
-        elif isinstance(form.animal_types.data, list): #check if list or string
-            session['animal_types'] = form.animal_types.data[:1] #only save the first value of the list for anon users
-    update_global_variables()
-
-def save_user_preferences(form):
-    """Helper function to SAVE user preferences for LOGGED-IN users to DB & update Flask sessions"""
-    
-    #save form data to session
-    session['country'] = form.country.data
-    session['animal_types'] = form.animal_types.data
-    
-    # saving location form data to db
-    user_location = UserLocation.query.filter_by(user_id=g.user.id).first()
-    if user_location:
-        user_location.country = session['country']
-        db.session.add(user_location)
-    else:
-        user_location = UserLocation(country=form.country.data)
-        db.session.add(user_location)
-    db.session.commit()
-    
-    #save new user preferences to the database
-    user = User.query.get_or_404(id=g.user.id)
-    user.animal_types = form.animal_types.data
-    session[CURR_USER_KEY] = user.id
-    db.session.add(user)
-    db.session.commit()
-    
-    #update global Flask app variables after committing to db
-    update_global_variables()
+    return render_template("form.html", form=form)
 
 
-def update_global_variables():
-    """Update global variables after saving user preferences."""
-    add_country_to_g()
-    add_animal_types_to_g()
-    add_user_to_g()
-
-        
 ##############################################################################
 @app.route("/signup", methods=["GET"])
 def signup():
@@ -510,11 +408,11 @@ def signup_preferences():
         session["rescue_action_type"] = rescue_action_type
         print(submitted_animal_types, rescue_action_type)
         # Create new user
-        new_user = User(rescue_action_type=rescue_action_type, location=g.location_id) #type: ignore
+        new_user = User(rescue_action_type=rescue_action_type, location=g.location_id)  # type: ignore
         do_login(new_user)
         db.session.add(new_user)
         db.session.commit()
-        
+
         # Redirect to the next u_pref_form or route
         return redirect(url_for("signup_location"))
 
@@ -547,15 +445,11 @@ def signup_location():
             existing_location.populate_by_obj(mapped_location)
         else:
             # Create new location
-            country = mapped_location.get('country')
-            state = mapped_location.get('state')
-            city = mapped_location.get('city'
-                                       )
+            country = mapped_location.get("country")
+            state = mapped_location.get("state")
+            city = mapped_location.get("city")
             new_user_location = UserLocation(
-                user_id=g.user.id,
-                country=country,
-                state=state,
-                city=city
+                user_id=g.user.id, country=country, state=state, city=city
             )  # type: ignore
             db.session.add(new_user_location)
             # update the preferences in session
@@ -563,7 +457,9 @@ def signup_location():
 
         # commit changes to db
         db.session.commit()
-        g.location_id = UserLocation.query.first_or_404(UserLocation.user_id==g.user.id) 
+        g.location_id = UserLocation.query.first_or_404(
+            UserLocation.user_id == g.user.id
+        )
         return redirect(url_for("signup_user"))
     else:
         return render_template("users/form.html", form=u_location_form, next=True)
