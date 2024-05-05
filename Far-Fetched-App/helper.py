@@ -3,7 +3,7 @@ from app import app, session, CURR_USER_KEY, g
 from models import db, User, UserLocation, UserAnimalPreferences
 from PetFinderAPI import pf_api
 # HELPER FUNCTIONS FOR PREFERENCE ROUTES
-def get_anon_preferences(key):
+def get_anon_preference(key):
     """get saved ANON user preferences for a specific key 
     
     key param = STRING eg. 'country'

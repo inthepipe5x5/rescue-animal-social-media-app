@@ -121,6 +121,7 @@ class AnonExperiencesForm(UserExperiencesForm):
         default=["dog"],
         validators=[DataRequired()],
     )
+    country = CountryForm()
 
 
 class UserEditForm(ModelForm):

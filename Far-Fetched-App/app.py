@@ -66,9 +66,9 @@ app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ign
 ##############################################################################
 # User signup/login/logout
 
-#update 'g' before each request 
-@app.before_request(update_global_variables())
 
+# update 'g' before each request
+@app.before_request(update_global_variables())
 def do_login(user):
     """Log in user."""
 
@@ -355,16 +355,16 @@ def set_global():
 
     # Check if the user is logged in
     if g.user:
-        user_location = UserLocation.query.filter_by(user_id=g.user.id).first()
-        if user_location:
-            country = user_location.country
-        elif "country" in session and not user_location:
-            country = session["country"]
-        else:
-            country = None
-        form = UserExperiencesForm(animal_types=g.user.animal_types, country=country)
+
+        # check db, session and 'g' for user preferences. if not found, will return default country : 'CA', animal_type: 'dog'
+        country = get_user_preference(key="country")
+        animal_types = get_user_preference(key="animal_types")
+        form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
-        form = AnonExperiencesForm()
+        #check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
+        country = get_anon_preference(key="country")
+        animal_types = get_anon_preference(key="animal_types")
+        form = AnonExperiencesForm(**{country, animal_types})
 
     # Validate form submission
     if form.validate_on_submit():
