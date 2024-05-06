@@ -365,7 +365,7 @@ def set_global():
         #check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
         country = get_anon_preference(key="country")
         animal_types = get_anon_preference(key="animal_types")
-        form = AnonExperiencesForm(**{country, animal_types})
+        form = AnonExperiencesForm(country=country, animal_types=animal_types)
 
     # Validate form submission
     if form.validate_on_submit():
@@ -381,7 +381,7 @@ def set_global():
                 # Set global country and animal type for anonymous users
                 update_anon_preferences(form=form)
 
-    return render_template("form.html", form=form)
+    return render_template("users/form.html", form=form)
 
 
 ##############################################################################
