@@ -1,5 +1,5 @@
-//word banks
-const rescueVerbsForHomeHeroBannerActionText = ["Foster", "Adopt", "Volunteer", "Find"];
+// Word banks
+const rescueVerbs = ["Foster", "Adopt", "Volunteer", "Find"];
 const callToActionPhrases = [
   "Are you an animal lover?",
   "Do you want to help animals in need?",
@@ -10,47 +10,34 @@ const callToActionPhrases = [
   "SIGN UP with Far Fetched today!",
 ];
 
-//elements
-const homeHeroBannerActionText = "hero-banner-text-action";
+// Element IDs
+const actionTextElementID = "hero-action-text";
+const callToActionElementID = "call-to-action-text";
 
-const homeHeroCallToActionPElement = "call-to-action-carousel-text";
-
-//update function
-
-const updatePhrases = (elementID, wordBank, interval = 1500) => {
-  /*
-    function to update UI text
-    params: 
-    - elementID - id of HTML element to update
-    - workBank - array of values to update the text of element with
-    - interval - time interval in MS to update by
-    */
+// Update function
+const updateText = (elementID, wordBank, interval = 1500) => {
+  /**
+   * Update UI text in <element id=elementID> with wordBank strings at set intervals
+   * @param {string} elementID - ID of HTML element to update
+   * @param {array} wordBank - Array of string values to update the text with
+   * @param {number} interval - Time interval in milliseconds for updating
+   */
 
   const changeText = (elementID, newText) => {
-    const elementToBeUpdated = document.getElementById(elementID);
-    elementToBeUpdated.textContent = newText;
+    const element = document.getElementById(elementID);
+    element.textContent = newText;
   };
 
-  for (let phrase in wordBank) {
+  wordBank.forEach((phrase, index) => {
     setTimeout(() => {
       changeText(elementID, phrase);
-    }, interval);
-  }
+    }, interval * index);
+  });
 };
 
-//run update elements functions on page load
-document
-  .getElementById(homeHeroBannerActionText)
-  .addEventListener(
-    "load",
-    updatePhrases(
-      homeHeroBannerActionText,
-      rescueVerbsForHomeHeroBannerActionText
-    )
-  );
-document
-  .getElementById(homeHeroCallToActionPElement)
-  .addEventListener(
-    "load",
-    updatePhrases(homeHeroCallToActionPElement, callToActionPhrases)
-  );
+// Run update functions on page load
+window.addEventListener("load", () => {
+  console.log("HOME DOM ELEMENTS LOADED");
+  updateText(actionTextElementID, rescueVerbs);
+  updateText(callToActionElementID, callToActionPhrases);
+});

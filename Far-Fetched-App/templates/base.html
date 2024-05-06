@@ -31,6 +31,12 @@
       </a>
     </div>
     <ul class="nav navbar-nav navbar-right">
+      
+      {% if g.country or session['country'] %}
+        <li class="nav-item"><a href={{ url_for('set_global')}}>Current Country:{{g.country or session['country']}} {% endif %}</a></li>
+      {% else %}
+      <li class="nav-item"><a href={{ url_for('set_global')}}>Current Country:🐶{% endif %}</a></li>
+      {% endif %}
       {% if g.user.animal_types%} 
         {% for type in g.user.animal_types %}
           <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='dog' %}🐶{% endif %}</a></li>

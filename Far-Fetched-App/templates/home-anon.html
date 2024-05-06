@@ -9,23 +9,46 @@
         <img class="d-block mx-auto mb-4" src="../static/images/ff-logo.svg" alt="Far Fetched Logo" width="144" height="114">
         <h1 class="display-5 fw-bold"><span id="hero-banner-text-action">Find</span> a friend today!</h1>
         <div class="col-lg-6 mx-auto">
-          <p class="lead mb-4">
-            <p><span id="call-to-action-carousel-text"></span> Getting involved in animal rescue is easier than you think! </p>
-          </p>
+          <form class="navbar-form navbar-right mb-3" action="/users">
+            <input name="q" class="form-control" placeholder={{session['animal_types'] or 'find dogs' }} id="search">
+            <button class="btn btn-default">
+              <span class="fa fa-search"></span>
+            </button>
+          </form>
           <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            <button type="button" class="btn btn-primary btn-lg px-4 gap-3">Register</button>
-            <button type="button" class="btn btn-outline-secondary btn-lg px-4">Login</button>
+            <button type="button" class="btn btn-primary btn-lg px-4 gap-3">Submit</button>
+            <button type="button" class="btn btn-outline-secondary btn-lg px-4">Search Options</button>
           </div>
         </div>
       </div>
     </div>
-    <!-- class=ROW END DIV -->
-  </div>
+
+  </div>     <!-- class=ROW END DIV -->
+  <div class="container col-xxl-8 px-4 py-5">
+    <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
+      <div class="col-10 col-sm-8 col-lg-6">
+        <img src="../static/images/ff-logo.svg" class="d-block mx-lg-auto img-fluid" alt="Far Fetched App Logo" width="700" height="500" loading="lazy">
+      </div>
+      <div class="col-lg-6">
+        <h1 class="display-5 fw-bold lh-1 mb-3">Start Rescuing Today</h1>
+          <p class="lead mb-4">
+            <span id="call-to-action-carousel-text">Not sure how to get started?</span>
+            Sign up today to connect with local rescues around you! 
+          </p>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+          <a href={{url_for('signup')}} class="btn btn-primary btn-lg px-4 me-md-2">Register</a>
+          <a href={{url_for('login')}} class="btn btn-outline-secondary btn-lg px-4">Login</a>
+        </div>
+      </div>
+    </div>
+  </div> <!-- end of container div.col-xxl-8 px-4 py-5-->
+
   <!--<div class="row">
     {% block results %}
     {% endblock %}
   </div>-->
-
+  <!--script to update UI-->
+  <script src='../static/home-ui.js'></script>
 </div>
 
 </div> <!-- End of the container -->
