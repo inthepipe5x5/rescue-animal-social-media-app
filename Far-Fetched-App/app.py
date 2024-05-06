@@ -539,13 +539,12 @@ def homepage():
     - anon users:
     - logged in:
     """
-    print(g.user)
     if g.user:
         users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages
 
-        return render_template("home.html")
+        return render_template("home.html", user=user, messages=g.user.messages)
 
     else:
         try:

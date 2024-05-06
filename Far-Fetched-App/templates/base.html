@@ -41,7 +41,6 @@
           <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='scales-fins-other' %}🦎{% endif %}</a></li>
           <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='barnyard' %}🐮{% endif %}</a></li>
         {% endfor %}
-      {% endif %}
       {% else %}
         <li class="nav-item"><a href={{ url_for(set_global)}}>🐶</a></li>
       {% endif %}
