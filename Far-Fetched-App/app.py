@@ -564,11 +564,6 @@ def homepage():
 
 
 ##############################################################################
-# Turn off all caching in Flask
-#   (useful for dev; in production, this kind of stuff is typically
-#   handled elsewhere)
-#
-# https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 
 # Initialize global variables before each request
 @app.before_request
@@ -578,6 +573,20 @@ def update_global_variables():
     add_animal_types_to_g()
     add_user_to_g()
 
+#Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
+@app.context_processor
+def inject_global_vars():
+    """Injects the session and g objects into the Jinja2 template context
+    """
+    return {
+        'session': session,
+        'g': g
+    }
+# Turn off all caching in Flask
+#   (useful for dev; in production, this kind of stuff is typically
+#   handled elsewhere)
+#
+# https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 @app.after_request
 def add_header(req):
     """Add non-caching headers on every request."""

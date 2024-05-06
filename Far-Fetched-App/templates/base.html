@@ -33,16 +33,16 @@
     <ul class="nav navbar-nav navbar-right">
       {% if g.user.animal_types%} 
         {% for type in g.user.animal_types %}
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='dog' %}🐶{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='cat' %}🐱{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='small-furry' %}🐹{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='birds' %}🐦{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='horse' %}🐴{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='scales-fins-other' %}🦎{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for(set_global)}}>{% if type=='barnyard' %}🐮{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='dog' %}🐶{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='cat' %}🐱{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='small-furry' %}🐹{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='birds' %}🐦{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='horse' %}🐴{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='scales-fins-other' %}🦎{% endif %}</a></li>
+          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='barnyard' %}🐮{% endif %}</a></li>
         {% endfor %}
       {% else %}
-        <li class="nav-item"><a href={{ url_for(set_global)}}>🐶</a></li>
+        <li class="nav-item"><a href={{ url_for('set_global')}}>🐶</a></li>
       {% endif %}
       
       {% if request.endpoint != None %}
