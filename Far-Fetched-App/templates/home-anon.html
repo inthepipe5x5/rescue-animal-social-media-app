@@ -3,18 +3,23 @@
 {% block content %}
 <div class="container-fluid">
   <div class="row">
-    <div class="col">
-      <div class="home-hero">
-        <div class="row justify-content-center align-items-center h-100">
-          <div class="col-md-8 text-center">
-            <h1>Interested in getting involved with animal rescue?</h1>
-            <p>Find your local animal rescues!</p>
-            <p>Want to save your results? Learn more about animal rescue?</p>
-            <a href="/signup" class="btn btn-primary">Sign up</a>
+
+
+      <div class="px-4 py-5 my-5 text-center">
+        <img class="d-block mx-auto mb-4" src="../static/images/ff-logo.svg" alt="Far Fetched Logo" width="144" height="114">
+        <h1 class="display-5 fw-bold"><span id="hero-banner-text-action">Find</span> a friend today!</h1>
+        <div class="col-lg-6 mx-auto">
+          <p class="lead mb-4">
+            <p><span id="call-to-action-carousel-text"></span> Getting involved in animal rescue is easier than you think! </p>
+          </p>
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <button type="button" class="btn btn-primary btn-lg px-4 gap-3">Register</button>
+            <button type="button" class="btn btn-outline-secondary btn-lg px-4">Login</button>
           </div>
         </div>
       </div>
     </div>
+    <!-- class=ROW END DIV -->
   </div>
   <!--<div class="row">
     {% block results %}
