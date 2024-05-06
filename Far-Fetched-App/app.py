@@ -381,7 +381,7 @@ def set_global():
                 # Set global country and animal type for anonymous users
                 update_anon_preferences(form=form)
 
-    return render_template("users/form.html", form=form)
+    return render_template("users/form.html", form=form, next=url_for('data'))
 
 
 ##############################################################################

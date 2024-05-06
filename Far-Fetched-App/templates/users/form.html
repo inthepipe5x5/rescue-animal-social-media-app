@@ -44,10 +44,14 @@ block content %}
       </div>
       {% endif %} {% endfor %}
 
-      <button class="btn btn-primary btn-lg btn-block">
-        {% if next == true %} Continue {% else %} Submit {% endif %}
-      </button>
-    </form>
+      <a class="btn btn-primary btn-lg btn-block" href="{{ next if next else '/' }}">
+        {% if next %} 
+            Continue 
+        {% else %} 
+            Submit 
+        {% endif %}
+    </a>
+    
   </div>
 </div>
 {% endblock %}

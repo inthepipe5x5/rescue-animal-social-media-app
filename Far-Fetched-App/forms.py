@@ -1,5 +1,5 @@
-from flask_wtf import FlaskForm
-from wtforms import (
+from flask_wtf import FlaskForm # type: ignore
+from wtforms import ( # type: ignore # type: ignore
     StringField,
     PasswordField,
     TextAreaField,
@@ -7,9 +7,9 @@ from wtforms import (
     BooleanField,
     SelectField,
 )
-from wtforms.validators import DataRequired, Email, Length
-from wtforms_alchemy import model_form_factory
-import pycountry
+from wtforms.validators import DataRequired, Email, Length # type: ignore
+from wtforms_alchemy import model_form_factory # type: ignore
+import pycountry # type: ignore
 
 from models import (
     db,
