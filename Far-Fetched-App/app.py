@@ -1,4 +1,4 @@
-from flask import (
+from flask import ( # type: ignore
     Flask,
     render_template,
     request,
@@ -11,8 +11,8 @@ from flask import (
 )
 
 # from flask_font_awesome import FontAwesome
-from sqlalchemy.exc import IntegrityError, NoResultFound
-from dotenv import load_dotenv
+from sqlalchemy.exc import IntegrityError, NoResultFound # type: ignore
+from dotenv import load_dotenv # type: ignore
 import pdb  # MAKE SURE TO REMOVE IN PRODUCTION
 import os
 

@@ -1,5 +1,5 @@
-from sqlalchemy.exc import NoResultFound
-from app import app, session, CURR_USER_KEY, g
+from sqlalchemy.exc import NoResultFound # type: ignore
+from app import app, session, CURR_USER_KEY, g, update_global_variables
 from models import db, User, UserLocation, UserAnimalPreferences
 from PetFinderAPI import pf_api
 
@@ -9,9 +9,9 @@ from PetFinderAPI import pf_api
 def get_anon_preference(key):
     """Get saved ANON user preferences for a specific key."""
     if key in session:
-        return session[key]
+        return session.get(key)
     elif key in g:
-        return g[key]
+        return g.get(key)
     else:
         return pf_api.default_options_obj.get(key)
 
@@ -34,11 +34,11 @@ def get_user_preference(key):
     if not db_query:
         if key in session:
             #return g.key and update user_preferences
-            update_user_preferences({key: {"data": session[key]}})
-            return session[key]
+            update_user_preferences({key: {"data": session.get(key)}})
+            return session.get(key)
         elif key in g:
             #return g.key and update user_preferences
-            update_user_preferences({key: {"data": g[key]}})
+            update_user_preferences({key: {"data": g.get(key)}})
             return g.get(key)
     else:
         # return default key preference value if none found in db, session nor g
