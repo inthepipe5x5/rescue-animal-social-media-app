@@ -2,33 +2,23 @@ from sqlalchemy.exc import NoResultFound
 from app import app, session, CURR_USER_KEY, g
 from models import db, User, UserLocation, UserAnimalPreferences
 from PetFinderAPI import pf_api
-# HELPER FUNCTIONS FOR PREFERENCE ROUTES
+
+
+
+# Helper functions
 def get_anon_preference(key):
-    """get saved ANON user preferences for a specific key 
-    
-    key param = STRING eg. 'country'
-    """
-    #handle invalid key param
-    if key not in pf_api:
-        return TypeError({"status": 500, "message": "Invalid key to fetch anon user preferences"})
+    """Get saved ANON user preferences for a specific key."""
+    if key in session:
+        return session[key]
+    elif key in g:
+        return g[key]
     else:
-        with app.app_context():
-            if key in session:
-                print(f"found {key} in session: {session[key]}")
-                return session[key]
-            elif key in g:
-                print(f"found {key} in g: {g[key]}")
-                return g[key]
-            else:
-                #return default user preference param
-                print(f'no anon preferences found for {key}, default preferences returned')
-                return pf_api.default_options_obj[key]
+        return pf_api.default_options_obj.get(key)
 
 def get_user_preference(key):
-    """get saved ANON user preferences for a specific key 
-    
-    key param = STRING eg. 'country'
-    
+    """Get saved logged-in user preferences for a specific key.
+    # Implement logic to retrieve user preferences from the database
+    # Return default value if preferences not found
     """
     #dict for routing db queries based on key param
     db_q_dict = {'country': db.session.query(UserLocation.user_id == g.user.id).first().country,
@@ -40,6 +30,7 @@ def get_user_preference(key):
     db_query = db_q_dict[key]
     if key not in db_q_dict:
         return TypeError({"status": 500, "message": "Invalid key to fetch logged in user preferences"})
+    #handle no db results found
     if not db_query:
         if key in session:
             #return g.key and update user_preferences
@@ -53,24 +44,18 @@ def get_user_preference(key):
         # return default key preference value if none found in db, session nor g
         return pf_api.default_options_obj[key] 
 
-        
-def update_anon_preferences(form):
-    """Helper function to set ANON preferences from form
 
-    Args:
-        form (_type_): _description_
-        """
-    with app.app_context():
-        session['country'] = form.country.data
-        if 'animal_types' in session:
-            if isinstance(form.animal_types.data, str):
-                session['animal_types'] = [form.animal_types.data][:1] #save STR value of form to list and slice and return just first value in list
-            elif isinstance(form.animal_types.data, list): #check if list or string
-                session['animal_types'] = form.animal_types.data[:1] #only save the first value of the list for anon users
-        update_global_variables()
+def update_anon_preferences(form):
+    """Update ANON preferences from form data."""
+    session['country'] = form.country.data
+    session['animal_types'] = form.animal_types.data[:1] if isinstance(form.animal_types.data, list) else [form.animal_types.data]
+    update_global_variables()
 
 def update_user_preferences(form):
-    """Helper function to SAVE user preferences for LOGGED-IN users to DB & update Flask sessions"""
+    """Update logged-in user preferences from form data.
+    # Implement logic to update user preferences in the database
+    # Update session and global variables accordingly
+    """
     with app.app_context():
         #save form data to session
         session['country'] = form.country.data
@@ -96,59 +81,40 @@ def update_user_preferences(form):
     #update global Flask app variables after committing to db
     update_global_variables()
 
-def add_user_to_g():
-    """If we're logged in, add curr user to Flask global."""
 
+def add_user_to_g():
+    """Add current user to 'g'."""
     if CURR_USER_KEY in session:
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
     else:
         g.user = None
-        
-def add_animal_types_to_g():
-    """Add the animal types preferred by the user to 'g'"""
-    #if logged in user, set session['animal_types'] to the saved LIST in DB
-    if CURR_USER_KEY in session :
-        # Get animal types selected by the user from the previous form submission
-        user_pref = UserAnimalPreferences.get_or_404(
-            UserAnimalPreferences.user_id == session[CURR_USER_KEY]
-        )
-        if user_pref: 
-            session['animal_types'] = user_pref 
-    else:
-        #default for anon users
-        #default for logged in users with no saved preferences 
-        session['animal_types'] = ['dog'] 
 
-    
+def add_animal_types_to_g():
+    """Add animal types preferred by the user to 'g'."""
+    if 'animal_types' in session:
+        g.animal_types = session['animal_types']
+    else:
+        g.animal_types = ['dog']  # Default for anon users
+
 def add_country_to_g():
+    """Add country to 'g'."""
     if 'country' not in session:
-        country = 'CA'  # set default country
+        country = 'CA'  # Default country
         session['country'] = country
     else:
         country = session['country']
 
-    g.country = country  # set country in global context
+    g.country = country
 
-    # check if user is logged in
     if CURR_USER_KEY in session:
         try:
             user_location = UserLocation.query.filter_by(user_id=session[CURR_USER_KEY].id).first()
             if user_location:
                 country = user_location.country
             else:
-                country = 'CA'  # set default
+                country = 'CA'  # Default
         except NoResultFound:
-            country = 'CA'  # set default
+            country = 'CA'  # Default
 
         session['country'] = country
         g.country = country
-
-#update 'g' before each request or when needed to update g after changing something in Flask sessions
-with app.app_context():
-    @app.before_request
-    def update_global_variables():
-        """Update global variables after saving user preferences."""
-        add_country_to_g()
-        add_animal_types_to_g()
-        add_user_to_g()
-

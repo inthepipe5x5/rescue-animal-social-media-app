@@ -314,17 +314,19 @@ def data():
     Returns:
         _type_: _description_
     """
-    # if data_type == 'orgs':
-    # results = pf_api.petpy_api.organizations(sort='distance', country='CA', location='Toronto, ON', state='ON', pages=2)
-    results = pf_api.petpy_api.animal_types(
-        "dog"
-    )  # organizations(country='CA', state='ON')#(**pf_api.default_options_obj)
-    # session['api_data'] = results
-    # print(session['api_data'])
-    # return render_template('results.html', results=results)
-    print(results)
-    return jsonify(results)
-    # return render_template('results.html', results=results)
+    if g.user:
+        country = get_user_preference(key='country')
+        state = get_user_preference(key='state')
+    else:
+        country = get_anon_preference(key='country')
+        state = get_anon_preference(key='state')
+    
+    location=country+","+state
+    print(country)
+    results = pf_api.petpy_api.organizations(country=country, state=state, location=location, sort='distance')#(**pf_api.default_options_obj)
+    print([(org.name, org.adoption.policy) for org in results.organizations])
+    # return jsonify(results)
+    return render_template('results.html', results=results)
 
 
 @app.route("/set_country", methods=["POST"])
@@ -539,12 +541,13 @@ def homepage():
     - anon users:
     - logged in:
     """
+    print(g)
     if g.user:
         users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages
 
-        return render_template("home.html", user=user, messages=g.user.messages)
+        return render_template("home.html", user=g.user, messages=g.user.messages)
 
     else:
         try:
@@ -567,6 +570,13 @@ def homepage():
 #
 # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 
+# Initialize global variables before each request
+@app.before_request
+def update_global_variables():
+    """Update global variables before each request."""
+    add_country_to_g()
+    add_animal_types_to_g()
+    add_user_to_g()
 
 @app.after_request
 def add_header(req):
@@ -581,3 +591,4 @@ def add_header(req):
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=True)
+    print(session)
