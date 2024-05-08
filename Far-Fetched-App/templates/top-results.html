@@ -1,0 +1,58 @@
+<!-- Template to display top results in a custom card format: 
+    Example: https://getbootstrap.com/docs/5.3/examples/features/ 
+
+
+-->
+{% block top_results %}
+
+<div class="container px-4 py-5" id="custom-cards">
+  <h2 class="pb-2 border-bottom">Freshly Fetched Friends!</h2>
+  
+  {% for animal in session['api_data'] %}
+  
+  <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4 py-5">
+    <div class="col">
+      <div
+        class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg"
+        style="background-image: {{animal.photos[0].full}}"
+      >
+        <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+          <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">{{animal.name}}</h3>
+          <ul class="d-flex list-unstyled mt-auto">
+            <li class="me-auto">
+              {% if animal.video %} {{animal.videos[0].embed}} {% else %}
+              <img
+                src="{{animal.photos[0].full}}"
+                alt="{{animal.name}}-photo"
+                width="32"
+                height="32"
+                class="rounded-circle border border-white"
+              />
+              {% endif %}
+            </li>
+            <li class="d-flex align-items-center me-3">
+              <svg class="bi me-2" width="1em" height="1em">
+                <use xlink:href="#geo-fill"></use>
+              </svg>
+              <small
+                >{{ animal.contact.address.city }}, {{
+                animal.contact.address.state }}, {{
+                animal.contact.address.country }}</small
+              >
+            </li>
+            <li class="d-flex align-items-center">
+              <svg class="bi me-2" width="1em" height="1em">
+                <use xlink:href="#calendar3"></use>
+              </svg>
+              <small>{{animal.time}}</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  {% endfor %}
+</div>
+
+{% endblock top_results %}
