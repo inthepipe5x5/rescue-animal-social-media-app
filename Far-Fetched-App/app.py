@@ -284,13 +284,6 @@ def delete_user():
 
 
 ##############################################################################
-# Route to get updated API data
-@app.route("/get_data_results_in_session", methods=["GET"])
-def get_data_results_in_session():
-    if "api_data" in session:
-        return jsonify(session["api_data"])
-    return jsonify({})  # Return empty JSON if no data in session
-
 
 # Route to handle form submissions and API calls
 @app.route("/submit_section", methods=["POST"])
@@ -328,6 +321,21 @@ def data():
     # return jsonify(results)
     return render_template('results.html', results=results)
 
+# Route to get updated API data
+@app.route("/data/session", methods=["GET", "POST"])
+def update_data_session():
+    if request.method == 'GET':
+        if "api_data" in session:
+            del session['api_data']
+            return jsonify(session["api_data"])
+        return jsonify({})  # Return empty JSON if no data in session
+
+    if request.method == "POST":
+        api_data = request.args.get('api_data')
+        if api_data:
+            session['api_data'] = pf_api.parse_api_data(api_data=api_data)
+        else:
+            return ValueError('No api data received')
 
 @app.route("/set_country", methods=["POST"])
 def set_country():
