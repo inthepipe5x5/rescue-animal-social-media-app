@@ -1,4 +1,4 @@
-from flask import ( # type: ignore
+from flask import (  # type: ignore
     Flask,
     render_template,
     request,
@@ -11,10 +11,11 @@ from flask import ( # type: ignore
 )
 
 # from flask_font_awesome import FontAwesome
-from sqlalchemy.exc import IntegrityError, NoResultFound # type: ignore
-from dotenv import load_dotenv # type: ignore
+from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
+from dotenv import load_dotenv  # type: ignore
 import pdb  # MAKE SURE TO REMOVE IN PRODUCTION
 import os
+import requests
 
 from models import (
     db,
@@ -34,9 +35,19 @@ from forms import (
     AnonExperiencesForm,
     SpecificAnimalPreferencesForm,
 )
-from PetFinderAPI import pf_api  # PetFinderPetPyAPI
-from helper import *  # importing all helper functions for now, CHANGE THIS LATER
-
+from helper import (
+    get_anon_preference,
+    get_user_preference,
+    get_init_api_data,
+    update_anon_preferences,
+    update_user_preferences,
+    update_global_variables,
+    add_user_to_g,
+    add_country_to_g,
+    add_animal_types_to_g,
+    update_global_variables,
+)
+from PetFinderAPI import PetFinderPetPyAPI
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
@@ -63,9 +74,11 @@ flask_env_type = (
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
 
+# #initialize instance of petFinderPetPyAPI wrapper with helper get functions from helper.py to avoid circular imports    
+pf_api = PetFinderPetPyAPI(get_anon_preference_func=get_anon_preference, get_user_preference_func=get_user_preference)
+
 ##############################################################################
 # User signup/login/logout
-
 
 
 def do_login(user):
@@ -101,7 +114,6 @@ def signup_user():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
-                location=form.location.data,
                 bio=form.bio.data,
             )
             db.session.add(user)
@@ -285,6 +297,7 @@ def delete_user():
 
 ##############################################################################
 
+
 # Route to handle form submissions and API calls
 @app.route("/submit_section", methods=["POST"])
 def submit_section():
@@ -308,34 +321,38 @@ def data():
         _type_: _description_
     """
     if g.user:
-        country = get_user_preference(key='country')
-        state = get_user_preference(key='state')
+        country = get_user_preference(key="country")
+        state = get_user_preference(key="state")
     else:
-        country = get_anon_preference(key='country')
-        state = get_anon_preference(key='state')
-    
-    location=country+","+state
+        country = get_anon_preference(key="country")
+        state = get_anon_preference(key="state")
+
+    location = country + "," + state
     print(country)
-    results = pf_api.petpy_api.organizations(country=country, state=state, location=location, sort='distance')#(**pf_api.default_options_obj)
+    results = pf_api.petpy_api.organizations(
+        country=country, state=state, location=location, sort="distance"
+    )  # (**pf_api.default_options_obj)
     print([(org.name, org.adoption.policy) for org in results.organizations])
     # return jsonify(results)
-    return render_template('results.html', results=results)
+    return render_template("results.html", results=results)
 
-# Route to get updated API data
+
+# Route to set & get API data in Flask Session
 @app.route("/data/session", methods=["GET", "POST"])
 def update_data_session():
-    if request.method == 'GET':
+    if request.method == "GET":
         if "api_data" in session:
-            del session['api_data']
+            del session["api_data"]
             return jsonify(session["api_data"])
         return jsonify({})  # Return empty JSON if no data in session
 
     if request.method == "POST":
-        api_data = request.args.get('api_data')
+        api_data = request.args.get("api_data")
         if api_data:
-            session['api_data'] = pf_api.parse_api_data(api_data=api_data)
+            session["api_data"] = pf_api.parse_api_data(api_data=api_data)
         else:
-            return ValueError('No api data received')
+            return ValueError("No api data received")
+
 
 @app.route("/set_country", methods=["POST"])
 def set_country():
@@ -370,7 +387,7 @@ def set_global():
         animal_types = get_user_preference(key="animal_types")
         form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
-        #check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
+        # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
         country = get_anon_preference(key="country")
         animal_types = get_anon_preference(key="animal_types")
         form = AnonExperiencesForm(country=country, animal_types=animal_types)
@@ -389,7 +406,7 @@ def set_global():
                 # Set global country and animal type for anonymous users
                 update_anon_preferences(form=form)
 
-    return render_template("users/form.html", form=form, next=url_for('data'))
+    return render_template("users/form.html", form=form, next=url_for("data"))
 
 
 ##############################################################################
@@ -550,6 +567,7 @@ def homepage():
     - logged in:
     """
     print(g)
+
     if g.user:
         users_followed_by_current_user = g.user.following
 
@@ -573,23 +591,34 @@ def homepage():
 
 ##############################################################################
 
+
 # Initialize global variables before each request
 @app.before_request
-def update_global_variables():
-    """Update global variables before each request."""
-    add_country_to_g()
-    add_animal_types_to_g()
-    add_user_to_g()
+def get_app_data():
+    """Function that runs before each request to refresh global variables and grab initial API data if none
 
-#Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
+    Returns:
+        _type_: _description_
+    """
+    # update global variables
+    update_global_variables()
+    # get JSON api_data from session
+    json_api_data = get_init_api_data(session=session)
+
+    # set api data in session via another route
+    requests.post(
+    url=url_for("update_data_session", _external=True),
+    data={"api_data": json_api_data, "headers": "application/json"},
+    )
+
+
+# Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
 @app.context_processor
 def inject_global_vars():
-    """Injects the session and g objects into the Jinja2 template context
-    """
-    return {
-        'session': session,
-        'g': g
-    }
+    """Injects the session and g objects into the Jinja2 template context"""
+    return {"session": session, "g": g}
+
+
 # Turn off all caching in Flask
 #   (useful for dev; in production, this kind of stuff is typically
 #   handled elsewhere)
@@ -608,4 +637,3 @@ def add_header(req):
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=True)
-    print(session)

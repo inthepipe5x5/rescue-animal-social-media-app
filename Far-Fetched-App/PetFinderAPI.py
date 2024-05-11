@@ -4,14 +4,13 @@ import datetime
 import requests
 
 import pandas as pd
-from flask import sessions
+from flask import sessions, jsonify, json
 from ratelimit import limits, RateLimitException
 from backoff import expo, on_exception
 from petpy import Petfinder
 
 
 from models import User, UserAnimalPreferences  # , #UserPreferences
-
 load_dotenv()
 
 
@@ -26,12 +25,10 @@ class PetFinderPetPyAPI:
 
     # store default user_preference
     default_options_obj = {
-        "location": "Toronto, ON",
+        "location": "Toronto,ON",
         "state": "ON",
-        # "city": "Toronto",
         "country": "CA",
-        "animal_types": ["dog"], #6 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
-        # "distance": 100,
+        "animal_types": ["dog"], #8 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
         "sort": "distance",
         "return_df": False,
         # "custom": False
@@ -48,14 +45,17 @@ class PetFinderPetPyAPI:
         "barnyard": "🐄",
     }
 
-    def __init__(self):
+    def __init__(self, get_anon_preference_func, get_user_preference_func):
         print(os.environ.get("API_KEY"), os.environ.get("API_SECRET"))
         self.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
         self.auth_token_time = datetime.datetime.now()
         self.breed_choices = self.petpy_api.breeds()
-
+        
+        #utilizing dependency injection here to prevent circular imports from app.py, form.py, helper.py and this file
+        self.get_anon_preference = get_anon_preference_func
+        self.get_user_preference = get_user_preference_func
     def create_custom_url_for_api_request(self, category, action, params):
         """Create a url to make an API request based off passed in params object.
 
@@ -92,20 +92,24 @@ class PetFinderPetPyAPI:
             print(f"An error occurred while retrieving organizations: {e}")
             return None
 
-    def get_animals_df(self, params_obj):
+    def get_animals_df(self, params_obj, user_bool, key='animal_types'):
         """Get DataFrame of animal rescue organizations within a specified distance of a location.
 
         Args:
             params_obj (DICT) dictionary of search parameters
+            user_bool (BOOL) is user logged in (True) or not (False) 
         Returns:
             pandas.DataFrame: DataFrame of animal rescue organizations.
         """
+        
+        if not params_obj:
+            saved_pref = {**self.get_user_preference_func(key=key)} if user_bool else {**self.get_anon_preference_func(key=key)}
+            params_obj = {key: saved_pref.get(key).data}
         try:
-            # animal_types = params_obj.get("animal_types", [])
 
             # Fetch data from API
             animals_df = self.petpy_api.animals(**params_obj)
-            animal_types = params_obj.get("animal_types")
+            animal_types = params_obj.get(key, self.get_user_preference_func(key=key) if user_bool else self.get_anon_preference_func(key=key))
             # Filter DataFrame based on 'animal_types'
             if animal_types:
                 animals_df = animals_df[animals_df["type"].isin(animal_types)]
@@ -132,11 +136,9 @@ class PetFinderPetPyAPI:
 
     def get_animals_as_per_user_preferences(
         self,
-        list_of_orgs,
-        user_id,
-        animal_type_preferences,
-        species_preference,
-        breeds_preference,
+        session,
+        animal_type, 
+        country
     ):
         """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
 
@@ -144,19 +146,42 @@ class PetFinderPetPyAPI:
             list_of_orgs (ARR or Pandas DataFrame): list of organization IDs from API in a Python List (Array) or a Pandas DataFrame format.
             user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
         """
+       
+        user_id = session['CURR_USER_KEY']  if 'CURR_USER_KEY' in session else None 
+        
+        #handle logged in user
+        if user_id:        
+            user_preferences = UserAnimalPreferences.query.get_or_404(
+                User.id == user_id
+            ).all()
+            if user_preferences:
+                #filter results by animal_type
+                filtered_user_preferences = list(filter(lambda search_val: search_val == animal_type, user_preferences))
+                
+                #grab data in the following user preferences columns: ['user_preference_name', 'user_preference_data']
+                pref_key_list = {key:value for key, value in filtered_user_preferences if key in ['user_preference_name', 'user_preference_data']} 
+                
+                #add default search parameters
+                default = self.default_options_obj
+                pref_key_list = default.update(pref_key_list)
+                matching_animals = self.petpy_api.animals(pref_key_list)
+            
+            #handle no saved user preferences found by passing in default search parameters 
+            else:
+                pref_key_list = self.default_options_obj
+                matching_animals = self.petpy_api.animals(pref_key_list)
+        
+        #handle anon users
+        else: 
+            #populate pref_key_obj with anon preferences
+            pref_key_obj = {
+                'location': country,
+                'animal_type': animal_type
+            }
+            print(pref_key_obj)
+            matching_animals = self.petpy_api.animals(**pref_key_obj)
 
-        user = User.query.get_or_404(User.id == user_id)
-        user_preferences = UserAnimalPreferences.query.get_or_404(
-            User.id == user_id
-        ).all()
-        matching_animals = self.petpy_api.animals(
-            type=animal_type_preferences,
-            species=species_preference,
-            breeds=breeds_preference,
-            location=list_of_orgs,
-        )
-
-        return matching_animals
+            return matching_animals
 
 
     def animals_df_to_org_animal_count_dict(self, animals_df):
@@ -320,22 +345,91 @@ class PetFinderPetPyAPI:
         #output list of parsed animals
         parsed = []
         
-        for animal in api_data:
-            #parse the nested animal property objects 
-            animal.breed = self.parse_breed(breed_obj=animal.breeds)
-            animal.color = self.parse_color(color_obj=animal.colors)
-            animal.photos = self.parse_photos(photo_list = animal.photos, type = animal.type)
-            animal.location = self.parse_location_obj(loc_obj = animal.contact)
-            animal.published_date = self.parse_publish_date(pub_date = animal.published_date, action='format')
-            animal.date_delta_num = self.parse_publish_date(pub_date = animal.published_date, action='delta')
+        # Check if api_data is None or an empty string
+        if api_data is None or api_data == "":
+            print("Empty API data received.")
+            return parsed
             
-            #remove videos
-            if 'videos' in animal:
-                del animal['videos'] 
-            parsed.append(animal)
+        # Assume api_data is a string (JSON string)
+        try:
+            data = json.loads(api_data)
+        except TypeError as e:
+            print(f"Error parsing JSON data: {e}")
+            # If parsing fails, assume api_data is already in the desired format
+            data = api_data
+            
+        # Check if data is a list of dictionaries
+        if isinstance(data, list) and all(isinstance(item, dict) for item in data):
+            for animal in data:
+                # Parse the nested animal property objects
+                animal['breed'] = self.parse_breed(breed_obj=animal.get('breeds', {}))
+                animal['color'] = self.parse_color(color_obj=animal.get('colors', {}))
+                animal['photos'] = self.parse_photos(photo_list=animal.get('photos', []), type=animal.get('type', 'misc'))
+                animal['location'] = self.parse_location_obj(loc_obj=animal.get('contact', {}))
+                animal['published_date'] = self.parse_publish_date(pub_date=animal.get('published_date', ''), action='format')
+                animal['date_delta'] = self.parse_publish_date(pub_date=animal.get('published_date', ''), action='delta')
+                
+                # Remove videos
+                if 'videos' in animal:
+                    del animal['videos'] 
+                parsed.append(animal)
+        else:
+            print("Data is not in the expected format.")
         
-        #return final list of parsed animals
+        # Return final list of parsed animals
         return parsed
+    
+    def find_highest_lowest(self, ani_objects, key='date_delta'):
+        """
+        Finds the animal objects with the highest and lowest values based on the specified key.
+        Default key is 'date_delta" which would return the oldest and newest published animal
+        Args:
+            ani_objects (list): A list of objects (dictionaries).
+            key (str): The key to use for comparison.
 
+        Returns:
+            tuple: A tuple containing the object with the highest value and the object with the lowest value.
+        """
+        if not ani_objects:
+            return None, None
 
-pf_api = PetFinderPetPyAPI()
+        highest_obj = ani_objects[0]
+        lowest_obj = ani_objects[0]
+
+        for obj in ani_objects:
+            if obj[key] > highest_obj[key]:
+                highest_obj = obj
+            elif obj[key] < lowest_obj[key]:
+                lowest_obj = obj
+
+        return highest_obj, lowest_obj
+    
+    def get_top_results(self, parsed_data):
+        """Function to sort parsed_data for top-results
+
+        Args:
+            parsed_data (LIST of OBJECTS): returned API results that have been parsed by self.parse_api_data()
+        
+        Returns: OBJECT = {
+            "oldest": value,
+            "newest": value,
+            "closest": value,
+            "furthest": value
+        }
+        """
+        oldest, newest = self.find_highest_lowest(ani_objects=parsed_data, key='date_delta')
+        furthest, closest = self.find_highest_lowest(ani_objects=parsed_data, key='distance')
+        
+        # Pack into an object
+        output_object = {
+            "oldest": oldest,
+            "newest": newest,
+            "closest": closest,
+            "furthest": furthest
+        }
+        
+        #filter out object keys with the falsy values
+        output_object = {key:value for key, value in output_object if value}
+        
+        return output_object
+
