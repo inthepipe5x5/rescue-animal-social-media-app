@@ -32,10 +32,10 @@
     </div>
     <ul class="nav navbar-nav navbar-right">
       
-      {% if g.country or session['country'] %}
-        <li class="nav-item"><a href={{ url_for('set_global')}}>Current Country:{{g.country or session['country']}} {% endif %}</a></li>
+      {% if session['CURR_LOCATION'] %}
+        <li class="nav-item"><a href={{ url_for('set_global')}}>Current Location:{{session['CURR_LOCATION']}} {% endif %}</a></li>
       {% else %}
-      <li class="nav-item"><a href={{ url_for('set_global')}}>Current Country: CA 🍁{% endif %}</a></li>
+      <li class="nav-item"><a href={{ url_for('set_global')}}>Current Location: ON,CA {% endif %}</a></li>
       {% endif %}
       <div class='vr'></div> <!-- vertical divider div -->
       {% if g.user.animal_types%} 

@@ -80,7 +80,7 @@ class UserLocation(db.Model):
     country = db.Column(db.String(2), nullable=False)
     state = db.Column(db.String(2), nullable=False)
     # postal_code = db.Column(db.String(7), nullable=False)
-    city = db.Column(db.String(100), nullable=False)
+    city = db.Column(db.String(100))
 
     user = db.relationship(
         "User",
@@ -120,12 +120,12 @@ class User(db.Model):
 
     image_url = db.Column(
         db.Text,
-        default="/static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
+        default="../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
     )
 
     header_image_url = db.Column(
         db.Text,
-        default="/static/images/profile-images/default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg",
+        default="../static/images/profile-images/default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg",
     )
 
     bio = db.Column(db.Text)

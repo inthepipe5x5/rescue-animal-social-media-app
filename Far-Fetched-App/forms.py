@@ -65,17 +65,25 @@ class UserAddForm(ModelForm):
         exclude = ["rescue_action_type", "registration_date", "animal_types"]
 
 
-class CountryForm(ModelForm):
+class StateCountryForm(ModelForm):
     countries_list = list(pycountry.countries)
 
     country = SelectField(
         "Country To Search",
         choices=[(country.alpha_2, country.name) for country in countries_list],
         default="CA",
+        validators=[DataRequired()], #ensure no empty values
+    )
+    
+    state = SelectField(
+        "What State or Province are you located in?",
+        choices=[(state.code, state.name) for state in list(pycountry.subdivisions) if state.type in ['province', 'state', 'territory']],
+        default='ON'
+        validators=[DataRequired()], #ensure no empty values
     )
 
 
-class UserExperiencesForm(CountryForm):
+class UserExperiencesForm(StateCountryForm):
     """Form for the mandatory onboarding during consumer user registration to fetch & filter API data
 
     Args:
@@ -171,15 +179,15 @@ class UserEditForm(ModelForm):
     )
 
 
-class UserLocationForm(CountryForm):
+class UserLocationForm(StateCountryForm):
     """
     Form for adding user location information
     """
 
     class Meta:
         model = UserLocation
-        # exclude country to utilize CountryForm instead
-        exclude = ["country"]
+        # exclude country & state fields to utilize StateCountryForm instead
+        exclude = ["country", "state"]
 
 
 class UserTravelForm(ModelForm):

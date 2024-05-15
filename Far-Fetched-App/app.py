@@ -43,7 +43,7 @@ from helper import (
     update_user_preferences,
     update_global_variables,
     add_user_to_g,
-    add_country_to_g,
+    add_location_to_g,
     add_animal_types_to_g,
     update_global_variables,
 )
@@ -354,20 +354,31 @@ def update_data_session():
             return ValueError("No api data received")
 
 
-@app.route("/set_country", methods=["POST"])
-def set_country():
-    """Route to set country for anonymous search results
+@app.route("/set_location", methods=["POST"])
+def set_location():
+    """Route to set location for anonymous search results
 
     Returns:
         _type_: _description_
     """
-    country = request.args.get("country")
-    if not country:
-        session["country"] = "CA"
-
-    session["country"] = country
-    print(f'Current country set to: {session["country"]}')
-    return add_country_to_g()
+    #grab location from request body
+    location = request.args.get("location")
+    #handle lack of location provided from request body
+    if not location:
+        #check if country, state is provided in request body
+        country = request.args.get("country")
+        state = request.args.get("state")
+        #if country, state not provided in request body, grab location from .flaskenv
+        if not country or not state:
+            session["CURR_LOCATION"] = os.environ.get('CURR_LOCATION', 'ON,CA')
+        #if country, state provided in request body, join and set as location
+        else:
+            location=','.join(country, state)
+    
+    #set location in session
+    session["CURR_LOCATION"] = location
+    print(f'App.py: Current CURR_LOCATION set to: {session["CURR_LOCATION"]}')
+    return add_location_to_g()
 
 
 @app.route("/set_global", methods=["GET", "POST"])

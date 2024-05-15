@@ -361,6 +361,7 @@ class PetFinderPetPyAPI:
         # Check if data is a list of dictionaries
         if isinstance(data, list) and all(isinstance(item, dict) for item in data):
             for animal in data:
+                print(animal, isinstance(animal, str))
                 # Parse the nested animal property objects
                 animal['breed'] = self.parse_breed(breed_obj=animal.get('breeds', {}))
                 animal['color'] = self.parse_color(color_obj=animal.get('colors', {}))
@@ -375,6 +376,7 @@ class PetFinderPetPyAPI:
                 parsed.append(animal)
         else:
             print("Data is not in the expected format.")
+            print(f"Animal #{len(parsed) + 1}: {parsed}")
         
         # Return final list of parsed animals
         return parsed
