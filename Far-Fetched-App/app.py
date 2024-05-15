@@ -94,44 +94,6 @@ def do_logout():
         del session[CURR_USER_KEY]
 
 
-@app.route("/signup/user", methods=["GET", "POST"])
-def signup_user():
-    """Handle user signup.
-
-    Create new user and add to DB. Redirect to home page.
-
-    If form not valid, present form.
-
-    If the there already is a user with that username: flash message
-    and re-present form.
-    """
-
-    form = UserAddForm()
-    if form.validate_on_submit():
-        try:
-            user = User.signup(
-                username=form.username.data,
-                password=form.password.data,
-                email=form.email.data,
-                image_url=form.image_url.data or User.image_url.default.arg,
-                bio=form.bio.data,
-            )
-            db.session.add(user)
-            db.session.commit()
-
-            # init_orgs = pf_api.get_orgs_df()
-        except IntegrityError:
-            flash("Username already taken", "danger")
-            db.rollback()
-            return render_template("users/signup.html", form=form)
-
-        do_login(user)
-
-        return redirect(url_for("mandatory_options"))
-
-    else:
-        return render_template("users/signup.html", form=form)
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -310,7 +272,7 @@ def submit_section():
     return "API data received"
 
 
-@app.route("/data", methods=["GET", "POST"])
+@app.route("/data/animals", methods=["GET", "POST"])
 def data():
     """TEST ROUTE TO USE PETPY API
 
@@ -329,8 +291,32 @@ def data():
 
     location = country + "," + state
     print(country)
+    results = pf_api.petpy_api.animals(
+        location=location, sort="distance"
+    )  # (**pf_api.default_options_obj)
+    print([(org.name, org.adoption.policy) for org in results.organizations])
+    # return jsonify(results)
+    return render_template("results.html", results=results)
+
+@app.route("/data/orgs", methods=["GET", "POST"])
+def data():
+    """TEST ROUTE TO GET ORGS DATA
+
+    Args:
+        type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
+
+    Returns:
+        _type_: _description_
+    """
+    if g.user:
+        country = get_user_preference(key="country")
+        state = get_user_preference(key="state")
+    else:
+        country = get_anon_preference(key="country")
+        state = get_anon_preference(key="state")
+
     results = pf_api.petpy_api.organizations(
-        country=country, state=state, location=location, sort="distance"
+        country=country, state=state, sort="distance"
     )  # (**pf_api.default_options_obj)
     print([(org.name, org.adoption.policy) for org in results.organizations])
     # return jsonify(results)
@@ -423,83 +409,75 @@ def set_global():
 ##############################################################################
 @app.route("/signup", methods=["GET"])
 def signup():
-    return redirect(url_for("signup_preferences"))
+    """Route to redirect any signup links that need to be updated
+    TO BE REMOVED BEFORE PRODUCTION
+
+    Returns:
+        redirect to signup_user Flask Route.
+    """
+    return redirect(url_for("signup_user"))
+
+
+@app.route("/signup/user", methods=["GET", "POST"])
+def signup_user():
+    """Handle user signup.
+
+    Create new user and add to DB. Redirect to home page.
+
+    If form not valid, present form.
+
+    If the there already is a user with that username: flash message
+    and re-present form.
+    """
+
+    form = UserAddForm()
+    if form.validate_on_submit():
+        try:
+            user = User.signup(
+                username=form.username.data,
+                password=form.password.data,
+                email=form.email.data,
+                image_url=form.image_url.data or User.image_url.default.arg,
+                bio=form.bio.data,
+            )
+            db.session.add(user)
+            db.session.commit()
+
+            # init_orgs = pf_api.get_orgs_df()
+        except IntegrityError:
+            flash("Username already taken", "danger")
+            db.rollback()
+            return render_template("users/signup.html", form=form)
+
+        do_login(user)
+
+        return redirect(url_for("signup_preferences"))
+
+    else:
+        return render_template("users/form.html", form=form, next=True)
+
 
 
 @app.route("/signup/preferences", methods=["GET", "POST"])
 def signup_preferences():
+    """Route to return form for user location (state + country), animal_types
+
+    Returns:
+        _type_: _description_
+    """
     u_pref_form = UserExperiencesForm()
 
     if u_pref_form.validate_on_submit():
         # Process u_pref_form submission
 
         submitted_animal_types = u_pref_form.animal_types.data
-        rescue_action_type = u_pref_form.rescue_action_type.data
+        #save form data to g, flask sessions and database
+        update_user_preferences(form=u_pref_form, session=session, user=g.user) #pass in a current user
 
-        if "animal_types" in session:
-            session["animal_types"] = submitted_animal_types
-        else:
-            session["user_preferences"] = pf_api.default_options_obj
-            session["animal_types"] = submitted_animal_types
+        # Redirect to user home
+        return redirect(url_for("homepage"))
 
-        session["rescue_action_type"] = rescue_action_type
-        print(submitted_animal_types, rescue_action_type)
-        # Create new user
-        new_user = User(rescue_action_type=rescue_action_type, location=g.location_id)  # type: ignore
-        do_login(new_user)
-        db.session.add(new_user)
-        db.session.commit()
-
-        # Redirect to the next u_pref_form or route
-        return redirect(url_for("signup_location"))
-
-    return render_template("users/form.html", form=u_pref_form, next=True)
-
-
-@app.route("/signup/location", methods=["GET", "POST"])  # type: ignore
-def signup_location():
-    """Sign Up Route -> mandatory onboarding form of user preferences to sort content for users
-
-    Returns:
-        redirects to:
-        - User details page (with API search content)
-            OR
-        - Additional user preference options
-    """
-
-    u_location_form = UserLocationForm()
-
-    if u_location_form.validate_on_submit():
-        data = u_location_form.data
-        mapped_data = pf_api.map_user_form_data(form_data=data)
-        mapped_location = mapped_data.get("location")
-
-        # Check if user has an existing location
-        existing_location = UserLocation.query.filter_by(user_id=g.user.id).first()
-
-        if existing_location:
-            # Update existing location
-            existing_location.populate_by_obj(mapped_location)
-        else:
-            # Create new location
-            country = mapped_location.get("country")
-            state = mapped_location.get("state")
-            city = mapped_location.get("city")
-            new_user_location = UserLocation(
-                user_id=g.user.id, country=country, state=state, city=city
-            )  # type: ignore
-            db.session.add(new_user_location)
-            # update the preferences in session
-            session["user_preferences"] = {**mapped_data, **pf_api.default_options_obj}
-
-        # commit changes to db
-        db.session.commit()
-        g.location_id = UserLocation.query.first_or_404(
-            UserLocation.user_id == g.user.id
-        )
-        return redirect(url_for("signup_user"))
-    else:
-        return render_template("users/form.html", form=u_location_form, next=True)
+    return render_template("users/form.html", form=u_pref_form, next=False)
 
 
 @app.route("/carousel", methods=["GET", "POST"])
