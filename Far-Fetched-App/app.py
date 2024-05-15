@@ -432,14 +432,9 @@ def signup_user():
 
     form = UserAddForm()
     if form.validate_on_submit():
+        data = {field.name: field.data for field in form}
         try:
-            user = User.signup(
-                username=form.username.data,
-                password=form.password.data,
-                email=form.email.data,
-                image_url=form.image_url.data or User.image_url.default.arg,
-                bio=form.bio.data,
-            )
+            user = User.signup(**data)
             db.session.add(user)
             db.session.commit()
 

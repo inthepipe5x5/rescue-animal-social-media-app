@@ -174,27 +174,37 @@ class User(db.Model):
     #     return specific_org in self.followed_orgs
 
     @classmethod
-    def signup(cls, username, email, password, image_url, location, bio):
-        """Sign up user.
+def signup(cls, username, email, password, image_url, bio=None, **kwargs):
+    """Sign up user.
 
-        Hashes password and adds user to system.
-        """
+    Hashes password and adds user to system.
+    """
 
+    # Hash the password if provided as a positional argument
+    if password:
         hashed_pwd = bcrypt.generate_password_hash(password).decode("utf8")
+    else:
+        # Check if password is provided in kwargs
+        #use .pop() to prevent additional 'password' keywords being passed
+        password = kwargs.pop("password", None)
+        if password:
+            hashed_pwd = bcrypt.generate_password_hash(password).decode("utf8")
+        else:
+            raise ValueError("Password is required for signup.")
 
-        user = User(
-            username=username,
-            email=email,
-            password=hashed_pwd,
-            image_url=image_url,
-            bio=bio,
-        )
+    user = User(
+        username=username,
+        email=email,
+        password=hashed_pwd,
+        image_url=image_url,
+        bio=bio,
+        animal_types=animal_types,
+        rescue_action_type=rescue_action_type,
+        **kwargs
+    )
 
-        if location:
-            user.location = location
-
-        db.session.add(user)
-        return user
+    db.session.add(user)
+    return user
 
     @classmethod
     def authenticate(cls, username, password):

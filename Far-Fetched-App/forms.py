@@ -119,7 +119,7 @@ class AnonExperiencesForm(UserExperiencesForm):
 
     # Define the SelectMultipleField with the emoji labels
     animal_types = SelectField(
-        "What kind of animal rescue are you interested in? Select the animals you want to search for",
+        "Select the animals you want to search for",
         choices=[
             (str_value, emoji_key)
             for str_value, emoji_key in UserExperiencesForm.animal_type_emojis.items()

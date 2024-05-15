@@ -120,7 +120,6 @@ def update_user_preferences(form, session=session, user=g.user):
             #save new user preferences to the database
             user = User.query.get_or_404(id=g.user.id)
             user.animal_types = animal_types_data
-            session[CURR_USER_KEY] = user.id
             db.session.add(user)
             db.session.commit()
 
