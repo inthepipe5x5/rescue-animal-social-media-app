@@ -41,11 +41,10 @@ from helper import (
     get_init_api_data,
     update_anon_preferences,
     update_user_preferences,
-    update_global_variables,
+    # update_global_variables, #currently in app.py
     add_user_to_g,
     add_location_to_g,
     add_animal_types_to_g,
-    update_global_variables,
 )
 from PetFinderAPI import PetFinderPetPyAPI
 
@@ -74,8 +73,11 @@ flask_env_type = (
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
 
-# #initialize instance of petFinderPetPyAPI wrapper with helper get functions from helper.py to avoid circular imports    
-pf_api = PetFinderPetPyAPI(get_anon_preference_func=get_anon_preference, get_user_preference_func=get_user_preference)
+# #initialize instance of petFinderPetPyAPI wrapper with helper get functions from helper.py to avoid circular imports
+pf_api = PetFinderPetPyAPI(
+    get_anon_preference_func=get_anon_preference,
+    get_user_preference_func=get_user_preference,
+)
 
 ##############################################################################
 # User signup/login/logout
@@ -92,7 +94,6 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
-
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -298,8 +299,9 @@ def data():
     # return jsonify(results)
     return render_template("results.html", results=results)
 
+
 @app.route("/data/orgs", methods=["GET", "POST"])
-def data():
+def orgs_data():
     """TEST ROUTE TO GET ORGS DATA
 
     Args:
@@ -335,7 +337,7 @@ def update_data_session():
     if request.method == "POST":
         api_data = request.args.get("api_data")
         if api_data:
-            session["api_data"] = pf_api.parse_api_data(api_data=api_data)
+            session["api_data"] = pf_api.parse_api_animals_data(api_data=api_data)
         else:
             return ValueError("No api data received")
 
@@ -347,21 +349,21 @@ def set_location():
     Returns:
         _type_: _description_
     """
-    #grab location from request body
+    # grab location from request body
     location = request.args.get("location")
-    #handle lack of location provided from request body
+    # handle lack of location provided from request body
     if not location:
-        #check if country, state is provided in request body
+        # check if country, state is provided in request body
         country = request.args.get("country")
         state = request.args.get("state")
-        #if country, state not provided in request body, grab location from .flaskenv
+        # if country, state not provided in request body, grab location from .flaskenv
         if not country or not state:
-            session["CURR_LOCATION"] = os.environ.get('CURR_LOCATION', 'ON,CA')
-        #if country, state provided in request body, join and set as location
+            session["CURR_LOCATION"] = os.environ.get("CURR_LOCATION", "ON,CA")
+        # if country, state provided in request body, join and set as location
         else:
-            location=','.join(country, state)
-    
-    #set location in session
+            location = ",".join(country, state)
+
+    # set location in session
     session["CURR_LOCATION"] = location
     print(f'App.py: Current CURR_LOCATION set to: {session["CURR_LOCATION"]}')
     return add_location_to_g()
@@ -452,7 +454,6 @@ def signup_user():
         return render_template("users/form.html", form=form, next=True)
 
 
-
 @app.route("/signup/preferences", methods=["GET", "POST"])
 def signup_preferences():
     """Route to return form for user location (state + country), animal_types
@@ -466,8 +467,10 @@ def signup_preferences():
         # Process u_pref_form submission
 
         submitted_animal_types = u_pref_form.animal_types.data
-        #save form data to g, flask sessions and database
-        update_user_preferences(form=u_pref_form, session=session, user=g.user) #pass in a current user
+        # save form data to g, flask sessions and database
+        update_user_preferences(
+            form=u_pref_form, session=session, user=g.user
+        )  # pass in a current user
 
         # Redirect to user home
         return redirect(url_for("homepage"))
@@ -560,20 +563,30 @@ def homepage():
         return render_template("home.html", user=g.user, messages=g.user.messages)
 
     else:
-        try:
-            params = {**pf_api.default_options_obj}
-            # results = pf_api.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
-            results = pf_api.get_orgs_df(**params)
-            print(results)
-        except Exception as e:
-            results = None
+        # try:
+        # params = {**pf_api.default_options_obj}
+        # # results = pf_api.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
+        # results = pf_api.get_orgs_df(**params)
+        # print(results)
+        # except Exception as e:
+        #     results = None
 
         return render_template(
-            "home-anon.html", results=results, animal_emojis=pf_api.animal_emojis
-        )
+            "home-anon.html", animal_emojis=pf_api.animal_emojis
+        )  # , results=results
 
 
 ##############################################################################
+
+with app.app_context():
+
+    @app.before_request
+    def update_global_variables(session=session, g=g):
+        """Update global variables before each request."""
+
+        add_location_to_g(session=session, g=g)
+        add_animal_types_to_g(session=session, g=g)
+        add_user_to_g(session=session, g=g)
 
 
 # Initialize global variables before each request
@@ -585,15 +598,16 @@ def get_app_data():
         _type_: _description_
     """
     # update global variables
-    update_global_variables()
+    with app.app_context():
+        update_global_variables(session=session, g=g)
     # get JSON api_data from session
-    json_api_data = get_init_api_data(session=session)
+    # json_api_data = get_init_api_data(session=session, g=g)
 
-    # set api data in session via another route
-    requests.post(
-    url=url_for("update_data_session", _external=True),
-    data={"api_data": json_api_data, "headers": "application/json"},
-    )
+    # # set api data in session via another route
+    # requests.post(
+    # url=url_for("update_data_session", _external=True),
+    # data={"api_data": json_api_data, "headers": "application/json"},
+    # )
 
 
 # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template

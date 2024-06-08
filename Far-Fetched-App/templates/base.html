@@ -8,7 +8,7 @@
   <link rel="stylesheet"
         href="https://unpkg.com/bootstrap/dist/css/bootstrap.css">
   <script src="https://unpkg.com/jquery"></script>
-  <script src="https://unpkg.com/popper"></script>
+  <script src="https://unpkg.com/popper.js"></script>
   <script src="https://unpkg.com/bootstrap"></script>
 
   <link rel="stylesheet"
@@ -23,37 +23,32 @@
   <div class="container-fluid">
     <div class="navbar-header">
       <a href="/" class="navbar-brand">
-       <!--
-         <img src="../static/images/ff-logo.svg" alt="logo"></img>
-       --> 
-        <img class="d-inline-block align-top" src="../static/favicon.ico" alt="logo">Far Fetched</img>
-        
+        <!--
+          <img src="../static/images/ff-logo.svg" alt="logo">
+        --> 
+        <img class="d-inline-block align-top" src="../static/favicon.ico" alt="logo">Far Fetched
       </a>
     </div>
     <ul class="nav navbar-nav navbar-right">
       
       {% if session['CURR_LOCATION'] %}
-        <li class="nav-item"><a href={{ url_for('set_global')}}>Current Location:{{session['CURR_LOCATION']}} {% endif %}</a></li>
+        <li class="nav-item"><a href="{{ url_for('set_global') }}">Current Location: {{ session['CURR_LOCATION'] }}</a></li>
       {% else %}
-      <li class="nav-item"><a href={{ url_for('set_global')}}>Current Location: ON,CA {% endif %}</a></li>
+        <li class="nav-item"><a href="{{ url_for('set_global') }}">Current Location: ON, CA</a></li>
       {% endif %}
       <div class='vr'></div> <!-- vertical divider div -->
-      {% if g.user.animal_types%} 
+      {% if g.user.animal_types %} 
         {% for type in g.user.animal_types %}
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='dog' %}🐶{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='cat' %}🐱{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='small-furry' %}🐹{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='birds' %}🐦{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='horse' %}🐴{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='scales-fins-other' %}🦎{% endif %}</a></li>
-          <li class="nav-item"><a href={{ url_for('set_global')}}>{% if type=='barnyard' %}🐮{% endif %}</a></li>
+          <li class="nav-item"><a href="{{ url_for('set_global') }}">
+            {% if type == 'dog' %}🐶{% elif type == 'cat' %}🐱{% elif type == 'small-furry' %}🐹{% elif type == 'birds' %}🐦{% elif type == 'horse' %}🐴{% elif type == 'scales-fins-other' %}🦎{% elif type == 'barnyard' %}🐮{% endif %}
+          </a></li>
         {% endfor %}
       {% else %}
-        <li class="nav-item"><a href={{ url_for('set_global')}}>🐶</a></li>
+        <li class="nav-item"><a href="{{ url_for('set_global') }}">🐶</a></li>
       {% endif %}
       <div class='vr'></div> <!-- vertical divider div -->
 
-      {% if request.endpoint != None %}
+      {% if request.endpoint %}
       <li>
         <form class="navbar-form navbar-right" action="/users">
           <input name="q" class="form-control" placeholder="Fetch some animals!" id="search">

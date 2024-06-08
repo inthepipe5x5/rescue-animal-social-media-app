@@ -78,7 +78,7 @@ class StateCountryForm(ModelForm):
     state = SelectField(
         "What State or Province are you located in?",
         choices=[(state.code, state.name) for state in list(pycountry.subdivisions) if state.type in ['province', 'state', 'territory']],
-        default='ON'
+        default='ON',
         validators=[DataRequired()], #ensure no empty values
     )
 
