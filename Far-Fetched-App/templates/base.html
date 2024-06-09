@@ -32,9 +32,9 @@
     <ul class="nav navbar-nav navbar-right">
       
       {% if session['CURR_LOCATION'] %}
-        <li class="nav-item"><a href="{{ url_for('set_global') }}">Current Location: {{ session['CURR_LOCATION'] }}</a></li>
+        <li class="nav-item"><a href="{{ url_for('set_global') }}">{{ session['CURR_LOCATION'] }}📍</a></li>
       {% else %}
-        <li class="nav-item"><a href="{{ url_for('set_global') }}">Current Location: ON, CA</a></li>
+        <li class="nav-item"><a href="{{ url_for('set_global') }}"> ON, CA📍</a></li>
       {% endif %}
       <div class='vr'></div> <!-- vertical divider div -->
       {% if g.user.animal_types %} 
@@ -67,7 +67,7 @@
           <img src="{{ g.user.image_url }}" alt="{{ g.user.username }}">
         </a>
       </li>
-      <li><a href="/messages/new">New Message</a></li>
+      <!--<li><a href="/messages/new">New Message</a></li>-->
       <li><a href="/logout">Log out</a></li>
       {% endif %}
     </ul>
@@ -91,5 +91,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <!--script to update UI--> <script src='../static/home-ui.js'></script> 
 </body>
 </html>

@@ -16,8 +16,8 @@
             </button>
           </form>
           <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            <button type="button" class="btn btn-primary btn-lg px-4 gap-3">Submit</button>
-            <button type="button" class="btn btn-outline-secondary btn-lg px-4">Search Options</button>
+            <link type="button" href={{url_for('signup')}} class="btn btn-primary btn-lg px-4 gap-3">Submit</link>
+            <link type="button" href={{url_for('login')}} class="btn btn-outline-secondary btn-lg px-4">Other Search Options</link>
           </div>
         </div>
       </div>
@@ -27,11 +27,14 @@
   <div class="b-example-divider"></div> <!-- divider div-->
   <div class="container col-xxl-8 px-4 py-5">
     <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
-      <div class="col-10 col-sm-8 col-lg-6">
-        <img src="../static/images/ff-logo.svg" class="d-block mx-lg-auto img-fluid" alt="Far Fetched App Logo" width="700" height="500" loading="lazy">
-      </div>
+      <!--
+        <div class="col-10 col-sm-8 col-lg-6">
+          <img src="../static/images/ff-logo.svg" class="d-block mx-lg-auto img-fluid" alt="Far Fetched App Logo" width="700" height="500" loading="lazy">
+          </div> 
+        --> 
+          <hr />
       <div class="col-lg-6">
-        <h1 class="display-5 fw-bold lh-1 mb-3">Start Rescuing Today</h1>
+        <h1 class="display-5 fw-bold lh-1 mb-3">Sign Up</h1>
           <p class="lead mb-4">
             <span id="call-to-action-carousel-text">Not sure how to get started?</span>
             Sign up today to connect with local rescues around you! 
@@ -41,15 +44,72 @@
           <a href={{url_for('login')}} class="btn btn-outline-secondary btn-lg px-4">Login</a>
         </div>
       </div>
+      <div class="col-lg-6">
+        <h1 class="display-5 fw-bold lh-1 mb-3">Why Rescue?</h1>
+        <p>Here are three compelling reasons why you should consider adopting a rescue animal instead of "shopping" for a pet.</p>
+        <div class="accordion" id="accordionExample">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                <strong>What is Animal Rescue?</strong>
+              </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                Animal rescue refers to the efforts made to find, help, and ultimately rescue animals in bad situations through fostering, rehab or adopting to a loving home. Animal rescue organizations help find lost pets, respond to natural disasters to help animals stranded or injured, and rescuing animals being used for illegal activities such as dog fighting, poaching. <strong> Anyone can be part of animal rescue but it's hard to know where to start. That's where Far Fetched comes in. </strong>
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                <strong>Don't You Want to Save a Life?</strong>
+              </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <h5> Overpopulation Crisis </h5>
+                Every year, millions of animals end up in shelters due to overpopulation, abandonment, or owner surrender. Sadly, <strong> many of these animals are euthanized due to a lack of space and resources.</strong> By adopting a rescue animal, you are providing a loving home to a deserving companion and helping to alleviate the burden on overcrowded shelters.
+                <h5> Second Chance at Life </h5>
+                Rescue animals have often faced difficult circumstances, such as neglect, abuse, or abandonment. By adopting one of these animals, you are giving them a second chance at life and the opportunity to experience the love and care they deserve.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                <strong>Isn't Rescue Expensive? </strong>
+              </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <h5>Affordable Adoption Fees</h5>
+                  Adopting a rescue animal is often more cost-effective than purchasing from a breeder or pet store, with adoption fees covering initial veterinary expenses.
+                <h5>Variety of Breeds and Ages</h5>
+                  Rescue shelters offer a diverse selection of animals, from purebred to mixed breeds, and from puppies to seniors, allowing you to find the perfect companion.
+                <h5>Breed Specific Rescues</h5>
+                  Want a specific animal breed? There's a dedicated rescue organization for almost every recognized animal breed.
+                <h5>Pre-evaluated Temperaments</h5>
+                  Many rescue organizations evaluate the temperaments of their animals, making it easier to find a compatible match and avoid potential behavioral issues.
+                <h5>Supporting a Worthy Cause</h5>
+                  Your adoption fee supports animal welfare organizations' efforts to rescue, rehabilitate, and rehome animals in need.
+                <h5>Discouraging Irresponsible Breeding</h5>
+                  Adopting discourages puppy mills and unethical breeding practices that prioritize profit over animal welfare.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div> <!-- end of container div.col-xxl-8 px-4 py-5-->
 
+
+
+  
   <!--<div class="row">
     {% block results %}
     {% endblock %}
   </div>-->
-  <!--script to update UI-->
-  <script src='../static/home-ui.js'></script>
 </div>
 
 </div> <!-- End of the container -->
