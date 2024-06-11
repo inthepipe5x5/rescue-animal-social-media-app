@@ -1,259 +1,45 @@
 import dotenv
-from flask import Flask, render_template, request, flash, redirect, session, g, url_for
-# from flask_font_awesome import FontAwesome
-from sqlalchemy.exc import IntegrityError
-import pdb #MAKE SURE TO REMOVE IN PRODUCTION
-from forms import UserAddForm, LoginForm, UserEditForm
+from flask import Flask, Blueprint, render_template, request, flash, redirect, session, g, url_for
 import os
+
 from models import db, User
 from dotenv import load_dotenv
-
-CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
-
-#RESOLVE THIS: commented out font_awesome as there an import error to be resolved
-# font_awesome = FontAwesome(app)
+# from __init__ import app
 from config import config, Config
 
+from app.main.routes import main
+from app.auth.routes import auth
+from app.users.routes import users
+
+#set env variables
+CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
 load_dotenv()
 
+def create_app():
+    # create Flask app
+    app = Flask(__name__)
 
-# create Flask app
-app = Flask(__name__)
+    # create config instance
+    app_config_instance = Config()
 
-#create config instance
-app_config_instance = Config()
+    # config Flask app
+    flask_env_type = (
+        os.environ.get("FLASK_ENV")
+        if os.environ.get("FLASK_ENV") is not None
+        else "default"
+    )
+    app_config_instance.config_app(app=app, obj=config[flask_env_type])
 
-#config Flask app
-flask_env_type = os.environ.get('FLASK_ENV') if os.environ.get('FLASK_ENV') is not None else 'default'
-app_config_instance.config_app(app=app,obj=config[flask_env_type])
-
-
-##############################################################################
-# User signup/login/logout
-
-
-@app.before_request
-def add_user_to_g():
-    """If we're logged in, add curr user to Flask global."""
-
-    if CURR_USER_KEY in session:
-        g.user = User.query.get_or_404(session[CURR_USER_KEY])
-    else:
-        g.user = None
+    # register blueprints
+    app.register_blueprint(main)
+    app.register_blueprint(auth)
+    app.register_blueprint(users)
+    return app
 
 
-def do_login(user):
-    """Log in user."""
-
-    session[CURR_USER_KEY] = user.id
-
-
-def do_logout():
-    """Logout user."""
-
-    if CURR_USER_KEY in session:
-        del session[CURR_USER_KEY]
-
-
-@app.route('/signup', methods=["GET", "POST"])
-def signup():
-    """Handle user signup.
-
-    Create new user and add to DB. Redirect to home page.
-
-    If form not valid, present form.
-
-    If the there already is a user with that username: flash message
-    and re-present form.
-    """
-
-    form = UserAddForm()
-    if form.validate_on_submit():
-        try:
-            user = User.signup(
-                username=form.username.data,
-                password=form.password.data,
-                email=form.email.data,
-                image_url=form.image_url.data or User.image_url.default.arg,
-            )
-            db.session.commit()
-
-        except IntegrityError:
-            flash("Username already taken", 'danger')
-            return render_template('users/signup.html', form=form)
-
-        do_login(user)
-
-        return redirect("/")
-
-    else:
-        return render_template('users/signup.html', form=form)
-
-
-@app.route('/login', methods=["GET", "POST"])
-def login():
-    """Handle user login."""
-
-    form = LoginForm()
-
-    if form.validate_on_submit():
-        user = User.authenticate(form.username.data,
-                                 form.password.data)
-
-        if user:
-            do_login(user)
-            flash(f"Hello, {user.username}!", "success")
-            return redirect("/")
-
-        flash("Invalid credentials.", 'danger')
-
-    return render_template('users/login.html', form=form)
-
-
-@app.route('/logout')
-def logout():
-    """Handle logout of user."""
-
-    # IMPLEMENT THIS
-    if not CURR_USER_KEY in session:
-        do_login()
-    
-    do_logout()
-    flash('logged out sucessful')
-    return redirect(url_for('login'))
+app = create_app()
 
 ##############################################################################
-# General user routes:
-
-@app.route('/users')
-def list_users():
-    """Page with listing of users.
-
-    Can take a 'q' param in querystring to search by that username.
-    """
-
-    search = request.args.get('q')
-
-    if not search:
-        users = User.query.all()
-    else:
-        users = User.query.filter(User.username.like(f"%{search}%")).all()
-
-    return render_template('users/index.html', users=users)
-
-
-@app.route('/users/<int:user_id>')
-def users_show(user_id):
-    """Show user profile."""
-
-    user = User.query.get_or_404(user_id)
-    
-    return render_template('users/show.html', user=user)
-
-
-@app.route('/users/<int:user_id>/following')
-def show_following(user_id):
-    """Show list of people this user is following."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    user = User.query.get_or_404(user_id)
-    return render_template('users/following.html', user=user)
-
-
-@app.route('/users/<int:user_id>/followers')
-def users_followers(user_id):
-    """Show list of followers of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    user = User.query.get_or_404(user_id)
-    return render_template('users/followers.html', user=user)
-
-
-@app.route('/users/follow/<int:follow_id>', methods=['POST'])
-def add_follow(follow_id):
-    """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.append(followed_user)
-    db.session.commit()
-
-    return redirect(f"/users/{g.user.id}/following")
-
-
-@app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
-def stop_following(follow_id):
-    """Have currently-logged-in-user stop following this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    followed_user = User.query.get(follow_id)
-    g.user.following.remove(followed_user)
-    db.session.commit()
-
-    return redirect(f"/users/{g.user.id}/following")
-
-
-@app.route('/users/profile', methods=["GET", "POST"])
-def profile():
-    """Update profile for current user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('login'))
-    
-    else:
-        logged_in_user = User.query.get(g.user.id)
-        form = UserEditForm(obj=logged_in_user)
-
-        if form.validate_on_submit(): 
-            if User.authenticate(form.username.data, form.password.data):
-                form.populate_obj(logged_in_user)
-                db.session.add(logged_in_user)
-                db.session.commit() #commit to db
-                flash('Changes saved successfully','success') #show success to user
-                return redirect(url_for('users_show',user_id=logged_in_user.id))
-            else: 
-                db.session.rollback()
-                flash('You were unsuccessful, try again','error') #show success to user
-                return render_template('users/edit.html', form=form, user=logged_in_user) 
-                
-        return render_template('users/edit.html', form=form, user=logged_in_user) 
-
-
-
-
-@app.route('/users/delete', methods=["POST"])
-def delete_user():
-    """Delete user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    do_logout()
-
-    db.session.delete(g.user)
-    db.session.commit()
-
-    return redirect("/signup")
-
-
-##############################################################################
-# Homepage and error pages
-
-
 @app.route('/')
 def homepage():
     """Show homepage:
@@ -263,7 +49,7 @@ def homepage():
     """
 
     if g.user:
-        users_followed_by_current_user = g.user.following
+        # users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages
 
@@ -272,6 +58,15 @@ def homepage():
 
     else:
         return render_template('home-anon.html')
+##############################################################################
+
+
+
+# Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
+@app.context_processor
+def inject_global_vars():
+    """Injects the session and g objects into the Jinja2 template context"""
+    return {"session": session, "g": g}
 
 
 ##############################################################################

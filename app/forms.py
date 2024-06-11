@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length
 from wtforms_alchemy import model_form_factory
-from models import db, User
+from .models import db, User
 
 class MessageForm(FlaskForm):
     """Form for adding/editing messages."""

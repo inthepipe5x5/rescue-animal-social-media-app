@@ -15,10 +15,11 @@ class Config:
     TESTING = False
     SECRET_KEY = os.environ.get('SECRET_KEY', "SECRET KEY")
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql:///ff-rescue-db')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     WTF_CSRF_ENABLED = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
+    SESSION_COOKIE_PATH='/'
 
     @staticmethod
     def config_app(app, obj):
@@ -43,7 +44,7 @@ class TestingConfig(Config):
     DEBUG = True
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_TEST_DATABASE_URI', 'postgresql:///ff-rescue-db-test')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_TEST_DATABASE_URI')
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_PROD_DATABASE_URI')
