@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-import datetime
+from datetime import datetime
 from ..Far_Fetched_App.PetFinderAPI.py import PetFinderPetPyAPI
 
 class TestPetFinderPetPyAPI(unittest.TestCase):
@@ -8,78 +8,58 @@ class TestPetFinderPetPyAPI(unittest.TestCase):
     def setUp(self):
         self.api = PetFinderPetPyAPI()
 
-    @patch('api_wrapper.Petfinder')
-    def test_get_authentication_token(self, mock_petfinder):
-        mock_response = MagicMock()
-        mock_response.json.return_value = {'access_token': 'test_token', 'expires_in': 3600}
-        mock_petfinder_instance = MagicMock()
-        mock_petfinder_instance._authenticate.return_value = mock_response
-        mock_petfinder.return_value = mock_petfinder_instance
 
-        self.api.get_authentication_token()
+    def test_parse_breed(self):
+        breeds_obj = {'primary': 'Labrador', 'secondary': 'Retriever', 'mixed': True, 'unknown': False}
+        self.assertEqual(self.obj.parse_breed(breeds_obj), 'Labrador Retriever mix')
 
-        self.assertEqual(self.api.auth_token, 'test_token')
-        self.assertIsInstance(self.api.auth_token_time, datetime.datetime)
-        self.assertEqual(self.api.auth_token_expiry_time_in_seconds, 3600)
+        breeds_obj = {'primary': 'Poodle', 'secondary': False, 'mixed': True, 'unknown': False}
+        self.assertEqual(self.obj.parse_breed(breeds_obj), 'Poodle Mix')
 
-    @patch('api_wrapper.datetime')
-    def test_validate_auth_token_valid(self, mock_datetime):
-        mock_datetime.datetime.now.return_value = datetime.datetime(2024, 4, 10, 12, 0, 0)
-        self.api.auth_token_time = datetime.datetime(2024, 4, 10, 11, 0, 0)
-        jsonify_data = MagicMock(expires_in=3600)
-        
-        auth_token = self.api.validate_auth_token(jsonify_data)
+        breeds_obj = {'primary': 'Siamese', 'secondary': False, 'mixed': False, 'unknown': False}
+        self.assertEqual(self.obj.parse_breed(breeds_obj), 'Siamese')
 
-        self.assertEqual(auth_token, jsonify_data.auth_token)
+        breeds_obj = {'unknown': True}
+        self.assertEqual(self.obj.parse_breed(breeds_obj), 'Super Mutt')
 
-    @patch('api_wrapper.datetime')
-    def test_validate_auth_token_expired(self, mock_datetime):
-        mock_datetime.datetime.now.return_value = datetime.datetime(2024, 4, 10, 13, 0, 0)
-        self.api.auth_token_time = datetime.datetime(2024, 4, 10, 11, 0, 0)
-        jsonify_data = MagicMock(expires_in=3600)
-        
-        auth_token = self.api.validate_auth_token(jsonify_data)
+    def test_parse_color(self):
+        colors_obj = {'primary': 'Black', 'secondary': 'White', 'tertiary': 'Brown'}
+        self.assertEqual(self.obj.parse_color(colors_obj), 'Black, White')
 
-        self.assertIsNone(auth_token)
+        colors_obj = {'primary': 'Calico', 'secondary': False, 'tertiary': False}
+        self.assertEqual(self.obj.parse_color(colors_obj), 'Calico')
 
+        colors_obj = {'primary': False}
+        self.assertEqual(self.obj.parse_color(colors_obj), 'Unknown Color')
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_parse_photos(self):
+        photos_list = [{'full': 'https://example.com/dog.jpg'}]
+        self.assertEqual(self.obj.parse_photos(photos_list, 'dog'), 'https://example.com/dog.jpg')
 
+        photos_list = []
+        self.assertEqual(self.obj.parse_photos(photos_list, 'cat'), '../static/images/graphics/cat-freepik.png')
 
-    @patch('api_wrapper.Petfinder')
-    def test_get_authentication_token(self, mock_petfinder):
-        mock_response = MagicMock()
-        mock_response.json.return_value = {'access_token': 'test_token', 'expires_in': 3600}
-        mock_petfinder_instance = MagicMock()
-        mock_petfinder_instance._authenticate.return_value = mock_response
-        mock_petfinder.return_value = mock_petfinder_instance
+        self.assertEqual(self.obj.parse_photos(photos_list, 'invalid_type'), '../static/images/graphics/tracks_freepik.png')
 
-        self.api.get_authentication_token()
+    def test_parse_location_obj(self):
+        loc_obj = {'city': 'New York', 'state': 'NY', 'country': 'USA'}
+        self.assertEqual(self.obj.parse_location_obj(loc_obj), {'location': 'New York,NY', 'state': 'NY', 'country': 'USA', 'city': 'New York'})
 
-        self.assertEqual(self.api.auth_token, 'test_token')
-        self.assertIsInstance(self.api.auth_token_time, datetime.datetime)
-        self.assertEqual(self.api.auth_token_expiry_time_in_seconds, 3600)
+        loc_obj = {'state': 'CA', 'country': 'USA'}
+        self.assertEqual(self.obj.parse_location_obj(loc_obj), {'location': 'CA,USA', 'state': 'CA', 'country': 'USA'})
 
-    @patch('api_wrapper.datetime')
-    def test_validate_auth_token_valid(self, mock_datetime):
-        mock_datetime.datetime.now.return_value = datetime.datetime(2024, 4, 10, 12, 0, 0)
-        self.api.auth_token_time = datetime.datetime(2024, 4, 10, 11, 0, 0)
-        jsonify_data = MagicMock(expires_in=3600)
-        
-        auth_token = self.api.validate_auth_token(jsonify_data)
+        loc_obj = {'country': 'Canada'}
+        self.assertEqual(self.obj.parse_location_obj(loc_obj), {'location': 'Canada', 'country': 'Canada'})
 
-        self.assertEqual(auth_token, jsonify_data.auth_token)
+    def test_parse_publish_date(self):
+        pub_date = '2023-05-01T12:00:00+0000'
+        # Calculate the expected delta based on the current date
+        expected_delta = (datetime.now() - datetime.fromisoformat(pub_date.replace("+0000", "+00:00"))).days
+        self.assertEqual(self.api.parse_publish_date(pub_date, action='delta'), expected_delta)
+        self.assertEqual(self.api.parse_publish_date(pub_date, action='format'), '01/05/2023')
 
-    @patch('api_wrapper.datetime')
-    def test_validate_auth_token_expired(self, mock_datetime):
-        mock_datetime.datetime.now.return_value = datetime.datetime(2024, 4, 10, 13, 0, 0)
-        self.api.auth_token_time = datetime.datetime(2024, 4, 10, 11, 0, 0)
-        jsonify_data = MagicMock(expires_in=3600)
-        
-        auth_token = self.api.validate_auth_token(jsonify_data)
-
-        self.assertIsNone(auth_token)
+        self.assertIsNone(self.api.parse_publish_date(None, action='delta'))
+        self.assertRaises(TypeError, self.api.parse_publish_date, pub_date, action='invalid')
 
 
 if __name__ == '__main__':

@@ -28,22 +28,22 @@ db = SQLAlchemy()
 #     )
 
 
-# class RescueOrganization(db.Model):
-#     """Rescue Organization db.Model
-#     """
+class RescueOrganization(db.Model):
+    """Rescue Organization db.Model
+    """
 
-#     __tablename__ = "rescueOrg"
+    __tablename__ = "rescueOrg"
 
-#     id = db.Column(
-#         db.Integer,
-#         primary_key=True,
-#     )
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
 
-#     name = db.Column(
-#         db.Text,
-#         nullable=False,
-#         unique=True,
-#     )
+    name = db.Column(
+        db.Text,
+        nullable=False,
+        unique=True,
+    )
 
 
 class MatchedRescueOrganization(db.Model):

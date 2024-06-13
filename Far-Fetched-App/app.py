@@ -451,7 +451,7 @@ def signup_user():
         return redirect(url_for("signup_preferences"))
 
     else:
-        return render_template("users/form.html", form=form, next=True)
+        return render_template("users/signup.html", form=form, next=True)
 
 
 @app.route("/signup/preferences", methods=["GET", "POST"])

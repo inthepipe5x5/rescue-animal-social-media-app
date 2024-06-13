@@ -2,7 +2,7 @@
 
 from csv import DictReader
 from app import app, db
-from models import User, Message, Follows
+from models import User, UserAnimalPreferences, MatchedRescueOrganization
 
 # create app context for db
 app.app_context().push()
@@ -11,8 +11,8 @@ app.app_context().push()
 db.drop_all()
 db.create_all()
 
-with open('fake-user-generator/users.csv') as users:
-    db.session.bulk_insert_mappings(User, DictReader(users))
+# with open('fake-user-generator/users.csv') as users:
+#     db.session.bulk_insert_mappings(User, DictReader(users))
 
 #NEED TO REWORK THE FOLLOWING GENERATORS
     

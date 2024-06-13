@@ -1,15 +1,13 @@
 import os
 from dotenv import load_dotenv
 import datetime
-import requests
-import ast  # import ast library to parse string representation of python data structures
-
+from dateutil import parser
+import pycountry
 import pandas as pd
 from flask import sessions, jsonify, json
 from ratelimit import limits, RateLimitException
 from backoff import expo, on_exception
 from petpy import Petfinder
-
 
 from models import User, UserAnimalPreferences  # , #UserPreferences
 
@@ -55,7 +53,7 @@ class PetFinderPetPyAPI:
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
         self.auth_token_time = datetime.datetime.now()
-        # self.breed_choices = self.petpy_api.breeds() #commented out because 
+        # self.breed_choices = self.petpy_api.breeds() #commented out because
 
         # utilizing dependency injection here to prevent circular imports from app.py, form.py, helper.py and this file
         self.get_anon_preference = get_anon_preference_func
@@ -227,19 +225,19 @@ class PetFinderPetPyAPI:
 
     def parse_breed(self, breeds_obj):
         """Function to parse breeds object property in a single Animal result from PetFinder API results"""
-        if not breeds_obj or breeds_obj['unknown'] == True:
+        if not breeds_obj or breeds_obj["unknown"] == True:
             return "Super Mutt"  # breed is Super Mutt by default
 
-        primary = breeds_obj["primary"] or ""        
+        primary = breeds_obj["primary"] or ""
         secondary = breeds_obj["secondary"] or False
         mixed_bool = breeds_obj["mixed"] or False
         unknown_bool = breeds_obj["unknown"] or False
-        #check if unknown breed 
+        # check if unknown breed
         if unknown_bool == True:
             return "Super Mutt"
-        #check if mixed breed 
+        # check if mixed breed
         if mixed_bool == True:
-            #check if secondary breed is provided 
+            # check if secondary breed is provided
             if secondary:
                 return f"{primary} {secondary} mix"
             else:
@@ -303,30 +301,50 @@ class PetFinderPetPyAPI:
 
     def parse_location_obj(self, loc_obj):
         """Function to parse location object property in API results"
-        if not loc_obj:
-                return"""
-        print(f'parse_location obj func call: loc_obj: {loc_obj}')
+        if not loc_obj or country:
+                return None"""
+        print(f"parse_location obj func call: loc_obj: {loc_obj}")
+        # grab city, state, country
         city = loc_obj.get("city", False)
         state = loc_obj.get("state", False)
         country = loc_obj.get("country", False)
-        if city:
+        if country:
+            # parse country string into 2 letter abbreviations
+            country = (
+                country
+                if (len(country) == 2)
+                else pycountry.countries.search_fuzzy(country)[0].alpha_2
+            )
+            print(country)
+        if not loc_obj or not country:
+            return None
+        elif city:  # if city, state, country
+            # clean city, state, country strings
+
             if state:
+                # parse state string into 2 letter abbreviations
+                state = (
+                    state
+                    if (len(state) == 2)
+                    else pycountry.subdivisions.search_fuzzy(state)[0].alpha_2
+                )
+                print(state)
                 return {
                     "location": "%s,%s" % (city, state),
                     "state": state,
                     "country": country,
                     "city": city,
                 }
-        else:
+        else:  # if state, country
             if state:
                 return {
                     "location": "%s,%s" % (state, country),
                     "state": state,
                     "country": country,
                 }
-            else:
+            else:  # if only country
                 return {
-                    "location": "%s,%s" % (state, country),
+                    "location": "%s" % (country),
                     "country": country,
                 }
 
@@ -336,34 +354,32 @@ class PetFinderPetPyAPI:
         Args:
             pub_date (STRING): string date value returned from API
             action (STRING): the desired action to be done to the pub_date
-                'delta' = get the difference between the pub_date and now()
+                'delta' = get the difference between the pub_date and now() in days
                 'format' = format the pub_date into a readable form
         """
         if action not in ["delta", "format"]:
-            return TypeError("Wrong Action Type")
+            raise TypeError("Wrong Action Type")
 
         if not pub_date:
-            return None
+            raise TypeError('truthy pub_date value is not provided')
 
-        else:
-            # Using current time
-            today = datetime.now()
-            # parse pub_date into datetime object
-            date_obj = datetime.fromisoformat(pub_date.replace("+0000", ""))
+        # Using current time with UTC timezone
+        today = datetime.datetime.now(datetime.timezone.utc)
+        parsed_date = None
 
-            parsed_date = None
+        # handle if action = 'delta'
+        if action == "delta":
+            date_obj = datetime.datetime.fromisoformat(pub_date.replace("+0000", "+00:00"))
+            date_diff = today - date_obj
+            # get the difference in days
+            parsed_date = date_diff.days
+            return parsed_date
 
-            # handle if action = 'delta'
-            if action == "delta":
-                date_diff = today - date_obj
-                # get the difference in days
-                parsed_date = date_diff.days
-                return parsed_date
-
-            # handle if action = 'format'
-            if action == "format":
-                parsed_date = date_obj.strftime("%d/%m/%Y")
-                return parsed_date
+        # handle if action = 'format'
+        if action == "format":
+            date_obj = datetime.datetime.fromisoformat(pub_date.replace("Z", "+00:00").replace("+0000", "+00:00"))
+            parsed_date = date_obj.strftime("%d/%m/%Y")
+            return parsed_date
 
     def parse_api_animals_data(self, api_data):
         """
