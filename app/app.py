@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 # from __init__ import app
 from config import config, Config
 
-from app.main.routes import main
-from app.auth.routes import auth
-from app.users.routes import users
+from data_routes import data_bp
+from auth_routes import auth_bp
+from users_routes import users_bp
 
 #set env variables
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
@@ -31,9 +31,9 @@ def create_app():
     app_config_instance.config_app(app=app, obj=config[flask_env_type])
 
     # register blueprints
-    app.register_blueprint(main)
-    app.register_blueprint(auth)
-    app.register_blueprint(users)
+    app.register_blueprint(data_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(users_bp)
     return app
 
 
