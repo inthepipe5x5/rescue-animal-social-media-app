@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import datetime
+import pytz
 from dateutil import parser
 import pycountry
 import pandas as pd
@@ -364,12 +365,12 @@ class PetFinderPetPyAPI:
             raise TypeError('truthy pub_date value is not provided')
 
         # Using current time with UTC timezone
-        today = datetime.datetime.now(datetime.timezone.utc)
+        today = datetime.datetime.now(pytz.utc)
         parsed_date = None
 
         # handle if action = 'delta'
         if action == "delta":
-            date_obj = datetime.datetime.fromisoformat(pub_date.replace("+0000", "+00:00"))
+            date_obj = datetime.datetime.strptime(pub_date, '%Y-%m-%dT%H:%M:%S%z')
             date_diff = today - date_obj
             # get the difference in days
             parsed_date = date_diff.days
@@ -377,8 +378,9 @@ class PetFinderPetPyAPI:
 
         # handle if action = 'format'
         if action == "format":
-            date_obj = datetime.datetime.fromisoformat(pub_date.replace("Z", "+00:00").replace("+0000", "+00:00"))
-            parsed_date = date_obj.strftime("%d/%m/%Y")
+            date_obj = datetime.datetime.strptime(pub_date, '%Y-%m-%dT%H:%M:%S%z')
+            parsed_date = datetime.datetime.strftime(date_obj, '%d/%m/%Y')
+            print(*{parsed_date})
             return parsed_date
 
     def parse_api_animals_data(self, api_data):

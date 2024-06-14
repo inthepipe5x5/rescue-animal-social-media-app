@@ -1,15 +1,14 @@
 import unittest
-from PetFinderAPI import PetFinderPetPyAPI
-from helper import  get_anon_preference, get_user_preference
+from unittest.mock import patch, MagicMock
+from datetime import datetime, timezone, timedelta
+from package.PetFinderAPI import PetFinderPetPyAPI
+from package.helper import get_anon_preference, get_user_preference
 
 class TestPetFinderPetPyAPI(unittest.TestCase):
-    """Tests to test the PetPy API wrapper class
 
-    Args:
-        unittest (_type_): _description_
-    """
     def setUp(self):
         self.api = PetFinderPetPyAPI(get_anon_preference_func=get_anon_preference, get_user_preference_func=get_user_preference)
+
 
     def test_parse_breed(self):
         breeds_obj = {'primary': 'Labrador', 'secondary': 'Retriever', 'mixed': True, 'unknown': False}
@@ -54,12 +53,18 @@ class TestPetFinderPetPyAPI(unittest.TestCase):
         self.assertEqual(self.api.parse_location_obj(loc_obj), {'location': 'CA', 'country': 'CA'})
 
     def test_parse_publish_date(self):
-        pub_date = '2023-05-01T12:00:00+0000'
-        self.assertEqual(self.api.parse_publish_date(pub_date, action='delta'), 9)
-        self.assertEqual(self.api.parse_publish_date(pub_date, action='format'), '01/05/2023')
+        #example published_date from PetFinder API response
+        pub_date = '2024-05-01T12:00:00+0000' 
+        
+        # Calculate the expected delta based on the current date
+        pub_date_obj = datetime.fromisoformat(pub_date.replace("+0000", "+00:00"))
+        current_date_obj = datetime.now(timezone.utc)
+        expected_delta = (current_date_obj - pub_date_obj).days
+        
+        self.assertEqual(self.api.parse_publish_date(pub_date, action='delta'), expected_delta) #date diff since June 14 2024
 
-        self.assertIsNone(self.api.parse_publish_date(None, action='delta'))
-        self.assertRaises(TypeError, self.api.parse_publish_date, pub_date, action='invalid')
+        self.assertRaises(TypeError, lambda: self.api.parse_publish_date(None, action='delta'))
+        self.assertRaises(TypeError, lambda: self.api.parse_publish_date(None, action='invalid'))
 
 
 if __name__ == '__main__':

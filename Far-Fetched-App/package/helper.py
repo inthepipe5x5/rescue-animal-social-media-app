@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy.exc import NoResultFound  # type: ignore
 from models import db, User, UserLocation, UserAnimalPreferences
-from PetFinderAPI import PetFinderPetPyAPI
+from package.PetFinderAPI import PetFinderPetPyAPI
 
 load_dotenv()
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
