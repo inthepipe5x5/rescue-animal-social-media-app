@@ -35,7 +35,7 @@ from forms import (
     AnonExperiencesForm,
     SpecificAnimalPreferencesForm,
 )
-from helper import (
+from package.helper import (
     get_anon_preference,
     get_user_preference,
     get_init_api_data,
@@ -46,7 +46,7 @@ from helper import (
     add_location_to_g,
     add_animal_types_to_g,
 )
-from PetFinderAPI import PetFinderPetPyAPI
+from package.PetFinderAPI import PetFinderPetPyAPI
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 

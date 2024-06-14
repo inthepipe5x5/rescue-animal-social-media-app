@@ -7,7 +7,6 @@ import pycountry
 import pandas as pd
 from flask import sessions, jsonify, json
 from ratelimit import limits, RateLimitException
-from backoff import expo, on_exception
 from petpy import Petfinder
 
 from models import User, UserAnimalPreferences  # , #UserPreferences
@@ -49,7 +48,6 @@ class PetFinderPetPyAPI:
     }
 
     def __init__(self, get_anon_preference_func, get_user_preference_func):
-        print(os.environ.get("API_KEY"), os.environ.get("API_SECRET"))
         self.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
@@ -90,7 +88,6 @@ class PetFinderPetPyAPI:
         try:
             init_orgs_df = self.petpy_api.organizations(location, sort="distance")
             filtered_list = init_orgs_df["id"].toList()
-            print(filtered_list)
             return filtered_list
         except Exception as e:
             print(f"An error occurred while retrieving organizations: {e}")
@@ -193,7 +190,6 @@ class PetFinderPetPyAPI:
         else:
             # populate pref_key_obj with anon preferences
             pref_key_obj = {"location": country, "animal_types": animal_types}
-            print(pref_key_obj)
             matching_animals = self.petpy_api.animals(**pref_key_obj)
 
             return matching_animals
@@ -304,7 +300,6 @@ class PetFinderPetPyAPI:
         """Function to parse location object property in API results"
         if not loc_obj or country:
                 return None"""
-        print(f"parse_location obj func call: loc_obj: {loc_obj}")
         # grab city, state, country
         city = loc_obj.get("city", False)
         state = loc_obj.get("state", False)
@@ -316,7 +311,6 @@ class PetFinderPetPyAPI:
                 if (len(country) == 2)
                 else pycountry.countries.search_fuzzy(country)[0].alpha_2
             )
-            print(country)
         if not loc_obj or not country:
             return None
         elif city:  # if city, state, country
@@ -329,7 +323,6 @@ class PetFinderPetPyAPI:
                     if (len(state) == 2)
                     else pycountry.subdivisions.search_fuzzy(state)[0].alpha_2
                 )
-                print(state)
                 return {
                     "location": "%s,%s" % (city, state),
                     "state": state,
@@ -380,7 +373,6 @@ class PetFinderPetPyAPI:
         if action == "format":
             date_obj = datetime.datetime.strptime(pub_date, '%Y-%m-%dT%H:%M:%S%z')
             parsed_date = datetime.datetime.strftime(date_obj, '%d/%m/%Y')
-            print(*{parsed_date})
             return parsed_date
 
     def parse_api_animals_data(self, api_data):
@@ -434,7 +426,6 @@ class PetFinderPetPyAPI:
             print(
                 "Data is not valid python lists; data not in the expected format."
             )  # data is not a list of dictionaries
-            print(f"Animal #{len(parsed) + 1}: {parsed}")
 
         # Return final list of parsed animals
         return parsed
