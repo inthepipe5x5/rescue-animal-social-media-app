@@ -283,19 +283,12 @@ def data():
     Returns:
         _type_: _description_
     """
-    if g.user:
-        country = get_user_preference(key="country")
-        state = get_user_preference(key="state")
-    else:
-        country = get_anon_preference(key="country")
-        state = get_anon_preference(key="state")
 
-    location = country + "," + state
-    print(country)
+    # country = get_user_preference(key="country", session=session, g=g)
+    # print(country)
     results = pf_api.petpy_api.animals(
-        location=location, sort="distance"
+        location="ON", sort="distance"
     )  # (**pf_api.default_options_obj)
-    print([(org.name, org.adoption.policy) for org in results.organizations])
     # return jsonify(results)
     return render_template("results.html", results=results)
 
@@ -436,10 +429,16 @@ def signup_user():
     if form.validate_on_submit():
         data = {field.name: field.data for field in form}
         try:
+            
             user = User.signup(**data)
             db.session.add(user)
             db.session.commit()
-
+            #save user location
+            user_location = UserLocation(user_id=user.id, country=form.country.data, state=form.state.data)
+            user.location.append(user_location)
+            db.session.add(user_location)
+            db.session.commit()
+            
             # init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")

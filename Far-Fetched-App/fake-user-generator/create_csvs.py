@@ -59,7 +59,7 @@ with open('generator/messages.csv', 'w') as messages_csv:
 
     for i in range(NUM_MESSAGES):
         messages_writer.writerow(dict(
-            text=fake.paragraph()[:MAX_WARBLER_LENGTH],
+            text=fake.paragraph()[:MAX_MESSAGE_LENGTH],
             timestamp=get_random_datetime(),
             user_id=randint(1, NUM_USERS)
         ))

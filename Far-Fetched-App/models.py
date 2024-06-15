@@ -147,10 +147,10 @@ class User(db.Model):
 
     registration_date = db.Column(db.DateTime)
 
-    animal_handling_experience = db.Column(
-        db.String,
-        db.ForeignKey("user_animal_handling_history.id"),
-    )
+    # animal_handling_experience = db.Column(
+    #     db.String,
+    #     db.ForeignKey("user_animal_handling_history.id"),
+    # )
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences", back_populates="user"
     )
@@ -395,8 +395,8 @@ class UserTravelPreferences(db.Model):
     __tablename__ = "user_travel_preferences"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-    user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    # user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
     distance_filter_preference = db.Column(db.Integer)
 

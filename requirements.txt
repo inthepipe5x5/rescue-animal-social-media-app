@@ -9,6 +9,7 @@ click==8.1.7
 decorator==4.3.0
 dnspython==2.4.2
 email-validator==2.1.0.post1
+Faker==25.8.0
 Flask==3.0.0
 Flask-Bcrypt==1.0.1
 Flask-FontAwesome==0.1.5

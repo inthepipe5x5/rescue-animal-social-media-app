@@ -31,48 +31,67 @@ def get_anon_preference(key, session, g):
 
 def get_user_preference(key, session, g):
     """Get saved logged-in user preferences for a specific key.
-    # Implement logic to retrieve user preferences from the database
-    # Return default value if preferences not found
+    
+    # Example usage:
+        > user_pref = get_user_preference("location", session, g)
+        > print(user_pref)
     """
-    if not CURR_USER_KEY in session:
+    
+    if CURR_USER_KEY not in session:
         return get_anon_preference(key=key, session=session, g=g)
-    else:
-        u_id = session[CURR_USER_KEY]
-    # dict for routing db queries based on key param
-    db_q_dict = {
-        "country": db.session.query(UserLocation.user_id == u_id).first().country,
-        "animal_types": db.session.query(User.id == u_id).first().animal_types,
-        "location": db.session.query(UserLocation.user_id == u_id).first(),
-        "state": db.session.query(UserLocation.user_id == u_id).first().state,
+    
+    u_id = session[CURR_USER_KEY]
+    
+    # Dict for routing db queries based on key param
+    model_dict = {
+        "country": UserLocation,
+        "animal_types": UserAnimalPreferences,
+        "location": UserLocation,
+        "state": UserLocation,
     }
+    
+    def db_query_helper(pref_key, matching_user_id):
+        """Helper function to query db.session depending on pref_key passed in."""
+        if not pref_key:
+            raise TypeError(f"Bad key argument passed into db_query_helper func call {pref_key}")
+        
+        model = model_dict.get(pref_key)
+        if model:
+            try:
+                if pref_key == "animal_types":
+                    result = db.session.query(model).filter_by(user_id=matching_user_id).first()
+                else:
+                    result = db.session.query(model).filter_by(user_id=matching_user_id).first()
+                
+                if result:
+                    return getattr(result, pref_key)
+                else:
+                    raise NoResultFound
+            except NoResultFound:
+                if key in session:
+                    # return g.key and update user_preferences
+                    update_user_preferences({key: {"data": session.get(key)}})
+                    return session.get(key)
+                elif key in g:
+                    # return g.key and update user_preferences
+                    update_user_preferences({key: {"data": g.get(key)}})
+                    return g.get(key)
+                else:
+                    return None
+        else:
+            return None
 
-    # handle if key is 'country'
-    db_query = db_q_dict[key]
-    if key not in db_q_dict:
-        db_query = db.session.query(UserAnimalPreferences.user_id == u_id).join()
-        if NoResultFound:
-            return TypeError(
-                {
-                    "status": 500,
-                    "message": "Invalid key to fetch logged in user preferences",
-                }
-            )
-    # handle no db results found
-    if not db_query:
-        if key in session:
-            # return g.key and update user_preferences
-            update_user_preferences({key: {"data": session.get(key)}})
-            return session.get(key)
-        elif key in g:
-            # return g.key and update user_preferences
-            update_user_preferences({key: {"data": g.get(key)}})
-            return g.get(key)
-    else:
-        # return default key preference value if none found in db, session nor g
+    db_query = db_query_helper(pref_key=key, matching_user_id=u_id)
+    
+    if db_query is None:
+        # Return default key preference value if none found in db, session nor g
         env_key = "CURR_LOCATION" if key == "location" else key
         u_pref = os.environ.get(env_key, pf_api.default_options_obj.get(key))
         print(f"No saved preference found for {key}: default returned: {u_pref}")
         return u_pref
+    else:
+        return db_query
+
 
 
 def update_anon_preferences(form, session):
@@ -114,8 +133,6 @@ def update_anon_preferences(form, session):
     # update session
     session["CURR_LOCATION"] = ",".join(state, country)
     session["animal_types"] = animal_types
-
-    
 
 
 def update_user_preferences(form, session, user_obj):
@@ -182,7 +199,11 @@ def add_animal_types_to_g(session, g):
         # check if user logged in
         user = g.user if CURR_USER_KEY in session else None
         # grab default animal_types
-        g.animal_types = get_user_preference(key=key, session=session, user=user) if user else get_anon_preference(key=key, session=session, g=g)
+        g.animal_types = (
+            get_user_preference(key=key, session=session, user=user)
+            if user
+            else get_anon_preference(key=key, session=session, g=g)
+        )
 
 
 def add_location_to_g(session, g):

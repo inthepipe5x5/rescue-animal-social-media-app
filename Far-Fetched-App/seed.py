@@ -2,7 +2,7 @@
 
 from csv import DictReader
 from app import app, db
-from models import User, UserAnimalPreferences, MatchedRescueOrganization
+from models import User, UserAnimalPreferences, MatchedRescueOrganization, db
 
 # create app context for db
 app.app_context().push()
