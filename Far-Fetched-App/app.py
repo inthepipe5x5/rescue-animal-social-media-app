@@ -8,6 +8,7 @@ from flask import (  # type: ignore
     g,
     url_for,
     jsonify,
+    Blueprint
 )
 
 # from flask_font_awesome import FontAwesome
@@ -36,15 +37,16 @@ from forms import (
     SpecificAnimalPreferencesForm,
 )
 from package.helper import (
+    data_bp,
     get_anon_preference,
     get_user_preference,
     get_init_api_data,
     update_anon_preferences,
     update_user_preferences,
-    # update_global_variables, #currently in app.py
+    update_global_variables, #currently in helper.py
     add_user_to_g,
     add_location_to_g,
-    add_animal_types_to_g,
+    add_animal_types_to_g
 )
 from package.PetFinderAPI import PetFinderPetPyAPI
 
@@ -57,6 +59,28 @@ from config import config, Config
 load_dotenv()
 
 
+# def create_app():
+#     # create Flask app
+#     app = Flask(__name__)
+
+#     # create config instance
+#     app_config_instance = Config()
+
+#     # config Flask app
+#     flask_env_type = (
+#         os.environ.get("FLASK_ENV")
+#         if os.environ.get("FLASK_ENV") is not None
+#         else "default"
+#     )
+#     app_config_instance.config_app(app=app, obj=config[flask_env_type])
+#     app.session_interface
+
+#     # register blueprints
+#     app.register_blueprint(data_bp)
+#     return app
+
+
+# app = create_app()
 # create Flask app
 app = Flask(__name__)
 
@@ -554,8 +578,8 @@ def homepage():
     """
     print(g)
 
-    if g.user:
-        users_followed_by_current_user = g.user.following
+    if 'user' in g:
+        # users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages
 
@@ -577,15 +601,7 @@ def homepage():
 
 ##############################################################################
 
-with app.app_context():
 
-    @app.before_request
-    def update_global_variables(session=session, g=g):
-        """Update global variables before each request."""
-
-        add_location_to_g(session=session, g=g)
-        add_animal_types_to_g(session=session, g=g)
-        add_user_to_g(session=session, g=g)
 
 
 # Initialize global variables before each request

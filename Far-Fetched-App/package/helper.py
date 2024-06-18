@@ -1,3 +1,4 @@
+from flask import Blueprint
 import json
 import os
 from dotenv import load_dotenv
@@ -9,6 +10,7 @@ from package.PetFinderAPI import PetFinderPetPyAPI
 load_dotenv()
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
+data_bp = Blueprint('data', __name__, template_folder='templates', url_prefix='/data')
 
 # Helper functions
 def get_anon_preference(key, session, g):
@@ -178,7 +180,7 @@ def update_user_preferences(form, session, user_obj):
             db.session.add(user)
             db.session.commit()
 
-        # update global Flask app variables after committing to db
+        # # update global Flask app variables after committing to db
         update_global_variables()
 
 
@@ -219,6 +221,15 @@ def add_location_to_g(session, g):
     # update session and g
     session["CURR_LOCATION"] = location
     g.location = location
+
+
+@data_bp.before_request
+def update_global_variables(session, g):
+    """Update global variables before each request."""
+
+    add_location_to_g(session=session, g=g)
+    add_animal_types_to_g(session=session, g=g)
+    add_user_to_g(session=session, g=g)
 
 
 def get_init_api_data(session, g):
