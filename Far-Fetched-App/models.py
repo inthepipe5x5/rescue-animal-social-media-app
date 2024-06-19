@@ -1,6 +1,7 @@
 """SQLAlchemy models for app."""
 
 from datetime import datetime
+import pycountry
 
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
@@ -94,7 +95,52 @@ class UserLocation(db.Model):
     #     back_populates="user_location",
     #     foreign_keys=[user_preferences_id],
     # )
+    def getLocStr(self) -> str:
+        """
+        Instance method that grabs the city, state and country to return a string "location"
+        Returns:
+            str: Returns a string describing the "location" parameter required for PetFinderAPI calls
 
+        """
+        city = self.city 
+        state = self.state 
+        country = self.country 
+
+        if country:
+            # parse country string into 2 letter abbreviations
+            country = (
+                country
+                if (len(country) == 2)
+                else pycountry.countries.search_fuzzy(country)[0].alpha_2
+            )
+        elif city:  # if city, state, country
+            # clean city, state, country strings
+
+            if state:
+                # parse state string into 2 letter abbreviations
+                state = (
+                    state
+                    if (len(state) == 2)
+                    else pycountry.subdivisions.search_fuzzy(state)[0].alpha_2
+                )
+                return {
+                    "location": "%s,%s" % (city, state),
+                    "state": state,
+                    "country": country,
+                    "city": city,
+                }
+        else:  # if state, country
+            if state:
+                return {
+                    "location": "%s,%s" % (state, country),
+                    "state": state,
+                    "country": country,
+                }
+            else:  # if only country
+                return {
+                    "location": "%s" % (country),
+                    "country": country,
+                }
 
 class User(db.Model):
     """User in the system."""

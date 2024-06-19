@@ -10,7 +10,8 @@ from package.PetFinderAPI import PetFinderPetPyAPI
 load_dotenv()
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
-data_bp = Blueprint('data', __name__, template_folder='templates', url_prefix='/data')
+data_bp = Blueprint("data", __name__, template_folder="templates", url_prefix="/data")
+
 
 # Helper functions
 def get_anon_preference(key, session, g):
@@ -33,40 +34,49 @@ def get_anon_preference(key, session, g):
 
 def get_user_preference(key, session, g):
     """Get saved logged-in user preferences for a specific key.
-    
+
     # Example usage:
         > user_pref = get_user_preference("location", session, g)
         > print(user_pref)
     """
-    
+
     if CURR_USER_KEY not in session:
         return get_anon_preference(key=key, session=session, g=g)
-    
+
     u_id = session[CURR_USER_KEY]
-    
-    # Dict for routing db queries based on key param
-    model_dict = {
-        "country": UserLocation,
-        "animal_types": UserAnimalPreferences,
-        "location": UserLocation,
-        "state": UserLocation,
-    }
-    
+
     def db_query_helper(pref_key, matching_user_id):
         """Helper function to query db.session depending on pref_key passed in."""
+        # Dict for routing db queries based on key param
+        model_dict = {
+            "country": UserLocation,
+            "animal_types": UserAnimalPreferences,
+            "location": UserLocation,
+            "state": UserLocation,
+        }
         if not pref_key:
-            raise TypeError(f"Bad key argument passed into db_query_helper func call {pref_key}")
-        
+            raise TypeError(
+                f"Bad key argument passed into db_query_helper func call {pref_key}"
+            )
+
         model = model_dict.get(pref_key)
         if model:
             try:
                 if pref_key == "animal_types":
-                    result = db.session.query(model).filter_by(user_id=matching_user_id).first()
+                    result = (
+                        db.session.query(model)
+                        .filter_by(user_id=matching_user_id)
+                        .first()
+                    )
                 else:
-                    result = db.session.query(model).filter_by(user_id=matching_user_id).first()
-                
+                    result = (
+                        db.session.query(model)
+                        .filter_by(user_id=matching_user_id)
+                        .first()
+                    )
+
                 if result:
-                    return getattr(result, pref_key)
+                    return result
                 else:
                     raise NoResultFound
             except NoResultFound:
@@ -84,7 +94,7 @@ def get_user_preference(key, session, g):
             return None
 
     db_query = db_query_helper(pref_key=key, matching_user_id=u_id)
-    
+
     if db_query is None:
         # Return default key preference value if none found in db, session nor g
         env_key = "CURR_LOCATION" if key == "location" else key
@@ -93,7 +103,6 @@ def get_user_preference(key, session, g):
         return u_pref
     else:
         return db_query
-
 
 
 def update_anon_preferences(form, session):
@@ -199,13 +208,11 @@ def add_animal_types_to_g(session, g):
         g.animal_types = session[key]
     else:
         # check if user logged in
-        user = g.user if CURR_USER_KEY in session else None
-        # grab default animal_types
-        g.animal_types = (
-            get_user_preference(key=key, session=session, user=user)
-            if user
-            else get_anon_preference(key=key, session=session, g=g)
-        )
+        if CURR_USER_KEY in session:
+            # grab default animal_types
+            g.animal_types = get_user_preference(key=key, session=session, g=g)
+        else:
+            g.animal_types = get_anon_preference(key=key, session=session, g=g)
 
 
 def add_location_to_g(session, g):
@@ -219,7 +226,7 @@ def add_location_to_g(session, g):
     location = get_user_preference(key=key, session=session, g=g)
 
     # update session and g
-    session["CURR_LOCATION"] = location
+    session["CURR_LOCATION"] = location.getLocStr()
     g.location = location
 
 
