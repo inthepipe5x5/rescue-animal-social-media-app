@@ -25,7 +25,7 @@ class PetFinderPetPyAPI:
 
     # store default user_preference
     default_options_obj = {
-        "location": "Toronto,ON",
+        "location": "ON,CA",
         "state": "ON",
         "country": "CA",
         "animal_types": [

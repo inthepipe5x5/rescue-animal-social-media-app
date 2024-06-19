@@ -8,7 +8,7 @@ from flask import (  # type: ignore
     g,
     url_for,
     jsonify,
-    Blueprint
+    Blueprint,
 )
 
 # from flask_font_awesome import FontAwesome
@@ -43,10 +43,10 @@ from package.helper import (
     get_init_api_data,
     update_anon_preferences,
     update_user_preferences,
-    update_global_variables, #currently in helper.py
+    update_global_variables,  # currently in helper.py
     add_user_to_g,
     add_location_to_g,
-    add_animal_types_to_g
+    add_animal_types_to_g,
 )
 from package.PetFinderAPI import PetFinderPetPyAPI
 
@@ -58,26 +58,51 @@ from config import config, Config
 
 load_dotenv()
 
+# #initialize instance of petFinderPetPyAPI wrapper with helper get functions from helper.py to avoid circular imports
+pf_api = PetFinderPetPyAPI(
+    get_anon_preference_func=get_anon_preference,
+    get_user_preference_func=get_user_preference,
+)
 
-# def create_app():
-#     # create Flask app
-#     app = Flask(__name__)
 
-#     # create config instance
-#     app_config_instance = Config()
+def init_session(session):
+    """Helper function to set default key-values in Flask session
 
-#     # config Flask app
-#     flask_env_type = (
-#         os.environ.get("FLASK_ENV")
-#         if os.environ.get("FLASK_ENV") is not None
-#         else "default"
-#     )
-#     app_config_instance.config_app(app=app, obj=config[flask_env_type])
-#     app.session_interface
+    Args:
+        session (Object): Flask session
+    """
+    default_session_keys = {
+        "location": os.environ.get('CURR_LOCATION', "ON,CA"),
+        "state": os.environ.get("state", "ON"),
+        "country": os.environ.get("country", "CA"),
+        "animal_types": os.environ.get("animal_types", ["dog"]),
+    }
+    for key, value in default_session_keys.items():
+        session.setdefault(key, value)
+    
+    return print(session)
 
-#     # register blueprints
-#     app.register_blueprint(data_bp)
-#     return app
+def create_app():
+    # create Flask app
+    app = Flask(__name__)
+
+    # create config instance
+    app_config_instance = Config()
+
+    # config Flask app
+    flask_env_type = (
+        os.environ.get("FLASK_ENV")
+        if os.environ.get("FLASK_ENV") is not None
+        else "default"
+    )
+    app_config_instance.config_app(app=app, obj=config[flask_env_type])
+
+    # register blueprints
+    app.register_blueprint(data_bp)
+    
+    #init default session values
+    init_session(session)
+    return app
 
 
 # app = create_app()
@@ -96,12 +121,6 @@ flask_env_type = (
 )
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
-
-# #initialize instance of petFinderPetPyAPI wrapper with helper get functions from helper.py to avoid circular imports
-pf_api = PetFinderPetPyAPI(
-    get_anon_preference_func=get_anon_preference,
-    get_user_preference_func=get_user_preference,
-)
 
 ##############################################################################
 # User signup/login/logout
@@ -453,16 +472,18 @@ def signup_user():
     if form.validate_on_submit():
         data = {field.name: field.data for field in form}
         try:
-            
+
             user = User.signup(**data)
             db.session.add(user)
             db.session.commit()
-            #save user location
-            user_location = UserLocation(user_id=user.id, country=form.country.data, state=form.state.data)
+            # save user location
+            user_location = UserLocation(
+                user_id=user.id, country=form.country.data, state=form.state.data
+            )
             user.location.append(user_location)
             db.session.add(user_location)
             db.session.commit()
-            
+
             # init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
@@ -578,7 +599,7 @@ def homepage():
     """
     print(g)
 
-    if 'user' in g:
+    if "user" in g:
         # users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages
@@ -600,8 +621,6 @@ def homepage():
 
 
 ##############################################################################
-
-
 
 
 # Initialize global variables before each request
