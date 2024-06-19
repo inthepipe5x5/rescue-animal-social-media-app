@@ -224,9 +224,13 @@ def add_location_to_g(session, g):
 
     # grab any saved location preference using helper function (will return anon_preference results if not logged in)
     location = get_user_preference(key=key, session=session, g=g)
-
+    #handle if location is an db.Model Object instance
+    if isinstance(location, db.Model):
+        location = location.getLocStr()
+    if isinstance(location, str):
+        location = location
     # update session and g
-    session["CURR_LOCATION"] = location.getLocStr()
+    session["CURR_LOCATION"] = location
     g.location = location
 
 
