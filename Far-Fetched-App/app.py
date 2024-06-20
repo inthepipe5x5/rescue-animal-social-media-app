@@ -49,6 +49,9 @@ from package.helper import (
     add_animal_types_to_g,
 )
 from package.PetFinderAPI import PetFinderPetPyAPI
+from routes.users import users_bp
+from routes.auth import auth_bp, do_login
+from routes.results import results_bp
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
@@ -99,6 +102,9 @@ def create_app():
 
     # register blueprints
     app.register_blueprint(data_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(results_bp)
     
     #init default session values
     init_session(session)
@@ -121,188 +127,7 @@ flask_env_type = (
 )
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
-
 ##############################################################################
-# User signup/login/logout
-
-
-def do_login(user):
-    """Log in user."""
-
-    session[CURR_USER_KEY] = user.id
-
-
-def do_logout():
-    """Logout user."""
-
-    if CURR_USER_KEY in session:
-        del session[CURR_USER_KEY]
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    """Handle user login."""
-
-    form = LoginForm()
-
-    if form.validate_on_submit():
-        user = User.authenticate(form.username.data, form.password.data)
-
-        if user:
-            do_login(user)
-            flash(f"Hello, {user.username}!", "success")
-            return redirect("/")
-
-        flash("Invalid credentials.", "danger")
-
-    return render_template("users/login.html", form=form)
-
-
-@app.route("/logout")
-def logout():
-    """Handle logout of user."""
-
-    if not CURR_USER_KEY in session:
-        do_login(g.user)
-
-    do_logout()
-    flash("logged out successfully")
-    return redirect(url_for("login"))
-
-
-##############################################################################
-# General user routes:
-
-
-@app.route("/users")
-def list_users():
-    """Page with listing of users.
-
-    Can take a 'q' param in querystring to search by that username.
-    """
-
-    search = request.args.get("q")
-
-    if not search:
-        users = User.query.all()
-    else:
-        users = User.query.filter(User.username.like(f"%{search}%")).all()
-
-    return render_template("users/index.html", users=users)
-
-
-@app.route("/users/<int:user_id>")
-def users_show(user_id):
-    """Show user profile."""
-
-    user = User.query.get_or_404(user_id)
-
-    return render_template("users/show.html", user=user)
-
-
-@app.route("/users/<int:user_id>/following")
-def show_following(user_id):
-    """Show list of people this user is following."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    user = User.query.get_or_404(user_id)
-    return render_template("users/following.html", user=user)
-
-
-@app.route("/users/<int:user_id>/followers")
-def users_followers(user_id):
-    """Show list of followers of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    user = User.query.get_or_404(user_id)
-    return render_template("users/followers.html", user=user)
-
-
-@app.route("/users/follow/<int:follow_id>", methods=["POST"])
-def add_follow(follow_id):
-    """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.append(followed_user)
-    db.session.commit()
-
-    return redirect(f"/users/{g.user.id}/following")
-
-
-@app.route("/users/stop-following/<int:follow_id>", methods=["POST"])
-def stop_following(follow_id):
-    """Have currently-logged-in-user stop following this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    followed_user = User.query.get(follow_id)
-    g.user.following.remove(followed_user)
-    db.session.commit()
-
-    return redirect(f"/users/{g.user.id}/following")
-
-
-@app.route("/users/profile", methods=["GET", "POST"])
-def profile():
-    """Update profile for current user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for("login"))
-
-    else:
-        logged_in_user = User.query.get(g.user.id)
-        form = UserEditForm(obj=logged_in_user)
-
-        if form.validate_on_submit():
-            if User.authenticate(form.username.data, form.password.data):
-                form.populate_obj(logged_in_user)
-                db.session.add(logged_in_user)
-                db.session.commit()  # commit to db
-                flash("Changes saved successfully", "success")  # show success to user
-                return redirect(url_for("users_show", user_id=g.user.id))
-            else:
-                db.session.rollback()
-                flash(
-                    "You were unsuccessful, try again", "error"
-                )  # show success to user
-                return render_template(
-                    "users/edit.html", form=form, user=logged_in_user
-                )
-
-        return render_template("users/edit.html", form=form, user=logged_in_user)
-
-
-@app.route("/users/delete", methods=["POST"])
-def delete_user():
-    """Delete user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    do_logout()
-
-    db.session.delete(g.user)
-    db.session.commit()
-
-    return redirect("/signup")
-
-
-##############################################################################
-
 
 # Route to handle form submissions and API calls
 @app.route("/submit_section", methods=["POST"])
@@ -314,68 +139,6 @@ def submit_section():
     # Store API data in session
     session["api_data"] = api_data
     return "API data received"
-
-
-@app.route("/data/animals", methods=["GET", "POST"])
-def data():
-    """TEST ROUTE TO USE PETPY API
-
-    Args:
-        type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
-
-    Returns:
-        _type_: _description_
-    """
-
-    # country = get_user_preference(key="country", session=session, g=g)
-    # print(country)
-    results = pf_api.petpy_api.animals(
-        location="ON", sort="distance"
-    )  # (**pf_api.default_options_obj)
-    # return jsonify(results)
-    return render_template("results.html", results=results)
-
-
-@app.route("/data/orgs", methods=["GET", "POST"])
-def orgs_data():
-    """TEST ROUTE TO GET ORGS DATA
-
-    Args:
-        type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
-
-    Returns:
-        _type_: _description_
-    """
-    if g.user:
-        country = get_user_preference(key="country")
-        state = get_user_preference(key="state")
-    else:
-        country = get_anon_preference(key="country")
-        state = get_anon_preference(key="state")
-
-    results = pf_api.petpy_api.organizations(
-        country=country, state=state, sort="distance"
-    )  # (**pf_api.default_options_obj)
-    print([(org.name, org.adoption.policy) for org in results.organizations])
-    # return jsonify(results)
-    return render_template("results.html", results=results)
-
-
-# Route to set & get API data in Flask Session
-@app.route("/data/session", methods=["GET", "POST"])
-def update_data_session():
-    if request.method == "GET":
-        if "api_data" in session:
-            del session["api_data"]
-            return jsonify(session["api_data"])
-        return jsonify({})  # Return empty JSON if no data in session
-
-    if request.method == "POST":
-        api_data = request.args.get("api_data")
-        if api_data:
-            session["api_data"] = pf_api.parse_api_animals_data(api_data=api_data)
-        else:
-            return ValueError("No api data received")
 
 
 @app.route("/set_location", methods=["POST"])
@@ -442,85 +205,6 @@ def set_global():
                 update_anon_preferences(form=form)
 
     return render_template("users/form.html", form=form, next=url_for("data"))
-
-
-##############################################################################
-@app.route("/signup", methods=["GET"])
-def signup():
-    """Route to redirect any signup links that need to be updated
-    TO BE REMOVED BEFORE PRODUCTION
-
-    Returns:
-        redirect to signup_user Flask Route.
-    """
-    return redirect(url_for("signup_user"))
-
-
-@app.route("/signup/user", methods=["GET", "POST"])
-def signup_user():
-    """Handle user signup.
-
-    Create new user and add to DB. Redirect to home page.
-
-    If form not valid, present form.
-
-    If the there already is a user with that username: flash message
-    and re-present form.
-    """
-
-    form = UserAddForm()
-    if form.validate_on_submit():
-        data = {field.name: field.data for field in form}
-        try:
-
-            user = User.signup(**data)
-            db.session.add(user)
-            db.session.commit()
-            # save user location
-            user_location = UserLocation(
-                user_id=user.id, country=form.country.data, state=form.state.data
-            )
-            user.location.append(user_location)
-            db.session.add(user_location)
-            db.session.commit()
-
-            # init_orgs = pf_api.get_orgs_df()
-        except IntegrityError:
-            flash("Username already taken", "danger")
-            db.rollback()
-            return render_template("users/signup.html", form=form)
-
-        do_login(user)
-
-        return redirect(url_for("signup_preferences"))
-
-    else:
-        return render_template("users/signup.html", form=form, next=True)
-
-
-@app.route("/signup/preferences", methods=["GET", "POST"])
-def signup_preferences():
-    """Route to return form for user location (state + country), animal_types
-
-    Returns:
-        _type_: _description_
-    """
-    u_pref_form = UserExperiencesForm()
-
-    if u_pref_form.validate_on_submit():
-        # Process u_pref_form submission
-
-        submitted_animal_types = u_pref_form.animal_types.data
-        # save form data to g, flask sessions and database
-        update_user_preferences(
-            form=u_pref_form, session=session, user=g.user
-        )  # pass in a current user
-
-        # Redirect to user home
-        return redirect(url_for("homepage"))
-
-    return render_template("users/form.html", form=u_pref_form, next=False)
-
 
 @app.route("/carousel", methods=["GET", "POST"])
 def carousel_form_test():

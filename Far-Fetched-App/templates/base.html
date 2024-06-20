@@ -59,8 +59,8 @@
       </li>
       {% endif %}
       {% if not g.user %}
-      <li><a href="/signup">Sign up</a></li>
-      <li><a href="/login">Log in</a></li>
+      <li><a href={{url_for("routes.auth.signup")}}>Sign up</a></li>
+      <li><a href={{url_for("routes.auth.login")}}>Log in</a></li>
       {% else %}
       <li>
         <a href="/users/{{ g.user.id }}">

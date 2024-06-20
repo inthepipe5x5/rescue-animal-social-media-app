@@ -16,8 +16,8 @@
             </button>
           </form>
           <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            <link type="button" href={{url_for('signup')}} class="btn btn-primary btn-lg px-4 gap-3">Submit</link>
-            <link type="button" href={{url_for('login')}} class="btn btn-outline-secondary btn-lg px-4">Other Search Options</link>
+            <link type="button" href={{url_for('routes.auth.signup')}} class="btn btn-primary btn-lg px-4 gap-3">Submit</link>
+            <link type="button" href={{url_for('routes.auth.login')}} class="btn btn-outline-secondary btn-lg px-4">Other Search Options</link>
           </div>
         </div>
       </div>
@@ -40,8 +40,8 @@
             Sign up today to connect with local rescues around you! 
           </p>
         <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-          <a href={{url_for('signup')}} class="btn btn-primary btn-lg px-4 me-md-2">Register</a>
-          <a href={{url_for('login')}} class="btn btn-outline-secondary btn-lg px-4">Login</a>
+          <a href={{url_for('routes.auth.signup')}} class="btn btn-primary btn-lg px-4 me-md-2">Register</a>
+          <a href={{url_for('routes.auth.login')}} class="btn btn-outline-secondary btn-lg px-4">Login</a>
         </div>
       </div>
       <div class="col-lg-6">
