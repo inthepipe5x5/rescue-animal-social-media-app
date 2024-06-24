@@ -189,59 +189,6 @@ def update_user_preferences(form, session, user_obj):
             db.session.add(user)
             db.session.commit()
 
-        # # update global Flask app variables after committing to db
-        update_global_variables()
-
-
-def add_user_to_g(session, g):
-    """Add current user to 'g'."""
-    if CURR_USER_KEY in session:
-        g.user = User.query.get_or_404(session[CURR_USER_KEY])
-    else:
-        g.user = None
-
-
-def add_animal_types_to_g(session, g):
-    """Add animal types preferred by the user to 'g'."""
-    key = "animal_types"
-    if key in session:
-        g.animal_types = session[key]
-    else:
-        # check if user logged in
-        if CURR_USER_KEY in session:
-            # grab default animal_types
-            g.animal_types = get_user_preference(key=key, session=session, g=g)
-        else:
-            g.animal_types = get_anon_preference(key=key, session=session, g=g)
-
-
-def add_location_to_g(session, g):
-    """Add CURR_LOCATION to 'g' and session
-    Updates the CURR_LOCATION in session to give the app a location context for all API queries
-    Does not return anything.
-    """
-    key = "location"
-
-    # grab any saved location preference using helper function (will return anon_preference results if not logged in)
-    location = get_user_preference(key=key, session=session, g=g)
-    #handle if location is an db.Model Object instance
-    if isinstance(location, db.Model):
-        location = location.getLocStr()
-    if isinstance(location, str):
-        location = location
-    # update session and g
-    session["CURR_LOCATION"] = location
-    g.location = location
-
-
-@data_bp.before_request
-def update_global_variables(session, g):
-    """Update global variables before each request."""
-
-    add_location_to_g(session=session, g=g)
-    add_animal_types_to_g(session=session, g=g)
-    add_user_to_g(session=session, g=g)
-
 
 def get_init_api_data(session, g):
     """Function to populate session with API data in between requests to simulate "live" API data updates to Jinja templates that make use of it"""

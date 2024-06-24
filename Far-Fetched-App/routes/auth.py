@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, UserEditForm, LoginForm, UserExperiencesForm
 from models import db, User, UserLocation
+from package.helper import update_user_preferences
 
 auth_bp = Blueprint("auth", __name__, template_folder="templates", url_prefix="/auth")
 
@@ -59,19 +60,8 @@ def logout():
 
 # SIGN UP ROUTES    
 ##############################################################################
-@auth_bp.route("/signup", methods=["GET"])
+@auth_bp.route("/signup", methods=["GET", "POST"])
 def signup():
-    """Route to redirect any signup links that need to be updated
-    TO BE REMOVED BEFORE PRODUCTION
-
-    Returns:
-        redirect to signup_user Flask Route.
-    """
-    return redirect(url_for("signup_user"))
-
-
-@auth_bp.route("/signup/user", methods=["GET", "POST"])
-def signup_user():
     """Handle user signup.
 
     Create new user and add to DB. Redirect to home page.

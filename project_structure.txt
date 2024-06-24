@@ -1,0 +1,92 @@
+.
+├── Far-Fetched-App
+│   ├── __init__.py
+│   ├── app.py
+│   ├── config.py
+│   ├── fake-user-generator
+│   │   ├── create_csvs.py
+│   │   ├── follows.csv
+│   │   ├── helpers.py
+│   │   ├── messages.csv
+│   │   └── users.csv
+│   ├── forms.py
+│   ├── models.py
+│   ├── package
+│   │   ├── PetFinderAPI.py
+│   │   ├── __init__.py
+│   │   └── helper.py
+│   ├── routes
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── results.py
+│   │   └── users.py
+│   ├── seed.py
+│   ├── static
+│   │   ├── favicon.ico
+│   │   ├── home-ui.js
+│   │   ├── images
+│   │   │   ├── animal-pictures
+│   │   │   │   ├── chris-anderson-coheb5v8c0M-unsplash.jpg
+│   │   │   │   ├── cynthia-smith-vDs0MCYkfQ4-unsplash.jpg
+│   │   │   │   ├── kym-ellis-p025ltbEPwM-unsplash.jpg
+│   │   │   │   ├── madeline-bowen-O3L9n7_QI70-unsplash.jpg
+│   │   │   │   ├── margarita-kosior-qip8Py7fh6I-unsplash.jpg
+│   │   │   │   ├── obada-fa-NdAwLiM110o-unsplash.jpg
+│   │   │   │   └── sasha-sashina-Xcscr_sNSEY-unsplash.jpg
+│   │   │   ├── ff-logo.svg
+│   │   │   ├── graphics
+│   │   │   │   ├── bird-eucalyp.png
+│   │   │   │   ├── cat_freepik.png
+│   │   │   │   ├── dog-freepik.png
+│   │   │   │   ├── dog-hug-freepik.png
+│   │   │   │   ├── dog-play-photo3idea_studio.png
+│   │   │   │   ├── dog-walking-photo3idea_studio.png
+│   │   │   │   ├── easter-bunny_freepik.png
+│   │   │   │   ├── horse-freepik.png
+│   │   │   │   ├── hourglass_freepik.png
+│   │   │   │   ├── pets-iconixar.png
+│   │   │   │   ├── pin_freepik.png
+│   │   │   │   ├── scales-smashicons.png
+│   │   │   │   ├── small-furry-freepik.png
+│   │   │   │   └── tracks_freepik.png
+│   │   │   └── profile-images
+│   │   │       ├── default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg
+│   │   │       ├── default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg
+│   │   │       ├── default-pic.png
+│   │   │       └── home-anon-user.jpg
+│   │   └── stylesheets
+│   │       └── style.css
+│   └── templates
+│       ├── base.html
+│       ├── carousel-form.html
+│       ├── home-anon.html
+│       ├── home.html
+│       ├── messages
+│       │   ├── new.html
+│       │   └── show.html
+│       ├── results
+│       │   └── org-results.html
+│       ├── results.html
+│       ├── top-results.html
+│       └── users
+│           ├── detail.html
+│           ├── edit.html
+│           ├── followers.html
+│           ├── following.html
+│           ├── form.html
+│           ├── index.html
+│           ├── login.html
+│           ├── show.html
+│           └── signup.html
+├── LICENSE
+├── petfinder-API-resp-example.json
+├── project_structure.txt
+├── readme.txt
+├── requirements.txt
+└── tests
+    ├── __init__.py
+    ├── test_PetFinderAPI.py
+    ├── test_app.py
+    └── test_config.py
+
+15 directories, 74 files

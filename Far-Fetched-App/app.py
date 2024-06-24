@@ -17,6 +17,8 @@ from dotenv import load_dotenv  # type: ignore
 import pdb  # MAKE SURE TO REMOVE IN PRODUCTION
 import os
 import requests
+import click
+import sys
 
 from models import (
     db,
@@ -43,10 +45,10 @@ from package.helper import (
     get_init_api_data,
     update_anon_preferences,
     update_user_preferences,
-    update_global_variables,  # currently in helper.py
-    add_user_to_g,
-    add_location_to_g,
-    add_animal_types_to_g,
+    # update_global_variables,  # currently here in app.py
+    # add_user_to_g,
+    # add_location_to_g,
+    # add_animal_types_to_g,
 )
 from package.PetFinderAPI import PetFinderPetPyAPI
 from routes.users import users_bp
@@ -83,7 +85,7 @@ def init_session(session):
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
     
-    return print(session)
+    return print(session.items())
 
 def create_app():
     # create Flask app
@@ -307,25 +309,54 @@ def homepage():
 ##############################################################################
 
 
-# Initialize global variables before each request
-@app.before_request
-def get_app_data():
-    """Function that runs before each request to refresh global variables and grab initial API data if none
+def add_user_to_g(session, g):
+    """Add current user to 'g'."""
+    if CURR_USER_KEY in session:
+        g.user = User.query.get_or_404(session[CURR_USER_KEY])
+    else:
+        g.user = None
 
-    Returns:
-        _type_: _description_
+
+def add_animal_types_to_g(session, g):
+    """Add animal types preferred by the user to 'g'."""
+    key = "animal_types"
+    if key in session:
+        g.animal_types = session[key]
+    else:
+        # check if user logged in
+        if CURR_USER_KEY in session:
+            # grab default animal_types
+            g.animal_types = get_user_preference(key=key, session=session, g=g)
+        else:
+            g.animal_types = get_anon_preference(key=key, session=session, g=g)
+
+
+def add_location_to_g(session, g):
+    """Add CURR_LOCATION to 'g' and session
+    Updates the CURR_LOCATION in session to give the app a location context for all API queries
+    Does not return anything.
     """
-    # update global variables
-    with app.app_context():
-        update_global_variables(session=session, g=g)
-    # get JSON api_data from session
-    # json_api_data = get_init_api_data(session=session, g=g)
+    key = "location"
 
-    # # set api data in session via another route
-    # requests.post(
-    # url=url_for("update_data_session", _external=True),
-    # data={"api_data": json_api_data, "headers": "application/json"},
-    # )
+    # grab any saved location preference using helper function (will return anon_preference results if not logged in)
+    location = get_user_preference(key=key, session=session, g=g)
+    #handle if location is an db.Model Object instance
+    if isinstance(location, db.Model):
+        location = location.getLocStr()
+    if isinstance(location, str):
+        location = location
+    # update session and g
+    session["CURR_LOCATION"] = location
+    g.location = location
+
+
+@app.before_request
+def update_global_variables(session, g):
+    """Initialize or update global variables before each request."""
+
+    add_location_to_g(session=session, g=g)
+    add_animal_types_to_g(session=session, g=g)
+    add_user_to_g(session=session, g=g)
 
 
 # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
@@ -350,6 +381,49 @@ def add_header(req):
     req.headers["Cache-Control"] = "public, max-age=0"
     return req
 
+##############################################################################
+# #Custom APP CLI commands
+@app.cli.command("set-env")
+@click.option("--env", default="default")
+def set_env_cli_command(env):
+    """
+    This function sets the FLASK_ENV environment variable based on the provided string.
+    
+    :param env: The `env` parameter is used to specify the environment for the Flask application. 
+        # It can take three values: "development", "production", or "default". 
+        # The function sets the `FLASK_ENV` environment variable based on the value provided for `env`
+    
+    Use the Flask CLI to run the command by providing the necessary arguments. 
+    Here is an example of how you can call the set-env function in Flask from the command line using the Flask CLI:
+
+    ```bash
+    flask set-env --env development
+    ```
+    """
+    #handle if `env` is falsy 
+    if not env:
+        env = 'default'
+    # Function to set the FLASK_ENV environment variable based on the provided string
+    if env == "development":
+        app.config["FLASK_ENV"] = "development"
+        click.echo("FLASK_ENV set to development.")
+    elif env == "production":
+        app.config["FLASK_ENV"] = "production"
+        click.echo("FLASK_ENV set to production.")
+    else:
+        app.config["FLASK_ENV"] = "default"
+        click.echo("FLASK_ENV set to default (default='development').")
+##############################################################################
 
 if __name__ == "__main__":
+    # handle args to modify flask set-env
+    # args = sys.argv 
+    # if args[3] and args.lower() in ['prod', 'production', 'test', 'testing', 'tests', 'dev', 'development']:
+    #     args = args
+    # else: 
+    #     args = 'default'
+    #set env: eg. "flask set-env --env development"
+    # app.cli(args=[f"flask set-env --env {args[1]}"])
+    print("FLASK_ENV:", os.environ.get('FLASK_ENV'))
+    print("Starting App:", app.config)
     app.run(debug=True, use_reloader=True)
