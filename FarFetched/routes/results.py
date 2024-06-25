@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, g, request, session, jsonify
 from package.PetFinderAPI import PetFinderPetPyAPI
 from package.helper import get_anon_preference, get_user_preference
 
-results_bp = Blueprint("results", __name__, template_folder="templates", url_prefix="/results")
+results_bp = Blueprint("results", __name__, url_prefix="/results")
 
 pf_api = PetFinderPetPyAPI(
     get_anon_preference_func=get_anon_preference,

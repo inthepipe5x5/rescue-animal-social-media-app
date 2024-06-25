@@ -8,9 +8,7 @@ from models import (
 from routes.auth import do_logout
 from forms import UserEditForm
 
-users_bp = Blueprint(
-    "users", __name__, template_folder="templates", url_prefix="/users"
-)
+users_bp = Blueprint("users", __name__, url_prefix="/users")
 
 
 ##############################################################################

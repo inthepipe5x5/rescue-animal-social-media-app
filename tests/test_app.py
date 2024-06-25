@@ -3,8 +3,8 @@ import os
 import unittest
 from flask import Flask, session
 
-from Far_Fetched_App.app import app
-from Far_Fetched_App.config import Config, config
+from ..FarFetched.app import app
+from ..FarFetched.config import Config, config
 
 
 class TestApp(unittest.TestCase):

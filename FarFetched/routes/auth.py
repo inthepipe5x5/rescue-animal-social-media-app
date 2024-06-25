@@ -7,7 +7,7 @@ from forms import UserAddForm, UserEditForm, LoginForm, UserExperiencesForm
 from models import db, User, UserLocation
 from package.helper import update_user_preferences
 
-auth_bp = Blueprint("auth", __name__, template_folder="templates", url_prefix="/auth")
+auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY")
 

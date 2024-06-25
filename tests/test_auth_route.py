@@ -2,8 +2,8 @@ import unittest
 from flask import Flask
 from flask.testing import FlaskClient
 
-from ..Far_Fetched_App.app import app  # Import your Flask app
-from ..Far_Fetched_App.models import db, User  # Import your Flask app
+from ..FarFetched.app import app  # Import your Flask app
+from ..FarFetched.models import db, User  # Import your Flask app
 
 from sqlalchemy.exc import IntegrityError
 

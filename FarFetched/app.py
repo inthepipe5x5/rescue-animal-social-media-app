@@ -290,7 +290,7 @@ def homepage():
 
         # Now, you can use this list of users to get their messages
 
-        return render_template("home.html", user=g.user, messages=g.user.messages)
+        return render_template("home.html", user=g.user)
 
     else:
         # try:
@@ -309,7 +309,7 @@ def homepage():
 ##############################################################################
 
 
-def add_user_to_g(session, g):
+def add_user_to_g(session=session, g=g):
     """Add current user to 'g'."""
     if CURR_USER_KEY in session:
         g.user = User.query.get_or_404(session[CURR_USER_KEY])
@@ -317,7 +317,7 @@ def add_user_to_g(session, g):
         g.user = None
 
 
-def add_animal_types_to_g(session, g):
+def add_animal_types_to_g(session=session, g=g):
     """Add animal types preferred by the user to 'g'."""
     key = "animal_types"
     if key in session:
@@ -331,7 +331,7 @@ def add_animal_types_to_g(session, g):
             g.animal_types = get_anon_preference(key=key, session=session, g=g)
 
 
-def add_location_to_g(session, g):
+def add_location_to_g(session=session, g=g):
     """Add CURR_LOCATION to 'g' and session
     Updates the CURR_LOCATION in session to give the app a location context for all API queries
     Does not return anything.
@@ -351,7 +351,7 @@ def add_location_to_g(session, g):
 
 
 @app.before_request
-def update_global_variables(session, g):
+def update_global_variables(session=session, g=g):
     """Initialize or update global variables before each request."""
 
     add_location_to_g(session=session, g=g)
