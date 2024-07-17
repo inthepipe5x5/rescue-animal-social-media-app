@@ -5,8 +5,8 @@ from models import connect_db
 # Load environment variables from .env file
 load_dotenv()
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-os.environ['APP_DIR'] = basedir
+# basedir = os.path.abspath(os.path.dirname(__file__))
+# os.environ['APP_DIR'] = basedir
 
 class Config:
     # Default configuration

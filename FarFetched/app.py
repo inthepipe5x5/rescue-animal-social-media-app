@@ -208,13 +208,6 @@ def set_global():
 
     return render_template("users/form.html", form=form, next=url_for("data"))
 
-@app.route("/carousel", methods=["GET", "POST"])
-def carousel_form_test():
-    form = UserAddForm()
-
-    return render_template("carousel-form.html", form=form)
-
-
 @app.route("/preferences/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     form = SpecificAnimalPreferencesForm()
