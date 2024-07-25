@@ -127,7 +127,7 @@ class UserExperiencesForm(StateCountryForm):
             for str_value, emoji_key in animal_type_emojis.items()
         ],
         coerce=str,
-        default=[["dog"]],
+        default=["dog"],
         validators=[DataRequired()],
     )
 
@@ -154,6 +154,7 @@ class UserAddForm(UserExperiencesForm):
     class Meta:
         model = User
         exclude = ["rescue_action_type", "registration_date", "animal_types"]
+
 
 
 class AnonExperiencesForm(UserExperiencesForm):
