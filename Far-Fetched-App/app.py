@@ -17,6 +17,7 @@ from dotenv import load_dotenv  # type: ignore
 import pdb  # MAKE SURE TO REMOVE IN PRODUCTION
 import os
 import requests
+from functools import wraps
 
 from models import (
     db,
@@ -125,6 +126,15 @@ app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ign
 ##############################################################################
 # User signup/login/logout
 
+def auth_required(route_func):
+    @wraps(route_func)
+    def protected_route(*args, **kwargs):
+        if CURR_USER_KEY not in session:
+            #not authenticated, redirect to login and then requested url once authenticated
+            return redirect(url_for('login'), next=request.url)
+        #else the user is authenticated and should be allowed to proceed to the protected route
+        return route_func(*args, **kwargs)
+    return protected_route
 
 def do_login(user):
     """Log in user."""
