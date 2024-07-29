@@ -200,7 +200,7 @@ class User(db.Model):
     #     db.ForeignKey("user_animal_handling_history.id"),
     # )
     user_animal_preferences = db.relationship(
-        "user_animal_preferences", back_populates="user"#, on_delete="CASCADE"
+        "UserAnimalPreferences", back_populates="user"#, on_delete="CASCADE" #commented out on_delete because it gave a not accepted here error
     )
     # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
     location = db.relationship(
