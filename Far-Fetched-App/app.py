@@ -130,6 +130,8 @@ def auth_required(route_func):
     @wraps(route_func)
     def protected_route(*args, **kwargs):
         if CURR_USER_KEY not in session:
+            #flash error
+            flash('Unauthorized', "danger")
             #not authenticated, redirect to login and then requested url once authenticated
             return redirect(url_for('login'), next=request.url)
         #else the user is authenticated and should be allowed to proceed to the protected route
@@ -138,16 +140,29 @@ def auth_required(route_func):
 
 def do_login(user):
     """Log in user."""
-
+    #add user.id to session
     session[CURR_USER_KEY] = user.id
-
+    session['CURR_USER'] = user.serialize() #needs to be JSON serializable to be saved
+    g.user = user #auto calls the Model.serialize()
+    #update the other global variables
+    # add_animal_types_to_g(session, g)
+    # add_location_to_g(session, g)
+    update_global_variables(session, g)
+    print(f"do_login({user})", g)
 
 def do_logout():
     """Logout user."""
 
-    if CURR_USER_KEY in session:
-        del session[CURR_USER_KEY]
 
+    session.pop(CURR_USER_KEY, default=None)
+    session.pop("CURR_USER", default=None)
+        
+    #return stored values to default
+    #reset animal types
+    session["ANIMAL_TYPES"] = os.environ.get("ANIMAL_TYPES", ['dog'])
+    #reset CURR_LOCATION
+    session['CURR_LOCATION']= os.environ.get("CURR_LOCATION", "ON,CA")
+    return print(session)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -160,6 +175,8 @@ def login():
 
         if user:
             do_login(user)
+            g.user = user
+            print(g.user)
             flash(f"Hello, {user.username}!", "success")
             return redirect("/")
 
@@ -167,17 +184,15 @@ def login():
 
     return render_template("users/login.html", form=form)
 
-
+@auth_required
 @app.route("/logout")
 def logout():
     """Handle logout of user."""
-
-    if not CURR_USER_KEY in session:
-        do_login(g.user)
-
+    if CURR_USER_KEY in session:
+        print(session[CURR_USER_KEY])
     do_logout()
-    flash("logged out successfully")
-    return redirect(url_for("login"))
+    flash(f"Log out successful. Hope to see you again")
+    return redirect('/')
 
 
 ##############################################################################
@@ -658,6 +673,7 @@ def get_app_data():
 @app.context_processor
 def inject_global_vars():
     """Injects the session and g objects into the Jinja2 template context"""
+    # print('template context processor being called', session['CURR_USER'])
     return {"session": session, "g": g}
 
 

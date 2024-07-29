@@ -2,7 +2,8 @@
 
 from csv import DictReader
 from app import app, db
-from models import User, UserAnimalPreferences, MatchedRescueOrganization, db
+from models import User, UserLocation, UserAnimalPreferences, MatchedRescueOrganization, db
+import os
 
 # create app context for db
 app.app_context().push()
@@ -10,6 +11,11 @@ app.app_context().push()
 # drop and recreate all tables
 db.drop_all()
 db.create_all()
+
+if os.environ.get('FLASK_ENV') != "production":
+    test123 = User(username='test123',email="test123@test123.com", bio="test123", password="test123")
+    test123_location = UserLocation(country="CA", state="ON")
+    db.session.add(test123, test123_location)
 
 # with open('fake-user-generator/users.csv') as users:
 #     db.session.bulk_insert_mappings(User, DictReader(users))

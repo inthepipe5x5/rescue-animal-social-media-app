@@ -234,7 +234,7 @@ def add_location_to_g(session, g):
     g.location = location
 
 
-@data_bp.before_request
+# @data_bp.before_request
 def update_global_variables(session, g):
     """Update global variables before each request."""
 

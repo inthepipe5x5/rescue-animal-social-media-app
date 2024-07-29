@@ -58,13 +58,13 @@
         </form>
       </li>
       {% endif %}
-      {% if not g.user %}
+      {% if not session.CURR_USER %}
       <li><a href="/signup">Sign up</a></li>
       <li><a href="/login">Log in</a></li>
       {% else %}
       <li>
-        <a href="/users/{{ g.user.id }}">
-          <img src="{{ g.user.image_url }}" alt="{{ g.user.username }}">
+        <a href="/users/{{ session.CURR_USER.id }}">
+          <img src="{{ session.CURR_USER.image_url }}" alt="{{ session.CURR_USER.username }}">
         </a>
       </li>
       <!--<li><a href="/messages/new">New Message</a></li>-->

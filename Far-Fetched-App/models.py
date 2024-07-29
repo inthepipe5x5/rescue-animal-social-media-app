@@ -30,8 +30,7 @@ db = SQLAlchemy()
 
 
 class RescueOrganization(db.Model):
-    """Rescue Organization db.Model
-    """
+    """Rescue Organization db.Model"""
 
     __tablename__ = "rescueOrg"
 
@@ -71,28 +70,28 @@ class MatchedRescueOrganization(db.Model):
 class UserLocation(db.Model):
     """Table to store user location information"""
 
-    __tablename__ = "user_location"
+    __tablename__ = "UserLocation"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True)
     # user_preferences_id = db.Column(
     #     db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
     # )
-    country = db.Column(db.String(2), nullable=False)
-    state = db.Column(db.String(2), nullable=False)
+    country = db.Column(db.String(2), nullable=False, default="CA")
+    state = db.Column(db.String(2), nullable=False, default="ON")
     # postal_code = db.Column(db.String(7), nullable=False)
     city = db.Column(db.String(100))
 
     user = db.relationship(
         "User",
         back_populates="location",
-        foreign_keys=[user_id],
-        remote_side="UserLocation.user_id",
+        # foreign_keys=[user_id],
+        # remote_side="UserLocation.user_id",
     )
 
     # user_preferences = db.relationship(
     #     "UserPreferences",
-    #     back_populates="user_location",
+    #     back_populates="UserLocation",
     #     foreign_keys=[user_preferences_id],
     # )
     def getLocStr(self) -> str:
@@ -102,9 +101,9 @@ class UserLocation(db.Model):
             str: Returns a string describing the "location" parameter required for PetFinderAPI calls
 
         """
-        city = self.city 
-        state = self.state 
-        country = self.country 
+        city = self.city
+        state = self.state
+        country = self.country
 
         if country:
             # parse country string into 2 letter abbreviations
@@ -141,6 +140,7 @@ class UserLocation(db.Model):
                     "location": "%s" % (country),
                     "country": country,
                 }
+
 
 class User(db.Model):
     """User in the system."""
@@ -181,14 +181,16 @@ class User(db.Model):
         nullable=False,
     )
 
-    # location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
+    # location_id = db.Column(db.Integer, db.ForeignKey("UserLocation.id"))
 
     rescue_action_type = db.Column(
-        "rescue_action_type", ARRAY(db.String)
+        "rescue_action_type", ARRAY(db.String), 
+            server_default=db.text("ARRAY['volunteering', 'donation', 'adoption', 'animal foster']")
     )  # will store info can only be: volunteering, donation, adoption, animal foster
 
     animal_types = db.Column(
-        "animal_types", ARRAY(db.String)
+        "animal_types", ARRAY(db.String),
+        server_default=db.text("ARRAY['dog']")
     )  # Must be one of 6 potential values: ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’. Default='dog'
 
     registration_date = db.Column(db.DateTime)
@@ -198,18 +200,24 @@ class User(db.Model):
     #     db.ForeignKey("user_animal_handling_history.id"),
     # )
     user_animal_preferences = db.relationship(
-        "UserAnimalPreferences", back_populates="user"
+        "user_animal_preferences", back_populates="user"#, on_delete="CASCADE"
     )
     # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
     location = db.relationship(
         "UserLocation",
         back_populates="user",
+        #on_delete="CASCADE",
+        uselist=False,
     )
     matched_rescue_orgs = db.relationship(
         "MatchedRescueOrganization", back_populates="user"
     )
+
     # followed_orgs = db.relationship("FollowedOrg", back_populates="user")
     # user_reviews = db.relationship("UserReviews", back_populates="user")
+    def serialize(self):
+        obj = {"username": self.username, "id": self.id, "image_url": self.image_url}
+        return obj
 
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}, {self.bio}, {self.location}>"
@@ -220,7 +228,17 @@ class User(db.Model):
     #     return specific_org in self.followed_orgs
 
     @classmethod
-    def signup(cls, username, email, password, image_url, rescue_action_type, animal_types, bio=None, **user_data_kwargs):
+    def signup(
+        cls,
+        username,
+        email,
+        password,
+        image_url,
+        rescue_action_type,
+        animal_types,
+        bio=None,
+        **user_data_kwargs,
+    ):
         """Sign up user.
 
         Hashes password and adds user to system.
@@ -231,7 +249,7 @@ class User(db.Model):
             hashed_pwd = bcrypt.generate_password_hash(password).decode("utf8")
         else:
             # Check if password is provided in user_data_kwargs
-            #use .pop() to prevent additional 'password' keywords being passed
+            # use .pop() to prevent additional 'password' keywords being passed
             password = user_data_kwargs.pop("password", None)
             if password:
                 hashed_pwd = bcrypt.generate_password_hash(password).decode("utf8")
@@ -277,7 +295,7 @@ class User(db.Model):
 
 #     id = db.Column(db.Integer, primary_key=True)
 #     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-# user_location_id = db.Column(db.Integer, db.ForeignKey("user_location.id"))
+# UserLocation_id = db.Column(db.Integer, db.ForeignKey("UserLocation.id"))
 
 # # unique table data columns
 # species_global = db.Column(
@@ -289,7 +307,7 @@ class User(db.Model):
 
 # relationships
 # user = db.relationship('User', back_populates='preferences')
-# user_location = db.relationship("UserLocation", back_populates="user_preferences")
+# UserLocation = db.relationship("UserLocation", back_populates="user_preferences")
 # user_animal_preferences = db.relationship(
 #     "UserAnimalPreferences", back_populates="user_preferences"
 # )
