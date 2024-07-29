@@ -70,7 +70,7 @@ class MatchedRescueOrganization(db.Model):
 class UserLocation(db.Model):
     """Table to store user location information"""
 
-    __tablename__ = "UserLocation"
+    __tablename__ = "user_location"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True)

@@ -66,13 +66,12 @@ def get_user_preference(key, session, g):
                     result = (
                         db.session.query(model)
                         .filter_by(user_id=matching_user_id)
-                        .first()
                     )
                 else:
                     result = (
                         db.session.query(model)
                         .filter_by(user_id=matching_user_id)
-                        .first()
+                        .first() #add .first() method as non-animal_types queries will be singular result where animal_types will expect a list
                     )
 
                 if result:
