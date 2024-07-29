@@ -701,8 +701,7 @@ def add_header(req):
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("FLASK_PORT", 5000))
     flask_env = os.environ.get("FLASK_ENV", "development")
-    app.logger.warning(f"Starting app on port {port} FLASK_ENV={flask_env}")
-    #ssl_context="adhoc" => to enable HTTPS & SSL 
-    app.run(ssl_context="adhoc", debug=True, use_reloader=True, port=port)
+    app.logger.warning(f"Starting app on port {app.config['PORT']} FLASK_ENV={flask_env}")
+    app.run(use_reloader=True, port=port)
