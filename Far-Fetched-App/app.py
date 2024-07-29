@@ -73,15 +73,16 @@ def init_session(session):
         session (Object): Flask session
     """
     default_session_keys = {
-        "location": os.environ.get('CURR_LOCATION', "ON,CA"),
+        "location": os.environ.get("CURR_LOCATION", "ON,CA"),
         "state": os.environ.get("state", "ON"),
         "country": os.environ.get("country", "CA"),
         "animal_types": os.environ.get("animal_types", ["dog"]),
     }
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
-    
+
     return print(session)
+
 
 def create_app():
     # create Flask app
@@ -100,8 +101,8 @@ def create_app():
 
     # register blueprints
     app.register_blueprint(data_bp)
-    
-    #init default session values
+
+    # init default session values
     init_session(session)
     return app
 
@@ -126,43 +127,47 @@ app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ign
 ##############################################################################
 # User signup/login/logout
 
+
 def auth_required(route_func):
     @wraps(route_func)
     def protected_route(*args, **kwargs):
         if CURR_USER_KEY not in session:
-            #flash error
-            flash('Unauthorized', "danger")
-            #not authenticated, redirect to login and then requested url once authenticated
-            return redirect(url_for('login'), next=request.url)
-        #else the user is authenticated and should be allowed to proceed to the protected route
+            # flash error
+            flash("Unauthorized", "danger")
+            # not authenticated, redirect to login and then requested url once authenticated
+            return redirect(url_for("login"), next=request.url)
+        # else the user is authenticated and should be allowed to proceed to the protected route
         return route_func(*args, **kwargs)
+
     return protected_route
+
 
 def do_login(user):
     """Log in user."""
-    #add user.id to session
+    # add user.id to session
     session[CURR_USER_KEY] = user.id
-    session['CURR_USER'] = user.serialize() #needs to be JSON serializable to be saved
-    g.user = user #auto calls the Model.serialize()
-    #update the other global variables
+    session["CURR_USER"] = user.serialize()  # needs to be JSON serializable to be saved
+    g.user = user  # auto calls the Model.serialize()
+    # update the other global variables
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
     update_global_variables(session, g)
     print(f"do_login({user})", g)
 
+
 def do_logout():
     """Logout user."""
 
-
     session.pop(CURR_USER_KEY, default=None)
     session.pop("CURR_USER", default=None)
-        
-    #return stored values to default
-    #reset animal types
-    session["ANIMAL_TYPES"] = os.environ.get("ANIMAL_TYPES", ['dog'])
-    #reset CURR_LOCATION
-    session['CURR_LOCATION']= os.environ.get("CURR_LOCATION", "ON,CA")
+
+    # return stored values to default
+    # reset animal types
+    session["ANIMAL_TYPES"] = os.environ.get("ANIMAL_TYPES", ["dog"])
+    # reset CURR_LOCATION
+    session["CURR_LOCATION"] = os.environ.get("CURR_LOCATION", "ON,CA")
     return print(session)
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -184,6 +189,7 @@ def login():
 
     return render_template("users/login.html", form=form)
 
+
 @auth_required
 @app.route("/logout")
 def logout():
@@ -192,7 +198,7 @@ def logout():
         print(session[CURR_USER_KEY])
     do_logout()
     flash(f"Log out successful. Hope to see you again")
-    return redirect('/')
+    return redirect("/")
 
 
 ##############################################################################
@@ -694,4 +700,5 @@ def add_header(req):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=True)
+    #ssl_context="adhoc" => to enable HTTPS & SSL 
+    app.run(ssl_context="adhoc", debug=True, use_reloader=True)

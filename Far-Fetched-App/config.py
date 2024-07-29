@@ -15,11 +15,16 @@ class Config:
     TESTING = False
     SECRET_KEY = os.environ.get('SECRET_KEY', "SECRET KEY")
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     WTF_CSRF_ENABLED = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
-
+    
+    #session configs
+    SESSION_REFRESH_EACH_REQUEST = False #set to false to ensure cookie is not refreshed on each request
+    #session security configs
+    SESSION_COOKIE_SECURE = True #set to True for HTTPS
+    SESSION_COOKIE_HTTPONLY = True # prevent malicious scripts from accessing the session cookie on the client side.
     @staticmethod
     def config_app(app, obj):
         """
@@ -37,7 +42,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-
+    
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
