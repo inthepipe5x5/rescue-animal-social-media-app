@@ -701,7 +701,6 @@ def add_header(req):
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("FLASK_PORT", 5000))
     flask_env = os.environ.get("FLASK_ENV", "development")
-    app.logger.warning(f"Starting app on port {app.config['PORT']} FLASK_ENV={flask_env}")
+    app.logger.warning(f"Starting app on FLASK_ENV={flask_env}")
     app.run(use_reloader=True, port=port)
