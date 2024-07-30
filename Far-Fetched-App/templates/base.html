@@ -37,8 +37,8 @@
         <li class="nav-item"><a href="{{ url_for('set_global') }}"> ON, CA📍</a></li>
       {% endif %}
       <div class='vr'></div> <!-- vertical divider div -->
-      {% if g.animal_types %} 
-        {% for type in g.animal_types %}
+      {% if session["animal_types"] %} 
+        {% for type in session["animal_types"] %}
           <li class="nav-item"><a href="{{ url_for('set_global') }}">
             {% if type == 'dog' %}🐶{% elif type == 'cat' %}🐱{% elif type == 'small-furry' %}🐹{% elif type == 'birds' %}🐦{% elif type == 'horse' %}🐴{% elif type == 'scales-fins-other' %}🦎{% elif type == 'barnyard' %}🐮{% endif %}
           </a></li>

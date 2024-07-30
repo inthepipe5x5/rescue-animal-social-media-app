@@ -377,12 +377,12 @@ def orgs_data():
     Returns:
         _type_: _description_
     """
-    if g.user:
-        country = get_user_preference(key="country")
-        state = get_user_preference(key="state")
+    if "CURR_USER" in session:
+        country = get_user_preference(key="country", session=session, g=g)
+        state = get_user_preference(key="state", session=session, g=g)
     else:
-        country = get_anon_preference(key="country")
-        state = get_anon_preference(key="state")
+        country = get_anon_preference(key="country", session=session, g=g)
+        state = get_anon_preference(key="state", session=session, g=g)
 
     results = pf_api.petpy_api.organizations(
         country=country, state=state, sort="distance"
@@ -446,22 +446,22 @@ def set_global():
     """
 
     # Check if the user is logged in
-    if g.user:
+    if "CURR_USER" in session:
 
         # check db, session and 'g' for user preferences. if not found, will return default country : 'CA', animal_type: 'dog'
-        country = get_user_preference(key="country")
-        animal_types = get_user_preference(key="animal_types")
+        country = get_user_preference(key="country", session=session, g=g)
+        animal_types = get_user_preference(key="animal_types", session=session, g=g)
         form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
         # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
-        country = get_anon_preference(key="country")
-        animal_types = get_anon_preference(key="animal_types")
+        country = get_anon_preference(key="country", session=session, g=g)
+        animal_types = get_anon_preference(key="animal_types", session=session, g=g)
         form = AnonExperiencesForm(country=country, animal_types=animal_types)
 
     # Validate form submission
     if form.validate_on_submit():
         # Save preferences for logged-in users
-        if g.user:
+        if "CURR_USER" in session:
             update_user_preferences(form=form)
             return redirect(url_for("home.html"))
         else:
@@ -697,7 +697,6 @@ def add_header(req):
     req.headers["Expires"] = "0"
     req.headers["Cache-Control"] = "public, max-age=0"
     return req
-
 
 
 if __name__ == "__main__":

@@ -45,7 +45,7 @@
             <h4>{{ user.likes | length }}</h4>
           </li>
           <div class="ml-auto">
-            {% if g.user.id == user.id %}
+            {% if session["CURR_USER"].id == user.id %}
             <a href="/users/profile" class="btn btn-outline-secondary">
               Edit Profile
             </a>
@@ -54,7 +54,7 @@
                 Delete Profile
               </button>
             </form>
-            {% elif g.user %} {% if g.user.is_following(user) %}
+            {% elif session["CURR_USER"] %} {% if session["CURR_USER"].is_following(user) %}
             <form method="POST" action="/users/stop-following/{{ user.id }}">
               <button class="btn btn-primary">Unfollow</button>
             </form>
