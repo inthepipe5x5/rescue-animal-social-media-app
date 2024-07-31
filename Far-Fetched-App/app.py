@@ -66,22 +66,32 @@ pf_api = PetFinderPetPyAPI(
 )
 
 
+default_session_keys = {
+        "location": os.environ.get("CURR_LOCATION", "ON,CA"),
+        "state": os.environ.get("state", "ON"),
+        "country": os.environ.get("country", "CA"),
+        "animal_types": os.environ.get("animal_types", ["dog"]),
+}
+
 def init_session(session):
     """Helper function to set default key-values in Flask session
 
     Args:
         session (Object): Flask session
     """
-    default_session_keys = {
-        "location": os.environ.get("CURR_LOCATION", "ON,CA"),
-        "state": os.environ.get("state", "ON"),
-        "country": os.environ.get("country", "CA"),
-        "animal_types": os.environ.get("animal_types", ["dog"]),
-    }
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
 
-    return print(session)
+    app.logger.info(f"Session initialized - {session}")
+    
+def reset_session(session):
+    """Helper function to RESET back to default key-values in Flask session
+
+    Args:
+        session (Object): Flask session
+    """
+    
+    app.logger.info(f"Session reset to default - {session}")
 
 
 def create_app():
@@ -152,7 +162,7 @@ def do_login(user):
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
     update_global_variables(session, g)
-    print(f"do_login({user})", g)
+    app.logger.info(f"do_login({user.username}) successful. Session[CURR_USER]=", session['CURR_USER'])
 
 
 def do_logout():
@@ -163,10 +173,9 @@ def do_logout():
 
     # return stored values to default
     # reset animal types
-    session["ANIMAL_TYPES"] = os.environ.get("ANIMAL_TYPES", ["dog"])
-    # reset CURR_LOCATION
-    session["CURR_LOCATION"] = os.environ.get("CURR_LOCATION", "ON,CA")
-    return print(session)
+    session.pop("ANIMAL_TYPES", default=os.environ.get("ANIMAL_TYPES", ["dog"]))   # reset CURR_LOCATION
+    session.pop("CURR_LOCATION", default=os.environ.get("CURR_LOCATION", "ON,CA"))
+    app.logger.info(f"do_logout successful. Session[CURR_USER]=", session['CURR_USER'])
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -235,7 +244,7 @@ def users_show(user_id):
 def show_following(user_id):
     """Show list of people this user is following."""
 
-    if not g.user:
+    if "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
@@ -247,7 +256,7 @@ def show_following(user_id):
 def users_followers(user_id):
     """Show list of followers of this user."""
 
-    if not g.user:
+    if "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
@@ -259,7 +268,7 @@ def users_followers(user_id):
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
 
-    if not g.user:
+    if "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
@@ -274,7 +283,7 @@ def add_follow(follow_id):
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
 
-    if not g.user:
+    if "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
@@ -289,12 +298,13 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
 
-    if not g.user:
+    if "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect(url_for("login"))
 
     else:
-        logged_in_user = User.query.get(g.user.id)
+        user = session["CURR_USER"]
+        logged_in_user = User.query.get(user['id'])
         form = UserEditForm(obj=logged_in_user)
 
         if form.validate_on_submit():
@@ -320,13 +330,13 @@ def profile():
 def delete_user():
     """Delete user."""
 
-    if not g.user:
+    if "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
     do_logout()
 
-    db.session.delete(g.user)
+    db.session.delete(session["CURR_USER"])
     db.session.commit()
 
     return redirect("/signup")
@@ -544,7 +554,7 @@ def signup_preferences():
         submitted_animal_types = u_pref_form.animal_types.data
         # save form data to g, flask sessions and database
         update_user_preferences(
-            form=u_pref_form, session=session, user=g.user
+            form=u_pref_form, session=session, user=session["CURR_USER"]
         )  # pass in a current user
 
         # Redirect to user home
