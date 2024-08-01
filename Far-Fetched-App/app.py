@@ -84,12 +84,21 @@ def init_session(session):
 
     app.logger.info(f"Session initialized - {session}")
     
-def reset_session(session):
+def reset_session(default_settings_obj):
     """Helper function to RESET back to default key-values in Flask session
 
     Args:
-        session (Object): Flask session
+        default_settings_obj (Object): object of default Flask session key:value settings
     """
+    # Clear the current session
+    session.clear()
+    
+    # If default settings are provided, update the session with them
+    if default_settings_obj and isinstance(default_settings_obj, dict):
+        session.update(default_settings_obj)
+    
+    # Ensure the session is marked as modified
+    session.modified = True
     
     app.logger.info(f"Session reset to default - {session}")
 

@@ -143,7 +143,8 @@ def update_anon_preferences(form, session):
     # update session
     session["CURR_LOCATION"] = ",".join(state, country)
     session["animal_types"] = animal_types
-
+    # Ensure the session is marked as modified
+    session.modified = True
 
 def update_user_preferences(form, session, user_obj):
     """Update logged-in user preferences from form data.
@@ -181,7 +182,8 @@ def update_user_preferences(form, session, user_obj):
         elif animal_types_data:
             # save form data to session
             session["animal_types"] = animal_types_data
-
+            # Ensure the session is marked as modified
+            session.modified = True
             # save new user preferences to the database
             user = User.query.get_or_404(id=user_obj.id)
             user.animal_types = animal_types_data
