@@ -1,6 +1,7 @@
 SECRET_KEY=topsecretkey
 API_KEY=donotsharethisapikeywithanyone
 API_SECRET=wowwowsosecret
-DATABASE_URL=postgresql:///ff-rescue-db
-TEST_DATABASE_URL=postgresql:///ff-rescue-db-test
-PROD_DATABASE_URL=postgresql:///ff-rescue-db-prod
+SQLALCHEMY_DATABASE_URI=postgresql:///ff-rescue-db
+SQLALCHEMY_TEST_DATABASE_URI=postgresql:///ff-rescue-db-test
+SQLALCHEMY_PROD_DATABASE_URI=postgresql:///ff-rescue-db-prod
+ACCESS_TOKEN=None
