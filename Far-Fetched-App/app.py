@@ -581,28 +581,8 @@ def carousel_form_test():
 
 @app.route("/preferences/animal_preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
-    form = SpecificAnimalPreferencesForm()
+    form = SpecificAnimalPreferencesForm(animal_type=animal_type)
     # Query the PetFinder API to get breeds based on the selected animal types
-    breed_choices = pf_api.petpy_api.breeds(animal_type)
-    api_form_choices = pf_api.petpy_api.animal_types(animal_type)
-    coat_choices = api_form_choices.coat
-    coat_color_choices = api_form_choices.colors
-
-    print(animal_type)
-    if breed_choices:
-        print(breed_choices)
-        # Populate breed choices in the form
-        form.AppearancePreferencesSection.breeds.choices = [
-            (name, name.capitalize()) for name in breed_choices
-        ]
-    if coat_choices:
-        form.AppearancePreferencesSection.color.choices = [
-            (name, name.capitalize()) for name in coat_choices
-        ]
-    if coat_color_choices:
-        form.AppearancePreferencesSection.color.choices = [
-            (name, name.capitalize()) for name in coat_color_choices
-        ]
 
     if form.validate_on_submit():
         # Process form submission
@@ -632,8 +612,15 @@ def animal_preferences(animal_type):
 
         # Redirect to the next form or route
         return redirect(url_for("users_show"))
-
-    return render_template("animal_preferences.html", form=form)
+    #handle form validation errors
+    else: 
+        app.logger.warning("Form validation failed", form.errors)
+    
+    #handle form not rendering
+    if not form:
+        app.logger.warning("Form not initialized correctly", form.__name__)
+    else:
+        return render_template("/users/form.html", form=form)
 
 
 ##############################################################################
@@ -647,9 +634,8 @@ def homepage():
     - anon users:
     - logged in:
     """
-    print(g)
 
-    if "user" in g:
+    if "CURR_USER_KEY" in session:
         # users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages

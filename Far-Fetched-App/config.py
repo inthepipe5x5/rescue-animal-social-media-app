@@ -45,7 +45,7 @@ class Config:
     WTF_CSRF_ENABLED = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = True #set to true to debug db logs
+    SQLALCHEMY_ECHO = False #set to true to debug db logs; else False to not flood terminal
     
     #session configs
     SESSION_REFRESH_EACH_REQUEST = False #set to false to ensure cookie is not refreshed on each request

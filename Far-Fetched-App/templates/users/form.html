@@ -3,8 +3,8 @@ block content %}
 
 <div class="row justify-content-md-center">
   <div class="col-md-7 col-lg-5">
-    <h3 class='join-message'>Narrow Down your Search</h3>
-    
+    <h3 class="join-message">Narrow Down your Search</h3>
+    <hr />
     <form method="POST" id="{{form.__name__}}">
       {{ form.hidden_tag() }} {% for field in form if field.widget.input_type !=
       'hidden' %} {% if field.widget.input_type == 'select' %}
@@ -44,39 +44,52 @@ block content %}
       </div>
       {% endif %} {% endfor %}
 
-      <a class="btn btn-primary btn-lg btn-block" href="{{ next if next else '/' }}">
-        {% if next %} 
-            Continue 
-        {% else %} 
-            Submit 
-        {% endif %}
-    </a>
-    
+      <a
+        class="btn btn-primary btn-lg btn-block"
+        href="{{ next if next else '/' }}"
+      >
+        {% if next %} Continue {% else %} Submit {% endif %}
+      </a>
+    </form>
+    <!-- Closed the form tag here -->
   </div>
 </div>
-
-<div class='divider'></div> <!--divider div-->
-
+<hr />
+<div class="divider"></div>
+<!--divider div-->
+<!--
 <div class="col-md-10 mx-auto col-lg-5">
   <form class="p-4 p-md-5 border rounded-3 bg-light">
     <div class="form-floating mb-3">
-      <input type="email" class="form-control" id="floatingInput" placeholder="name@example.com">
+      <input
+        type="email"
+        class="form-control"
+        id="floatingInput"
+        placeholder="name@example.com"
+      />
       <label for="floatingInput">Email address</label>
     </div>
     <div class="form-floating mb-3">
-      <input type="password" class="form-control" id="NewUserPasswordInput" placeholder="Password">
+      <input
+        type="password"
+        class="form-control"
+        id="NewUserPasswordInput"
+        placeholder="Password"
+      />
       <label for="NewUserPasswordInput">Password</label>
     </div>
     <div class="checkbox mb-3">
-      <label>
-        <input type="checkbox" value="remember-me"> Remember me
-      </label>
+      <label> <input type="checkbox" value="remember-me" /> Remember me </label>
     </div>
     <button class="w-100 btn btn-lg btn-primary" type="submit">Sign up</button>
-    <hr class="my-4">
-    <small class="text-muted">By clicking Sign up, you agree to the terms of use.</small>
+    <hr class="my-4" />
+    <small class="text-muted"
+      >By clicking Sign up, you agree to the terms of use.</small
+    >
   </form>
-</div> 
-<div class='divider'></div> <!--divider div-->
+</div>
+-->
+<div class="divider"></div>
+<!--divider div-->
 
 {% endblock %}
