@@ -600,31 +600,38 @@ def animal_preferences(animal_type):
                 # For list data, insert each item separately
                 if isinstance(user_preference_data, list):
                     for data in user_preference_data:
-                        insert_statement = UserAnimalPreferences.update_user_animal_preferences(
-                            curr_user_id=current_user_id,
-                            animal_type=animal_type,
-                            pref_name=user_preference_name,
-                            pref_data=data,
+                        insert_statement = (
+                            UserAnimalPreferences.update_user_animal_preferences(
+                                curr_user_id=current_user_id,
+                                animal_type=animal_type,
+                                pref_name=user_preference_name,
+                                pref_data=data,
+                            )
                         )
                         app.logger.info(insert_statement)
                         db.session.execute(insert_statement)
                 else:
                     # For non-list data, insert directly
-                    insert_statement = UserAnimalPreferences.update_user_animal_preferences(
-                        curr_user_id=current_user_id,
-                        animal_type=animal_type,
-                        pref_name=user_preference_name,
-                        pref_data=user_preference_data,
+                    insert_statement = (
+                        UserAnimalPreferences.update_user_animal_preferences(
+                            curr_user_id=current_user_id,
+                            animal_type=animal_type,
+                            pref_name=user_preference_name,
+                            pref_data=user_preference_data,
+                        )
                     )
                     app.logger.info(insert_statement)
                     db.session.execute(insert_statement)
-            
+
             db.session.commit()
 
         except Exception as e:
             app.logger.error(f"Error inserting preferences: {e}")
             db.session.rollback()
-            flash("An error occurred while saving your preferences. Please try again.", "danger")
+            flash(
+                "An error occurred while saving your preferences. Please try again.",
+                "danger",
+            )
 
         return redirect(url_for("users_show"))
 
@@ -632,7 +639,6 @@ def animal_preferences(animal_type):
         app.logger.warning("Form validation failed: %s", form.errors)
 
     return render_template("/users/form.html", form=form)
-
 
 
 ##############################################################################
@@ -664,7 +670,10 @@ def homepage():
         #     results = None
 
         return render_template(
-            "home-anon.html", animal_emojis={key.upper(): value for key, value in pf_api.animal_emojis} #upper case 
+            "home-anon.html",
+            animal_emojis={
+                key.upper(): value for key, value in pf_api.animal_emojis
+            },  # upper case
         )  # , results=results
 
 
@@ -719,4 +728,8 @@ def add_header(req):
 if __name__ == "__main__":
     flask_env = os.environ.get("FLASK_ENV", "development")
     app.logger.warning(f"Starting app with FLASK_ENV={flask_env}")
-    app.run(use_reloader=True)
+    app.run(
+        use_reloader=True,
+        host=os.environ.get("HOST", "localhost"),
+        port=os.environ.get("PORT", 5000),
+    )
