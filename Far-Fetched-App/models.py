@@ -11,7 +11,6 @@ from sqlalchemy.dialects.postgresql import ARRAY, insert
 bcrypt = Bcrypt()
 db = SQLAlchemy()
 
-
 # class Follows(db.Model):
 #     """Connection of a follower <-> followed_followed_org."""
 
@@ -90,11 +89,6 @@ class UserLocation(db.Model):
         # remote_side="UserLocation.user_id",
     )
 
-    # user_preferences = db.relationship(
-    #     "UserPreferences",
-    #     back_populates="UserLocation",
-    #     foreign_keys=[user_preferences_id],
-    # )
     def getLocStr(self) -> str:
         """
         Instance method that grabs the city, state and country to return a string "location"
@@ -198,15 +192,10 @@ class User(db.Model):
 
     registration_date = db.Column(db.DateTime)
 
-    # animal_handling_experience = db.Column(
-    #     db.String,
-    #     db.ForeignKey("user_animal_handling_history.id"),
-    # )
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences",
         back_populates="user",  # , on_delete="CASCADE" #commented out on_delete because it gave a not accepted here error
     )
-    # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
     location = db.relationship(
         "UserLocation",
         back_populates="user",
@@ -292,37 +281,6 @@ class User(db.Model):
         return False
 
 
-# class UserPreferences(db.Model):
-#     """Relational table that stores id of the other preferences tables associated with one User"""
-
-#     __tablename__ = "user_preferences"
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-# UserLocation_id = db.Column(db.Integer, db.ForeignKey("UserLocation.id"))
-
-# # unique table data columns
-# species_global = db.Column(
-#     ARRAY(db.String), default=['dog', 'cat']
-# )  # Must be one of ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’.
-# rescue_action_type_global_preference = db.Column(
-#     ARRAY(db.String(20))
-# )  # will store info can only be: volunteering, donation, adoption, animal foster
-
-# relationships
-# user = db.relationship('User', back_populates='preferences')
-# UserLocation = db.relationship("UserLocation", back_populates="user_preferences")
-# user_animal_preferences = db.relationship(
-#     "UserAnimalPreferences", back_populates="user_preferences"
-# )
-# user_animal_appearance_preferences = db.relationship(
-#     "UserAnimalAppearancePreferences", back_populates="user_preferences"
-# )
-# user_animal_behavior_preferences = db.relationship(
-#     "UserAnimalBehaviorPreferences", back_populates="user_preferences"
-# )
-
-
 class UserAnimalPreferences(db.Model):
     """Table to capture user preferences on a single type of animal."""
 
@@ -345,8 +303,8 @@ class UserAnimalPreferences(db.Model):
     def update_user_animal_preferences(
         cls, curr_user_id, animal_type, pref_name, pref_data
     ):
-        # The above code is creating a SQL statement for inserting data into a table. It specifies the
-        # table name (`cls`), the columns to insert data into (`user_id`, `species`,
+        # Class method for creating a SQL statement for inserting data into a table. 
+        # It specifies the table name (`cls`), the columns to insert data into (`user_id`, `species`,
         # `user_preference_name`, `user_preference_data`), and the values to insert.
         stmt = (
             insert(cls)
@@ -397,98 +355,6 @@ class UserAnimalPreferences(db.Model):
         )
 
         return result
-
-
-# class UserAnimalBehaviorPreferences(db.Model):
-#     """Table to capture specific user preferences on animal behavior history"""
-
-#     __tablename__ = "user_animal_behavior_preferences"
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     # user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-#     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-#     user_animal_preferences_id = db.Column(
-#         db.Integer, db.ForeignKey("user_animal_preferences.id")
-#     )
-#     # user_animal_preferences_species = db.Column(
-#     #     db.Integer, db.ForeignKey("user_animal_preferences.species")
-#     # )
-
-#     # attributes preferences
-#     house_trained = db.Column(db.Boolean)
-#     declawed = db.Column(db.Boolean)
-#     shots_current = db.Column(db.Boolean)
-#     special_needs = db.Column(db.Boolean)
-#     spayed_neutered = db.Column(db.Boolean)
-
-#     # environmental preferences
-#     child_friendly = db.Column(db.Boolean)
-#     dogs_friendly = db.Column(db.Boolean)
-#     cats_friendly = db.Column(db.Boolean)
-
-#     # db relationships
-#     # user=db.relationship("User", back_populates="user_animal_behavior_preferences", foreign_keys=[user_id])
-
-#     user_preferences = db.relationship(
-#         "UserPreferences", back_populates="user_animal_behavior_preferences", foreign_keys=[user_preferences_id]
-#     )
-#     user_animal_preferences = db.relationship(
-#         "UserAnimalPreferences", back_populates="user_animal_behavior_preferences", foreign_keys=[user_animal_preferences_id]
-#     )
-
-
-# class UserAnimalAppearancePreferences(db.Model):
-#     """Table to capture specific user preferences on animal appearance"""
-
-#     __tablename__ = "user_animal_appearance_preferences"
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     # user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-#     user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-#     user_animal_preferences_id = db.Column(
-#         db.Integer, db.ForeignKey("user_animal_preferences.id")
-#     )
-#     user_animal_preferences_species = db.Column(
-#         db.Integer, db.ForeignKey("user_animal_preferences.species")
-#     )
-#     userAnimalAppearanceCategory = db.Column(
-#         db.String
-#     )  # a column that accepts "gender", "coat", "personality", etc. any of the other appearance types
-#     userAnimalAppearanceCategoryValue = db.Column(
-#         db.String
-#     )  # accepts a value corresponding to userAnimalAppearanceCategory saved
-
-#     # so when querying -> search by category & categoryValue that matches the API search params
-
-#     breeds_preference = db.Column(ARRAY(db.String))
-#     animal_coat_preference = db.Column(
-#         ARRAY(db.String)
-#     )  # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
-#     animal_coat_color_preference = db.Column(
-#         ARRAY(db.String)
-#     )  # eg. ["Hairless","Short","Medium","Long","Wire","Curly"]
-#     animal_age_preference = db.Column(
-#         ARRAY(db.String)
-#     )  # will store info like "infant (0-6 months)", "young (6 months to 2 years)", "adult ("2 years - 5 years")", "senior (5+ years)"
-#     animal_personality_tags_preferences = db.Column(
-#         ARRAY(db.String)
-#     )  # will store user choices regarding animal personality
-#     animal_physical_attributes_preferences = db.Column(
-#         ARRAY(db.String)
-#     )  # will store user choices regarding animal size eg. x-small, small, medium, large, x-large
-#     gender_preference = db.Column(
-#         ARRAY(db.String)
-#     )  # eg. "["male", "female"]" -> user wants both
-
-#     # db relationships
-#     # user=db.relationship("User", back_populates="user_animal_appearance_preferences", foreign_keys=[user_id])
-
-#     user_preferences = db.relationship(
-#         "UserPreferences", back_populates="user_animal_appearance_preferences"
-#     )
-#     user_animal_preferences = db.relationship(
-#         "UserAnimalPreferences", back_populates="user_animal_appearance_preferences"
-# )
 
 
 # User Application Data Tables
