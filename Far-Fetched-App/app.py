@@ -664,7 +664,7 @@ def homepage():
         #     results = None
 
         return render_template(
-            "home-anon.html", animal_emojis=pf_api.animal_emojis
+            "home-anon.html", animal_emojis={key.upper(): value for key, value in pf_api.animal_emojis} #upper case 
         )  # , results=results
 
 
