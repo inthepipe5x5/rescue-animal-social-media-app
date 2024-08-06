@@ -5,7 +5,8 @@ import pycountry
 
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import ARRAY, insert
 
 bcrypt = Bcrypt()
 db = SQLAlchemy()
@@ -184,13 +185,15 @@ class User(db.Model):
     # location_id = db.Column(db.Integer, db.ForeignKey("UserLocation.id"))
 
     rescue_action_type = db.Column(
-        "rescue_action_type", ARRAY(db.String), 
-            server_default=db.text("ARRAY['volunteering', 'donation', 'adoption', 'animal foster']")
+        "rescue_action_type",
+        ARRAY(db.String),
+        server_default=db.text(
+            "ARRAY['volunteering', 'donation', 'adoption', 'animal foster']"
+        ),
     )  # will store info can only be: volunteering, donation, adoption, animal foster
 
     animal_types = db.Column(
-        "animal_types", ARRAY(db.String),
-        server_default=db.text("ARRAY['dog']")
+        "animal_types", ARRAY(db.String), server_default=db.text("ARRAY['dog']")
     )  # Must be one of 6 potential values: ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’. Default='dog'
 
     registration_date = db.Column(db.DateTime)
@@ -200,13 +203,14 @@ class User(db.Model):
     #     db.ForeignKey("user_animal_handling_history.id"),
     # )
     user_animal_preferences = db.relationship(
-        "UserAnimalPreferences", back_populates="user"#, on_delete="CASCADE" #commented out on_delete because it gave a not accepted here error
+        "UserAnimalPreferences",
+        back_populates="user",  # , on_delete="CASCADE" #commented out on_delete because it gave a not accepted here error
     )
     # animal_handling_experiences = db.relationship('UserAnimalHandlingExperience', back_populates='user')
     location = db.relationship(
         "UserLocation",
         back_populates="user",
-        #on_delete="CASCADE",
+        # on_delete="CASCADE",
         uselist=False,
     )
     matched_rescue_orgs = db.relationship(
@@ -320,42 +324,79 @@ class User(db.Model):
 
 
 class UserAnimalPreferences(db.Model):
-    """Table to capture user preferences on a single type of animal: Must be one of 'dog', 'cat', 'rabbit', 'small-furry', 'horse', 'bird', 'scales-fins-other', or 'barnyard'."""
+    """Table to capture user preferences on a single type of animal."""
 
-    # table meta information columns
     __tablename__ = "user_animal_preferences"
 
     id = db.Column(db.Integer, primary_key=True)
-    # user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
-
-    # table unique data columns
-    species = db.Column(
-        db.String(20), default="dog"
-    )  # captures the specific type of animal species for this preference
-
+    species = db.Column(db.String(20), default="dog", nullable=False)
     user_preference_name = db.Column(db.String(100), nullable=False)
     user_preference_data = db.Column(db.String(100), nullable=False)
 
-    # user_animal_appearance_preferences_id = db.Column(db.Integer, db.ForeignKey('user_animal_appearance_preferences.id'))
-    # user_animal_behavior_preferences_id = db.Column(db.Integer, db.ForeignKey('user_animal_behavior_preferences.id'))
-
-    # db.relationships
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    # user_preferences = db.relationship(
-    #     "UserPreferences", back_populates="user_animal_preferences"
-    # )
-    # user_animal_appearance_preferences = db.relationship(
-    #     "UserAnimalAppearancePreferences", back_populates="user_animal_preferences", foreign_keys=[user_animal_appearance_preferences_id], remote_side=[id]
-    # )
-    # user_animal_behavior_preferences = db.relationship(
-    #     "UserAnimalBehaviorPreferences", back_populates="user_animal_preferences", foreign_keys=[user_animal_behavior_preferences_id], remote_side=[id]
-    # )
     user = db.relationship(
         "User",
         back_populates="user_animal_preferences",
         foreign_keys=[user_id],
         remote_side="User.id",
     )
+
+    @classmethod
+    def update_user_animal_preferences(
+        cls, curr_user_id, animal_type, pref_name, pref_data
+    ):
+        # The above code is creating a SQL statement for inserting data into a table. It specifies the
+        # table name (`cls`), the columns to insert data into (`user_id`, `species`,
+        # `user_preference_name`, `user_preference_data`), and the values to insert.
+        stmt = (
+            insert(cls)
+            .values(
+                user_id=curr_user_id,
+                species=animal_type,
+                user_preference_name=pref_name,
+                user_preference_data=pref_data,
+            )
+            .on_conflict_do_update(
+                index_elements=["user_id", "species", "user_preference_name"],
+                set_={
+                    "user_preference_data": stmt.excluded.user_preference_data,
+                },
+            )
+        )
+        return stmt
+
+    @classmethod
+    def get_user_animal_preference(cls, curr_user_id, pref_name):
+        """
+        The function `get_user_animal_preference` retrieves a user's preferences for a specific animal
+        species from a database.
+        
+        :param cls: The `cls` parameter in the provided function `get_user_animal_preference` likely
+        refers to a class or model that represents a table in a database. It is used within the function
+        to query the database for user animal preferences based on the provided parameters. The specific
+        definition of `cls` would depend
+        :param curr_user_id: The `curr_user_id` parameter is the current user's ID, which is used to
+        filter the query results based on the user ID
+        :param pref_name: The `pref_name` parameter in the `get_user_animal_preference` method is used
+        to specify the name of the user preference that you want to retrieve for a specific user. This
+        method retrieves the user's preference data for a particular preference name and user ID from
+        the database
+        :return: The function `get_user_animal_preference` returns a list of tuples containing the
+        species, user preference name, and an array of user preference data for a specific user and
+        preference name.
+        """
+        result = (
+            db.session.query(
+                cls.species,
+                cls.user_preference_name,
+                func.array_agg(cls.user_preference_data).label(pref_name),
+            )
+            .filter_by(user_id=curr_user_id, user_preference_name=pref_name)
+            .group_by(cls.species, cls.user_preference_name)
+            .all()
+        )
+
+        return result
 
 
 # class UserAnimalBehaviorPreferences(db.Model):

@@ -67,11 +67,12 @@ pf_api = PetFinderPetPyAPI(
 
 
 default_session_keys = {
-        "location": os.environ.get("CURR_LOCATION", "ON,CA"),
-        "state": os.environ.get("state", "ON"),
-        "country": os.environ.get("country", "CA"),
-        "animal_types": os.environ.get("animal_types", ["dog"]),
+    "location": os.environ.get("CURR_LOCATION", "ON,CA"),
+    "state": os.environ.get("state", "ON"),
+    "country": os.environ.get("country", "CA"),
+    "animal_types": os.environ.get("animal_types", ["dog"]),
 }
+
 
 def init_session(session):
     """Helper function to set default key-values in Flask session
@@ -83,7 +84,8 @@ def init_session(session):
         session.setdefault(key, value)
 
     app.logger.info(f"Session initialized - {session}")
-    
+
+
 def reset_session(default_settings_obj):
     """Helper function to RESET back to default key-values in Flask session
 
@@ -92,14 +94,14 @@ def reset_session(default_settings_obj):
     """
     # Clear the current session
     session.clear()
-    
+
     # If default settings are provided, update the session with them
     if default_settings_obj and isinstance(default_settings_obj, dict):
         session.update(default_settings_obj)
-    
+
     # Ensure the session is marked as modified
     session.modified = True
-    
+
     app.logger.info(f"Session reset to default - {session}")
 
 
@@ -171,7 +173,10 @@ def do_login(user):
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
     update_global_variables(session, g)
-    app.logger.info(f"do_login({user.username}) successful. Session[CURR_USER]=", session['CURR_USER'])
+    app.logger.info(
+        f"do_login({user.username}) successful. Session[CURR_USER]=",
+        session["CURR_USER"],
+    )
 
 
 def do_logout():
@@ -182,9 +187,11 @@ def do_logout():
 
     # return stored values to default
     # reset animal types
-    session.pop("ANIMAL_TYPES", default=os.environ.get("ANIMAL_TYPES", ["dog"]))   # reset CURR_LOCATION
+    session.pop(
+        "ANIMAL_TYPES", default=os.environ.get("ANIMAL_TYPES", ["dog"])
+    )  # reset CURR_LOCATION
     session.pop("CURR_LOCATION", default=os.environ.get("CURR_LOCATION", "ON,CA"))
-    app.logger.info(f"do_logout successful. Session[CURR_USER]=", session['CURR_USER'])
+    app.logger.info(f"do_logout successful. Session[CURR_USER]=", session["CURR_USER"])
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -313,7 +320,7 @@ def profile():
 
     else:
         user = session["CURR_USER"]
-        logged_in_user = User.query.get(user['id'])
+        logged_in_user = User.query.get(user["id"])
         form = UserEditForm(obj=logged_in_user)
 
         if form.validate_on_submit():
@@ -579,48 +586,53 @@ def carousel_form_test():
     return render_template("carousel-form.html", form=form)
 
 
-@app.route("/preferences/animal_preferences/<animal_type>", methods=["GET", "POST"])
+@auth_required
+@app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     form = SpecificAnimalPreferencesForm(animal_type=animal_type)
-    # Query the PetFinder API to get breeds based on the selected animal types
 
     if form.validate_on_submit():
-        # Process form submission
-        for section_name, section in form.sections.items():
-            for field_name, field in section._fields.items():
-                user_preference_name = f"{section_name}_{field_name}"
-                user_preference_data = field.data
+        app.logger.info(form.data)
+        current_user_id = session["CURR_USER_KEY"]
 
-                # Check if the user already has preferences for this field
-                existing_preference = UserAnimalPreferences.query.filter_by(
-                    user_id=g.user.id, user_preference_name=user_preference_name
-                ).first()
-                if existing_preference:
-                    # Update existing preference
-                    existing_preference.user_preference_data = user_preference_data
+        try:
+            for user_preference_name, user_preference_data in form.data.items():
+                # For list data, insert each item separately
+                if isinstance(user_preference_data, list):
+                    for data in user_preference_data:
+                        insert_statement = UserAnimalPreferences.update_user_animal_preferences(
+                            curr_user_id=current_user_id,
+                            animal_type=animal_type,
+                            pref_name=user_preference_name,
+                            pref_data=data,
+                        )
+                        app.logger.info(insert_statement)
+                        db.session.execute(insert_statement)
                 else:
-                    # Create new preference
-                    new_preference = UserAnimalPreferences(
-                        user_id=g.user.id,
-                        species=animal_type,
-                        user_preference_name=user_preference_name,
-                        user_preference_data=user_preference_data,
+                    # For non-list data, insert directly
+                    insert_statement = UserAnimalPreferences.update_user_animal_preferences(
+                        curr_user_id=current_user_id,
+                        animal_type=animal_type,
+                        pref_name=user_preference_name,
+                        pref_data=user_preference_data,
                     )
-                    db.session.add(new_preference)
+                    app.logger.info(insert_statement)
+                    db.session.execute(insert_statement)
+            
+            db.session.commit()
 
-        db.session.commit()
+        except Exception as e:
+            app.logger.error(f"Error inserting preferences: {e}")
+            db.session.rollback()
+            flash("An error occurred while saving your preferences. Please try again.", "danger")
 
-        # Redirect to the next form or route
         return redirect(url_for("users_show"))
-    #handle form validation errors
-    else: 
-        app.logger.warning("Form validation failed", form.errors)
-    
-    #handle form not rendering
-    if not form:
-        app.logger.warning("Form not initialized correctly", form.__name__)
+
     else:
-        return render_template("/users/form.html", form=form)
+        app.logger.warning("Form validation failed: %s", form.errors)
+
+    return render_template("/users/form.html", form=form)
+
 
 
 ##############################################################################

@@ -161,6 +161,31 @@ class UserAddForm(UserExperiencesForm):
         model = User
         exclude = ["rescue_action_type", "registration_date", "animal_types"]
 
+    # customize individual animal type preferences
+
+
+class GlobalPreferencesForm(FlaskForm):
+    """Form for users to indicate if they want to customize their preferences
+
+    Args:
+        FlaskForm (_type_): Flask subclass of WTForms
+    """
+
+    def __init__(self):
+        # animal types
+        animal_dict = UserExperiencesForm.animal_type_emojis
+        for value, label in animal_dict:
+            self[value] = BooleanField(label, default=False)
+
+    travel = BooleanField(
+        "Would you like to customize your travel preferences?", default=False
+    )
+    # user info
+    residence = BooleanField("Would you like to describe your living situation?")
+    resources = BooleanField("Would you like to describe your resources?")
+    residence = BooleanField("Would you like to describe your living situation?")
+    residence = BooleanField("Would you like to describe your living situation?")
+
 
 class AnonExperiencesForm(UserExperiencesForm):
 
@@ -267,19 +292,19 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         if breed_choices:
             self.breeds.default = breed_choices
             self.breeds.choices = [(name, name.capitalize()) for name in breed_choices]
-            #update the form
+            # update the form
             self.process()
         if coat_choices:
             self.coat.default = coat_choices
             self.coat.choices = [(name, name.capitalize()) for name in coat_choices]
-            #update the form
+            # update the form
             self.process()
         if coat_color_choices:
             self.color.default = coat_color_choices
             self.color.choices = [
                 (name, name.capitalize()) for name in coat_color_choices
             ]
-            #update the form
+            # update the form
             self.process()
 
     # Medical Preferences
@@ -297,12 +322,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     # Appearance Preferences
     breeds = SelectMultipleField("Breed Preferences", choices=[])
     color = SelectMultipleField("Animal Coat Color Preference", choices=[])
-    coat = SelectMultipleField(
-        "Animal Coat Preference",
-        choices=[
-            
-        ]
-    )
+    coat = SelectMultipleField("Animal Coat Preference", choices=[])
 
     # Age Preferences
     age = SelectMultipleField(
@@ -316,19 +336,19 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         default=["baby", "young", "adult", "senior"],
     )
     personality_choices = [
-            ("cute", "Cute"),
-            ("intelligent", "Intelligent"),
-            ("friendly", "Friendly"),
-            ("affectionate", "Affectionate"),
-            ("energetic", "Energetic"),
-            ("calm", "Calm"),
-            ("curious", "Curious"),
-            ("loyal", "Loyal"),
-            ("active", "Active"),
-            ("lazy", "Lazy"),
-            ("gentle", "Gentle"),
-            ("sweet", "Sweet"),
-        ]
+        ("cute", "Cute"),
+        ("intelligent", "Intelligent"),
+        ("friendly", "Friendly"),
+        ("affectionate", "Affectionate"),
+        ("energetic", "Energetic"),
+        ("calm", "Calm"),
+        ("curious", "Curious"),
+        ("loyal", "Loyal"),
+        ("active", "Active"),
+        ("lazy", "Lazy"),
+        ("gentle", "Gentle"),
+        ("sweet", "Sweet"),
+    ]
     # Personality Preferences
     personality_tags = SelectMultipleField(
         "Animal Personality Tags Preferences",
