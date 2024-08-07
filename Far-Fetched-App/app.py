@@ -669,12 +669,7 @@ def homepage():
         # except Exception as e:
         #     results = None
 
-        return render_template(
-            "home-anon.html",
-            animal_emojis={
-                key.upper(): value for key, value in pf_api.animal_emojis
-            },  # upper case
-        )  # , results=results
+        return render_template("home-anon.html")  # , results=results
 
 
 ##############################################################################
@@ -706,7 +701,7 @@ def get_app_data():
 def inject_global_vars():
     """Injects the session and g objects into the Jinja2 template context"""
     # print('template context processor being called', session['CURR_USER'])
-    return {"session": session, "g": g}
+    return {"session": session, "g": g, "animal_emojis": pf_api.animal_emojis}
 
 
 # Turn off all caching in Flask
