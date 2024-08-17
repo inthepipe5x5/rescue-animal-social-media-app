@@ -5,7 +5,7 @@ import pycountry
 
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, insert
 
 bcrypt = Bcrypt()
@@ -285,7 +285,6 @@ class UserAnimalPreferences(db.Model):
     """Table to capture user preferences on a single type of animal."""
 
     __tablename__ = "user_animal_preferences"
-
     id = db.Column(db.Integer, primary_key=True)
     species = db.Column(db.String(20), default="dog", nullable=False)
     user_preference_name = db.Column(db.String(100), nullable=False)
@@ -299,38 +298,45 @@ class UserAnimalPreferences(db.Model):
         remote_side="User.id",
     )
 
+    # # This will ensure that these columns together uniquely identify a record in the table, and the ON CONFLICT clause can use this constraint to perform the conflict resolution.
+    __table_args__ = tuple(
+        UniqueConstraint(
+            "user_id", "species", name="unique_animal_preference"
+        )
+    )
+
     @classmethod
     def update_user_animal_preferences(
-        cls, curr_user_id, animal_type, pref_name, pref_data
+        cls, curr_user_id, species, pref_name, pref_data
     ):
-        # Class method for creating a SQL statement for inserting data into a table. 
+        # Class method for creating a SQL statement for inserting data into a table.
         # It specifies the table name (`cls`), the columns to insert data into (`user_id`, `species`,
         # `user_preference_name`, `user_preference_data`), and the values to insert.
-        stmt = (
-            insert(cls)
-            .values(
-                user_id=curr_user_id,
-                species=animal_type,
-                user_preference_name=pref_name,
-                user_preference_data=pref_data,
-            )
-            .on_conflict_do_update(
-                index_elements=["user_id", "species", "user_preference_name"],
-                set_={
-                    "user_preference_data": stmt.excluded.user_preference_data,
-                },
-            )
-        )
-        return stmt
 
+        stmt = insert(cls).values(
+            user_id=curr_user_id,
+            species=species,
+            user_preference_name=pref_name,
+            user_preference_data=pref_data,
+        )
+
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["user_id", "species"],
+            set_={
+                "user_preference_data": stmt.excluded.user_preference_data,
+            },
+        )
+
+        return stmt
+    @classmethod
     @classmethod
     def get_user_animal_preference(cls, curr_user_id, pref_name):
         """
         The function `get_user_animal_preference` retrieves a user's preferences for a specific animal
         species from a database.
-        
-        :param cls: The `cls` parameter in the provided function `get_user_animal_preference` likely
-        refers to a class or model that represents a table in a database. It is used within the function
+
+        :param cls: The `cls` parameter in the provided function `get_user_animal_preference`
+        refers to the UserAnimalPreferences class model that represents a table in the PostgreSQL database. It is used within the function
         to query the database for user animal preferences based on the provided parameters. The specific
         definition of `cls` would depend
         :param curr_user_id: The `curr_user_id` parameter is the current user's ID, which is used to
@@ -353,7 +359,7 @@ class UserAnimalPreferences(db.Model):
             .group_by(cls.species, cls.user_preference_name)
             .all()
         )
-
+        print(result)
         return result
 
 

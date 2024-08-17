@@ -13,13 +13,13 @@ from flask import (  # type: ignore
 
 # from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
+from sqlalchemy import and_#, Index
 from dotenv import load_dotenv  # type: ignore
-import pdb  # MAKE SURE TO REMOVE IN PRODUCTION
 import os
 import requests
 from functools import wraps
 
-from models import (
+from .models import (
     db,
     User,
     UserLocation,
@@ -28,7 +28,7 @@ from models import (
     # UserAnimalBehaviorPreferences,
     # UserAnimalAppearancePreferences,
 )
-from forms import (
+from .forms import (
     UserAddForm,
     LoginForm,
     UserEditForm,
@@ -37,7 +37,7 @@ from forms import (
     AnonExperiencesForm,
     SpecificAnimalPreferencesForm,
 )
-from package.helper import (
+from .package.helper import (
     data_bp,
     get_anon_preference,
     get_user_preference,
@@ -49,13 +49,13 @@ from package.helper import (
     add_location_to_g,
     add_animal_types_to_g,
 )
-from package.PetFinderAPI import PetFinderPetPyAPI
+from .package.PetFinderAPI import PetFinderPetPyAPI
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
 # RESOLVE THIS: commented out font_awesome as there an import error to be resolved
 # font_awesome = FontAwesome(app)
-from config import config, Config
+from .config import config, Config
 
 load_dotenv()
 
@@ -589,56 +589,65 @@ def carousel_form_test():
 @auth_required
 @app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
+    print("test animal_preferences route")
     form = SpecificAnimalPreferencesForm(animal_type=animal_type)
-
+    # form = LoginForm()
+    # if request.method == "POST"
+    print(form.csrf_token)
+    print(" 595 test animal_preferences")
     if form.validate_on_submit():
-        app.logger.info(form.data)
-        current_user_id = session["CURR_USER_KEY"]
-
-        try:
-            for user_preference_name, user_preference_data in form.data.items():
-                # For list data, insert each item separately
-                if isinstance(user_preference_data, list):
-                    for data in user_preference_data:
-                        insert_statement = (
-                            UserAnimalPreferences.update_user_animal_preferences(
-                                curr_user_id=current_user_id,
-                                animal_type=animal_type,
-                                pref_name=user_preference_name,
-                                pref_data=data,
-                            )
-                        )
-                        app.logger.info(insert_statement)
-                        db.session.execute(insert_statement)
-                else:
-                    # For non-list data, insert directly
+        # app.logger.info(form.data) //form data is an object with data
+        current_user_id = session.get("CURR_USER")["id"]
+        # try:
+        for user_preference_name, user_preference_data in form.data.items():
+            # For list data, insert each item separately
+            if isinstance(user_preference_data, list):
+                for data in user_preference_data:
                     insert_statement = (
                         UserAnimalPreferences.update_user_animal_preferences(
                             curr_user_id=current_user_id,
-                            animal_type=animal_type,
+                            species=animal_type,
                             pref_name=user_preference_name,
-                            pref_data=user_preference_data,
+                            pref_data=data,
                         )
                     )
                     app.logger.info(insert_statement)
                     db.session.execute(insert_statement)
+            else:
+                # For non-list data, insert directly
 
-            db.session.commit()
+              
+                existing_pref = (
+                    session.query(UserAnimalPreferences)
+                    .filter(
+                        and_(
+                            UserAnimalPreferences.user_id == current_user_id,
+                            UserAnimalPreferences.species == animal_type,
+                        )
+                    )
+                    .all()
+                )
+                if existing_pref:
+                    new_insert = form.populate_from_obj(UserAnimalPreferences)
+                    db.session.add(new_insert)
+                else:
+                    # insert a new record if no entry found
+                    db.session.execute(insert_statement)
 
-        except Exception as e:
-            app.logger.error(f"Error inserting preferences: {e}")
-            db.session.rollback()
-            flash(
-                "An error occurred while saving your preferences. Please try again.",
-                "danger",
-            )
+        db.session.commit()
 
-        return redirect(url_for("users_show"))
+    # except Exception as e:
+    #     app.logger.error(f"Error inserting preferences: {e}")
+    #     db.session.rollback()
+    #     flash("An error occurred while saving your preferences. Please try again.", "danger")
+    #     return redirect(url_for("users_show"))
 
     else:
         app.logger.warning("Form validation failed: %s", form.errors)
 
-    return render_template("/users/form.html", form=form)
+    return render_template(
+        "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
+    )
 
 
 ##############################################################################

@@ -4,8 +4,8 @@ import os
 from dotenv import load_dotenv
 
 from sqlalchemy.exc import NoResultFound  # type: ignore
-from models import db, User, UserLocation, UserAnimalPreferences
-from package.PetFinderAPI import PetFinderPetPyAPI
+from ..models import db, User, UserLocation, UserAnimalPreferences
+from .PetFinderAPI import PetFinderPetPyAPI
 
 load_dotenv()
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -26,7 +26,7 @@ def get_anon_preference(key, session, g):
     elif key in pf_api.default_options_obj:
         return pf_api.default_options_obj.get(key)
     else:
-        print(f"No saved preference found for {key}: default anon preferences returned")
+        print(f"No saved Anon User preference found for {key}: default anon preferences returned")
         env_key = "CURR_LOCATION" if key == "location" else key
         anon_pref = os.environ.get(env_key, pf_api.default_options_obj.get(key))
         return anon_pref

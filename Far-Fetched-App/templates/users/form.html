@@ -5,7 +5,7 @@ block content %}
   <div class="col-md-7 col-lg-5">
     <h3 class="join-message">Narrow Down your Search</h3>
     <hr />
-    <form method="POST" id="{{form.__name__}}">
+    <form method="POST" id="{{form.__name__}}" action="{{ url_for(request.endpoint) }}">
       {{ form.hidden_tag() }} {% for field in form if field.widget.input_type !=
       'hidden' %} {% if field.widget.input_type == 'select' %}
       <div class="form-group">

@@ -9,7 +9,7 @@ from flask import sessions, jsonify, json
 from ratelimit import limits, RateLimitException
 from petpy import Petfinder
 
-from models import User, UserAnimalPreferences  # , #UserPreferences
+from ..models import User, UserAnimalPreferences  # , #UserPreferences
 
 load_dotenv()
 

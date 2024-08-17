@@ -1,8 +1,9 @@
 import os
 import logging
+from flask_wtf.csrf import CSRFProtect
 from logging.config import dictConfig
 from dotenv import load_dotenv
-from models import connect_db
+from .models import connect_db
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,17 +15,21 @@ os.environ['APP_DIR'] = basedir
 class CustomFormatter(logging.Formatter):
     # Define color codes
     grey = "\x1b[38;21m"
+    blue = "\x1b[34;21m"
+    bold_blue = "\x1b[34;1m"
+    green = "\x1b[32;21m"
+    bold_green = "\x1b[32;1m"
     yellow = "\x1b[33;21m"
     red = "\x1b[31;21m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
     
-    # Define the format: time - logger name - levelname/severity - log message content - filename/logging source - line # of logging call
+    # Define the format
     format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
     
     FORMATS = {
-        logging.DEBUG: grey + format + reset,
-        logging.INFO: grey + format + reset,
+        logging.DEBUG: green + format + reset,
+        logging.INFO: blue + format + reset,
         logging.WARNING: yellow + format + reset,
         logging.ERROR: red + format + reset,
         logging.CRITICAL: bold_red + format + reset
@@ -43,6 +48,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', "SECRET KEY")
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
     WTF_CSRF_ENABLED = True
+    CSRF_ENABLED = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False #set to true to debug db logs; else False to not flood terminal
@@ -88,7 +94,9 @@ class Config:
         dictConfig(obj.get_logger_config())
         
         connect_db(app)
-        
+        #enable CSRF globally
+        csrf = CSRFProtect()
+        csrf.init_app(app)
         return app
 
 class DevelopmentConfig(Config):
@@ -97,6 +105,8 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
+    WTF_CSRF_ENABLED = False #disable this for testing purposes
+    CSRF_ENABLED=False
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_TEST_DATABASE_URI')
 
@@ -106,13 +116,30 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_PROD_DATABASE_URI')
     SQLALCHEMY_ECHO = False  # set to False for prod
 
+    #override the inherited .init_app() from parent Config() class
+    @staticmethod
+    def config_app(app, obj):
+        """
+        If some configuration needs to config the app in some way use this function
+        :param app: Flask app, update object
+        :return:
+        """
+        
+        app.config.from_object(obj)
+        
+        # Configure logging
+        dictConfig(obj.get_logger_config())
+        
+        connect_db(app)
+
+        return app
     #override the inherited .get_logger_config() from parent Config() class
     @staticmethod
     def get_logger_config():
         config = Config.get_logger_config()
         config['root']['level'] = 'INFO'  # Set to INFO for production
         return config
-
+    
 # Configuration dictionary
 config = {
     'development': DevelopmentConfig,

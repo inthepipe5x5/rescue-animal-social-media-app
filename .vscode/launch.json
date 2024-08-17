@@ -1,0 +1,25 @@
+{
+  "name": "Python Debugger: Flask",
+  "type": "debugpy",
+  "request": "launch",
+  "module": "flask",
+  "env": {
+    "FLASK_APP": "${workspaceFolder}/Far-Fetched-app/app.py",
+    "FLASK_DEBUG": "1"
+  },
+  "args": ["run", "--no-debugger", "--no-reload"],
+  "jinja": true,
+  "justMyCode": true,
+  "configurations": [
+    {
+      "name": "Python Debugger: Flask",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "flask",
+      "env": { "FLASK_APP": "Far-Fetched-App/app.py", "FLASK_DEBUG": "1" },
+      "args": ["run", "--debugger", "--reload"],
+      "jinja": true,
+      "autoStartBrowser": true
+    }
+  ]
+}

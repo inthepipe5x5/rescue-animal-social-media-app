@@ -14,7 +14,7 @@ from wtforms.validators import DataRequired, Email, Length, ValidationError  # t
 from wtforms_alchemy import model_form_factory  # type: ignore
 import pycountry  # type: ignore
 
-from models import (
+from .models import (
     db,
     User,
     # UserAnimalBehaviorPreferences,
@@ -282,8 +282,8 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         breed_choices = api.breeds(animal_type)["breeds"][animal_type]
         animals = api.animal_types(animal_type)
 
-        print("Breed choices:", breed_choices)
-        print("API form choices:", animals)
+        # print("Breed choices:", breed_choices)
+        # print("API form choices:", animals)
 
         coat_choices = animals["type"]["coats"] or []
         coat_color_choices = animals["type"]["colors"] or []
@@ -320,9 +320,9 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     cats_friendly = BooleanField("Friendly to cats", default=False)
 
     # Appearance Preferences
-    breeds = SelectMultipleField("Breed Preferences", choices=[])
-    color = SelectMultipleField("Animal Coat Color Preference", choices=[])
-    coat = SelectMultipleField("Animal Coat Preference", choices=[])
+    breeds = SelectMultipleField("Breed Preferences", choices=[], validate_choice=False) #set validate_choice=False because choices are dynamically populated which interacts poorly with validate_choices=True
+    color = SelectMultipleField("Animal Coat Color Preference", choices=[], validate_choice=False) #set validate_choice=False because choices are dynamically populated which interacts poorly with validate_choices=True
+    coat = SelectMultipleField("Animal Coat Preference", choices=[], validate_choice=False) #set validate_choice=False because choices are dynamically populated which interacts poorly with validate_choices=True
 
     # Age Preferences
     age = SelectMultipleField(
