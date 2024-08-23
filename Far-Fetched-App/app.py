@@ -191,7 +191,7 @@ def do_logout():
         "ANIMAL_TYPES", default=os.environ.get("ANIMAL_TYPES", ["dog"])
     )  # reset CURR_LOCATION
     session.pop("CURR_LOCATION", default=os.environ.get("CURR_LOCATION", "ON,CA"))
-    app.logger.info(f"do_logout successful. Session[CURR_USER]=", session["CURR_USER"])
+    # app.logger.info(f"do_logout successful. Session[CURR_USER]=", (session["CURR_USER"] if "CURR_USER" in session  else None))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -524,23 +524,45 @@ def signup_user():
     If the there already is a user with that username: flash message
     and re-present form.
     """
-
+    #instantiate add user form
     form = UserAddForm()
     if form.validate_on_submit():
         data = {field.name: field.data for field in form}
         try:
 
             user = User.signup(**data)
-            db.session.add(user)
-            db.session.commit()
             # save user location
             user_location = UserLocation(
                 user_id=user.id, country=form.country.data, state=form.state.data
             )
-            user.location.append(user_location)
+            #link user_location to user
+            user.location = user_location
+
+            #save new user & location to db
+            db.session.add(user)
             db.session.add(user_location)
             db.session.commit()
 
+            #seed animal_preferences for the user
+            submitted_animal_types = form.animal_types.data
+            #create list to contain WTForm.data objects to insert
+            pref_list = []
+            for animal in submitted_animal_types:
+                #create new form & validate it so it's saved with all the default choices
+                pref_form = SpecificAnimalPreferencesForm(animal)
+                filled_out_pref_form  = pref_form.validate()
+                #add pref_form to pref_list
+                pref_list.append(filled_out_pref_form.data)
+                #add updated animal preference to db
+                db.session.bulk_insert_mappings(UserAnimalPreferences, pref_list)
+                
+            if len(pref_list) > 0:
+                #commit changes to db
+                db.session.commit()
+            else:
+                #handle if no changes are made
+                db.session.rollback()
+            
             # init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
@@ -549,7 +571,10 @@ def signup_user():
 
         do_login(user)
 
-        return redirect(url_for("signup_preferences"))
+
+
+        # Redirect to user home
+        return redirect(url_for("homepage"))
 
     else:
         return render_template("users/signup.html", form=form, next=True)
@@ -567,14 +592,12 @@ def signup_preferences():
     if u_pref_form.validate_on_submit():
         # Process u_pref_form submission
 
-        submitted_animal_types = u_pref_form.animal_types.data
         # save form data to g, flask sessions and database
         update_user_preferences(
             form=u_pref_form, session=session, user=session["CURR_USER"]
         )  # pass in a current user
-
-        # Redirect to user home
-        return redirect(url_for("homepage"))
+        
+        
 
     return render_template("users/form.html", form=u_pref_form, next=False)
 

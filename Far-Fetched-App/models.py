@@ -3,6 +3,7 @@
 from datetime import datetime
 import pycountry
 
+from flask import abort
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, UniqueConstraint
@@ -200,7 +201,7 @@ class User(db.Model):
         "UserLocation",
         back_populates="user",
         # on_delete="CASCADE",
-        uselist=False,
+        uselist=False, #set to true if you want 1:M ie. one user has many locations; else false => 1 user: 1 location 
     )
     matched_rescue_orgs = db.relationship(
         "MatchedRescueOrganization", back_populates="user"
@@ -299,11 +300,9 @@ class UserAnimalPreferences(db.Model):
     )
 
     # # This will ensure that these columns together uniquely identify a record in the table, and the ON CONFLICT clause can use this constraint to perform the conflict resolution.
-    __table_args__ = tuple(
-        UniqueConstraint(
-            "user_id", "species", name="unique_animal_preference"
-        )
-    )
+    # __table_args__ = tuple(
+    UniqueConstraint("user_id", "species", name="unique_animal_preference")
+    # )
 
     @classmethod
     def update_user_animal_preferences(
@@ -328,23 +327,52 @@ class UserAnimalPreferences(db.Model):
         )
 
         return stmt
+
     @classmethod
+    def get_user_animal_pref_list(cls, u_id, animal_type="dog"):
+        """
+        The function `get_user_animal_preference` retrieves a user's preferences for a specific animal
+        species from a database.
+
+        Returns: a list of animal_preferences grouped by species
+        """
+        results = (
+            db.session.query(User, UserAnimalPreferences)
+            .join(UserAnimalPreferences)
+            .filter(User.id == u_id, UserAnimalPreferences.species == animal_type)
+            .all()
+        )
+
+        if not results:
+            # handle no results with a 404 error
+            abort(404, description="No results found")
+        else:
+            return results
+
+    @classmethod
+    def get_all_user_animal_preferences(cls, u_id):
+        """
+        Function to return ALL animal_preferences regardless of species
+        """
+        user = User.query.get_or_404(u_id)
+        if user:
+            results = (
+                db.session.query(User, UserAnimalPreferences)
+                .join(UserAnimalPreferences)
+                .filter(User.id == u_id)
+                .filter(UserAnimalPreferences.species == func.any(user.animal_types))
+                .all()
+            )
+            return results
+        return None  # In case user is not found, though get_or_404 should handle this
+
     @classmethod
     def get_user_animal_preference(cls, curr_user_id, pref_name):
         """
         The function `get_user_animal_preference` retrieves a user's preferences for a specific animal
         species from a database.
 
-        :param cls: The `cls` parameter in the provided function `get_user_animal_preference`
-        refers to the UserAnimalPreferences class model that represents a table in the PostgreSQL database. It is used within the function
-        to query the database for user animal preferences based on the provided parameters. The specific
-        definition of `cls` would depend
-        :param curr_user_id: The `curr_user_id` parameter is the current user's ID, which is used to
-        filter the query results based on the user ID
-        :param pref_name: The `pref_name` parameter in the `get_user_animal_preference` method is used
-        to specify the name of the user preference that you want to retrieve for a specific user. This
-        method retrieves the user's preference data for a particular preference name and user ID from
-        the database
+
         :return: The function `get_user_animal_preference` returns a list of tuples containing the
         species, user preference name, and an array of user preference data for a specific user and
         preference name.
@@ -355,7 +383,7 @@ class UserAnimalPreferences(db.Model):
                 cls.user_preference_name,
                 func.array_agg(cls.user_preference_data).label(pref_name),
             )
-            .filter_by(user_id=curr_user_id, user_preference_name=pref_name)
+            .filter(user_id=curr_user_id, user_preference_name=pref_name)
             .group_by(cls.species, cls.user_preference_name)
             .all()
         )

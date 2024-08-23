@@ -1,0 +1,14 @@
+                                                                      Table "public.user_animal_preferences"
+        Column        |          Type          | Collation | Nullable |                       Default                       | Storage  | Compression | Stats target | Description 
+----------------------+------------------------+-----------+----------+-----------------------------------------------------+----------+-------------+--------------+-------------
+ id                   | integer                |           | not null | nextval('user_animal_preferences_id_seq'::regclass) | plain    |             |              | 
+ species              | character varying(20)  |           | not null |                                                     | extended |             |              | 
+ user_preference_name | character varying(100) |           | not null |                                                     | extended |             |              | 
+ user_preference_data | character varying(100) |           | not null |                                                     | extended |             |              | 
+ user_id              | integer                |           |          |                                                     | plain    |             |              | 
+Indexes:
+    "user_animal_preferences_pkey" PRIMARY KEY, btree (id)
+Foreign-key constraints:
+    "user_animal_preferences_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+Access method: heap
+

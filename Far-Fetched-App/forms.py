@@ -47,6 +47,13 @@ class ModelForm(BaseModelForm):
     def get_session(cls):
         return db.session
 
+def uppercase_2_chars(form, field):
+    """
+    Helper form filter function to always output 2 upper case str characters
+    Intended to be used for state input fields
+    """
+    if field.data:
+        field.data = field.data.upper()[:2]
 
 class ValidState(object):
     """Custom validator for state WTForm field because creating a SelectField with pycountry.subdivisions as options is too long"""
@@ -89,20 +96,10 @@ class StateCountryForm(ModelForm):
         validators=[DataRequired()],  # ensure no empty values
     )
 
-    # state = SelectField(
-    #     "What State or Province are you located in?",
-    #     choices=[
-    #         (state.code, state.name)
-    #         for state in list(pycountry.subdivisions)
-    #         if state.type in ["province", "state", "territory"]
-    #     ],
-    #     default="ON",
-    #     validators=[DataRequired()],  # ensure no empty values
-    # )
-
     state = StringField(
         "State/Province - eg. 'ON'",
-        validators=[Length(max=2), DataRequired(), ValidState()],
+        validators=[Length(min=2, max=2), DataRequired(), ValidState()],
+        # filters=uppercase_2_chars #always ensure the output data is 2 upper case str
     )
 
 
@@ -139,7 +136,13 @@ class UserExperiencesForm(StateCountryForm):
 
 
 class UserAddForm(UserExperiencesForm):
-    """Form for adding users."""
+    """Form for adding users.
+    Extends:
+        - StateCountryForm => For state, country inputs
+        - UserExperienceForm => for animal_type & rescue_action_type inputs
+    
+    
+    """
 
     # Rescue Action Type
     rescue_action_type = SelectMultipleField(
@@ -203,7 +206,11 @@ class AnonExperiencesForm(UserExperiencesForm):
 
 
 class UserEditForm(ModelForm):
+    """Form to edit Users
 
+    Args:
+        ModelForm (FlaskWTForms): _description_
+    """
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[Length(min=6)])
@@ -245,7 +252,9 @@ class UserEditForm(ModelForm):
         validators=[DataRequired()],
     )
 
-    state = StringField("State/Province - eg. 'NY'", validators=[Length(max=2)])
+    state = StringField("State/Province - eg. 'NY'", validators=[Length(min=2, max=2), ValidState()], 
+                        # filters=[uppercase_2_chars]
+                        )
     bio = TextAreaField(
         "(Optional) Tell us about what makes you interested in animal rescue?"
     )
