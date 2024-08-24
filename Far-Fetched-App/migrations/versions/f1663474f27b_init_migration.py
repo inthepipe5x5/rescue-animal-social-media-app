@@ -1,0 +1,147 @@
+"""init migration
+
+Revision ID: f1663474f27b
+Revises: 
+Create Date: 2024-08-24 15:37:48.870650
+
+"""
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic.
+revision = "f1663474f27b"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    # Drop the existing table
+    op.drop_table("user_animal_preferences")
+
+    # Create the new table with all columns
+    op.create_table(
+        "user_animal_preferences",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("species", sa.String(length=20), nullable=False, server_default="dog"),
+        sa.Column("user_preference_name", sa.String(length=100), nullable=False),
+        sa.Column(
+            "user_preference_data",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=True,
+        ),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    # Add the unique constraint for user_id, species, and user_preference_name
+    op.create_unique_constraint(
+        "unique_animal_preference", 
+        "user_animal_preferences", 
+        ["user_id", "species", "user_preference_name"]
+    )
+
+    with op.batch_alter_table("user_animal_preferences", schema=None) as batch_op:
+        # Explicitly convert the column to JSONB using the USING clause
+        batch_op.alter_column(
+            "user_preference_data",
+            existing_type=sa.VARCHAR(length=100),  # Adjust the existing type to your current data type
+            type_=postgresql.JSONB(astext_type=sa.JSON()),
+            nullable=True,
+            postgresql_using="user_preference_data::jsonb"  # Explicit cast to jsonb
+        )
+
+    with op.batch_alter_table("user_current_pets", schema=None) as batch_op:
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=True)
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=True)
+
+    with op.batch_alter_table("user_residence", schema=None) as batch_op:
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=True)
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=True)
+
+    with op.batch_alter_table("user_resources", schema=None) as batch_op:
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=True)
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=True)
+
+    # Drop the existing table
+    op.drop_table("user_animal_preferences")
+
+    # Create the new table with all columns
+    op.create_table(
+        "user_animal_preferences",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("species", sa.String(length=20), nullable=False, server_default="dog"),
+        sa.Column("user_preference_name", sa.String(length=100), nullable=False),
+        sa.Column(
+            "user_preference_data",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=True,
+        ),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    # Add the unique constraint for user_id, species, and user_preference_name
+    op.create_unique_constraint(
+        "unique_animal_preference", 
+        "user_animal_preferences", 
+        ["user_id", "species", "user_preference_name"]
+    )
+
+    with op.batch_alter_table("user_animal_preferences", schema=None) as batch_op:
+        # Explicitly convert the column to JSONB using the USING clause
+        batch_op.alter_column(
+            "user_preference_data",
+            existing_type=sa.VARCHAR(length=100),  # Adjust the existing type to your current data type
+            type_=postgresql.JSONB(astext_type=sa.JSON()),
+            nullable=True,
+            postgresql_using="user_preference_data::jsonb"  # Explicit cast to jsonb
+        )
+
+    with op.batch_alter_table("user_current_pets", schema=None) as batch_op:
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=True)
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=True)
+
+    with op.batch_alter_table("user_residence", schema=None) as batch_op:
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=True)
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=True)
+
+    with op.batch_alter_table("user_resources", schema=None) as batch_op:
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=True)
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=True)
+
+    # ### end Alembic commands ###
+
+
+def downgrade():
+    # ### commands auto generated by Alembic - please adjust! ###
+    with op.batch_alter_table("user_resources", schema=None) as batch_op:
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=False)
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=False)
+
+    with op.batch_alter_table("user_residence", schema=None) as batch_op:
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=False)
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=False)
+
+    with op.batch_alter_table("user_current_pets", schema=None) as batch_op:
+        batch_op.alter_column("user_id", existing_type=sa.INTEGER(), nullable=False)
+        batch_op.alter_column("id", existing_type=sa.INTEGER(), nullable=False)
+
+    with op.batch_alter_table("user_animal_preferences", schema=None) as batch_op:
+        batch_op.alter_column(
+            "user_preference_data",
+            existing_type=postgresql.JSONB(astext_type=sa.Text()),
+            type_=sa.VARCHAR(length=100),
+            nullable=False,
+        )
+
+    # ### end Alembic commands ###

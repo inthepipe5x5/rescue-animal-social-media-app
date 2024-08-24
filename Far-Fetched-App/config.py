@@ -96,7 +96,7 @@ class Config:
         
         connect_db(app)
         
-        migrate = Migrate(app, db)
+        migrate = Migrate(app, db, compare_type=True)
         
         #enable CSRF globally
         csrf = CSRFProtect()
@@ -133,9 +133,9 @@ class ProductionConfig(Config):
         
         # Configure logging
         dictConfig(obj.get_logger_config())
-                
+        
         connect_db(app)
-        migrate = Migrate(app, db)
+        migrate = Migrate(app, db, compare_type=True)
 
         return app
     #override the inherited .get_logger_config() from parent Config() class

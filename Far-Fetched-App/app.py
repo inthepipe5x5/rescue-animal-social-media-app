@@ -760,9 +760,9 @@ if __name__ == "__main__":
     flask_env = os.environ.get("FLASK_ENV", "development")
     app.logger.warning(f"Starting app with FLASK_ENV={flask_env}")
     
-    #for testing / dev purposes, drop and recreate the db tables
-    db.drop_all()
-    db.create_all()
+    # #for testing / dev purposes, drop and recreate the db tables
+    # db.drop_all()
+    # db.create_all()
     
     #run app
     app.run(
