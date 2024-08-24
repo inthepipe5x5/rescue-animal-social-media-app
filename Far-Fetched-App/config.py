@@ -3,7 +3,8 @@ import logging
 from flask_wtf.csrf import CSRFProtect
 from logging.config import dictConfig
 from dotenv import load_dotenv
-from .models import connect_db
+from .models import db, connect_db
+from flask_migrate import Migrate
 
 # Load environment variables from .env file
 load_dotenv()
@@ -94,6 +95,9 @@ class Config:
         dictConfig(obj.get_logger_config())
         
         connect_db(app)
+        
+        migrate = Migrate(app, db)
+        
         #enable CSRF globally
         csrf = CSRFProtect()
         csrf.init_app(app)
@@ -129,8 +133,9 @@ class ProductionConfig(Config):
         
         # Configure logging
         dictConfig(obj.get_logger_config())
-        
+                
         connect_db(app)
+        migrate = Migrate(app, db)
 
         return app
     #override the inherited .get_logger_config() from parent Config() class
