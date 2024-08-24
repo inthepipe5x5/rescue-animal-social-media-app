@@ -7,7 +7,7 @@ from flask import abort
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, UniqueConstraint
-from sqlalchemy.dialects.postgresql import ARRAY, insert
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert
 
 bcrypt = Bcrypt()
 db = SQLAlchemy()
@@ -289,7 +289,7 @@ class UserAnimalPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     species = db.Column(db.String(20), default="dog", nullable=False)
     user_preference_name = db.Column(db.String(100), nullable=False)
-    user_preference_data = db.Column(db.String(100), nullable=False)
+    user_preference_data = db.Column(JSONB, nullable=True) #set nullable=True #store as JSON values to handle both strings and lists
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship(

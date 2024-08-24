@@ -10,10 +10,10 @@ from flask import (  # type: ignore
     jsonify,
     Blueprint,
 )
-
+import json
 # from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
-from sqlalchemy import and_#, Index
+from sqlalchemy import and_  # , Index
 from dotenv import load_dotenv  # type: ignore
 import os
 import requests
@@ -524,7 +524,7 @@ def signup_user():
     If the there already is a user with that username: flash message
     and re-present form.
     """
-    #instantiate add user form
+    # instantiate add user form
     form = UserAddForm()
     if form.validate_on_submit():
         data = {field.name: field.data for field in form}
@@ -535,43 +535,50 @@ def signup_user():
             user_location = UserLocation(
                 user_id=user.id, country=form.country.data, state=form.state.data
             )
-            #link user_location to user
+            # link user_location to user
             user.location = user_location
 
-            #save new user & location to db
+            # save new user & location to db
             db.session.add(user)
             db.session.add(user_location)
             db.session.commit()
 
-            #seed animal_preferences for the user
+            # seed animal_preferences for the user
             submitted_animal_types = form.animal_types.data
-            #create list to contain WTForm.data objects to insert
+            # create list to contain WTForm.data objects to insert
             pref_list = []
             for animal in submitted_animal_types:
-                #create new form & validate it so it's saved with all the default choices
+                # create new form & validate it so it's saved with all the default choices
                 pref_form = SpecificAnimalPreferencesForm(animal)
-                filled_out_pref_form  = pref_form.validate()
-                #add pref_form to pref_list
-                pref_list.append(filled_out_pref_form.data)
-                #add updated animal preference to db
+                # add pref_form to pref_list
+                for pref_key, pref_value in pref_form.data.items():
+                    #append object of mapped values to UserAnimalPreferences table column name
+                    if pref_key != "csrf_token":
+                        pref_list.append(
+                            {
+                                "species": animal,
+                                "user_preference_name": pref_key,
+                                "user_preference_data": json.dumps(pref_value),
+                                "user_id": user.id,
+                            }
+                        )
+                # add updated animal preference to db
                 db.session.bulk_insert_mappings(UserAnimalPreferences, pref_list)
-                
+
             if len(pref_list) > 0:
-                #commit changes to db
+                # commit changes to db
                 db.session.commit()
             else:
-                #handle if no changes are made
+                # handle if no changes are made
                 db.session.rollback()
-            
+
             # init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
-            db.rollback()
+            db.session.rollback()
             return render_template("users/signup.html", form=form)
 
         do_login(user)
-
-
 
         # Redirect to user home
         return redirect(url_for("homepage"))
@@ -596,8 +603,6 @@ def signup_preferences():
         update_user_preferences(
             form=u_pref_form, session=session, user=session["CURR_USER"]
         )  # pass in a current user
-        
-        
 
     return render_template("users/form.html", form=u_pref_form, next=False)
 
@@ -639,7 +644,6 @@ def animal_preferences(animal_type):
             else:
                 # For non-list data, insert directly
 
-              
                 existing_pref = (
                     session.query(UserAnimalPreferences)
                     .filter(
@@ -755,6 +759,12 @@ def add_header(req):
 if __name__ == "__main__":
     flask_env = os.environ.get("FLASK_ENV", "development")
     app.logger.warning(f"Starting app with FLASK_ENV={flask_env}")
+    
+    #for testing / dev purposes, drop and recreate the db tables
+    db.drop_all()
+    db.create_all()
+    
+    #run app
     app.run(
         use_reloader=True,
         host=os.environ.get("HOST", "localhost"),
