@@ -162,7 +162,11 @@ class UserAddForm(UserExperiencesForm):
 
     class Meta:
         model = User
-        exclude = ["rescue_action_type", "registration_date", "animal_types"]
+        exclude = ["rescue_action_type", "registration_date", "animal_types", "password"]
+
+    #set password field to be password input rather than text input        
+    password = PasswordField("Password", validators=[Length(min=6)])
+    
 
     # customize individual animal type preferences
 
