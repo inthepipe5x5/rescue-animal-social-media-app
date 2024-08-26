@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import pycountry
-
+import json
 from flask import abort
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
@@ -189,7 +189,7 @@ class User(db.Model):
 
     animal_types = db.Column(
         "animal_types", ARRAY(db.String), server_default=db.text("ARRAY['dog']")
-    )  # Must be one of 6 potential values: ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, or ‘barnyard’. Default='dog'
+    )  # Must be one of 6 potential values: "dog", "cat", "rabbit", "small-furry", "horse", "bird", "scales-fins-other", or "barnyard". Default='dog'
 
     registration_date = db.Column(db.DateTime)
 
@@ -201,7 +201,7 @@ class User(db.Model):
         "UserLocation",
         back_populates="user",
         # on_delete="CASCADE",
-        uselist=False, #set to true if you want 1:M ie. one user has many locations; else false => 1 user: 1 location 
+        uselist=False,  # set to true if you want 1:M ie. one user has many locations; else false => 1 user: 1 location
     )
     matched_rescue_orgs = db.relationship(
         "MatchedRescueOrganization", back_populates="user"
@@ -289,7 +289,9 @@ class UserAnimalPreferences(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     species = db.Column(db.String(20), default="dog", nullable=False)
     user_preference_name = db.Column(db.String(100), nullable=False)
-    user_preference_data = db.Column(JSONB, nullable=True) #set nullable=True #store as JSON values to handle both strings and lists
+    user_preference_data = db.Column(
+        JSONB, nullable=True
+    )  # set nullable=True #store as JSON values to handle both strings and lists
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship(
@@ -390,6 +392,54 @@ class UserAnimalPreferences(db.Model):
         print(result)
         return result
 
+    @classmethod
+    def seed_user_pref(cls, user_id, form):
+        """Seeds animal preferences for the user
+
+        Args:
+            user_id (int): ID of the user for whom preferences are being seeded
+        """
+        all_animal_types = [
+            "dog",
+            "cat",
+            "rabbit",
+            "small-furry",
+            "horse",
+            "bird",
+            "scales-fins-other",
+            "barnyard",
+        ]
+        
+        # List to contain the data objects to insert
+        pref_list = []
+
+        for animal in all_animal_types:
+            pref_form = form(animal)
+            # add pref_form to pref_list
+            for pref_key, pref_value in pref_form.data.items():
+                if pref_key != "csrf_token":
+                    # object to be copied and inserted into pref_list
+                    pref_obj = {
+                        "species": animal,
+                        "user_preference_name": pref_key,
+                        "user_preference_data": json.dumps(pref_value),
+                        "user_id": user_id,
+                    }
+                        
+                # Append pref_data to pref_list
+                pref_list.append(pref_obj)
+
+        # Bulk insert the data into the database
+        if pref_list:
+            db.session.bulk_insert_mappings(cls, pref_list)
+            db.session.commit()
+        else:
+            db.session.rollback()
+
+        print(pref_list)
+        return pref_list
+
+
 
 # User Application Data Tables
 
@@ -459,7 +509,7 @@ class UserCurrentPets(db.Model):
     pet_type = db.Column(ARRAY(db.String))
     pets_age = db.Column(
         ARRAY(db.String)
-    )  # Accepted values: ‘baby’,’young’, ‘adult’, ‘senior’.
+    )  # Accepted values: "baby","young", "adult", "senior".
     user_pets_has_medical_conditions = db.Column(db.Boolean)
 
     user_pets_friendly_to_new_dogs = db.Column(db.Boolean)

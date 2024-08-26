@@ -11,6 +11,7 @@ from flask import (  # type: ignore
     Blueprint,
 )
 import json
+
 # from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from sqlalchemy import and_  # , Index
@@ -18,15 +19,13 @@ from dotenv import load_dotenv  # type: ignore
 import os
 import requests
 from functools import wraps
+from flask_bcrypt import Bcrypt
 
 from .models import (
     db,
     User,
     UserLocation,
-    # UserPreferences,
     UserAnimalPreferences,
-    # UserAnimalBehaviorPreferences,
-    # UserAnimalAppearancePreferences,
 )
 from .forms import (
     UserAddForm,
@@ -50,12 +49,10 @@ from .package.helper import (
     add_animal_types_to_g,
 )
 from .package.PetFinderAPI import PetFinderPetPyAPI
+from .config import config, Config
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
-# RESOLVE THIS: commented out font_awesome as there an import error to be resolved
-# font_awesome = FontAwesome(app)
-from .config import config, Config
 
 load_dotenv()
 
@@ -120,15 +117,17 @@ def create_app():
     )
     app_config_instance.config_app(app=app, obj=config[flask_env_type])
 
+
+    
     # register blueprints
     app.register_blueprint(data_bp)
 
     # init default session values
-    init_session(session)
+    with app.app_context():
+        init_session(session)
     return app
 
 
-# app = create_app()
 # create Flask app
 app = Flask(__name__)
 
@@ -142,7 +141,11 @@ flask_env_type = (
     if os.environ.get("FLASK_ENV") is not None
     else "default"
 )
+
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
+# app = create_app()
+#config bcrypt 
+bcrypt = Bcrypt(app)
 
 
 ##############################################################################
@@ -256,58 +259,58 @@ def users_show(user_id):
     return render_template("users/show.html", user=user)
 
 
-@app.route("/users/<int:user_id>/following")
-def show_following(user_id):
-    """Show list of people this user is following."""
+# @app.route("/users/<int:user_id>/following")
+# def show_following(user_id):
+#     """Show list of people this user is following."""
 
-    if "CURR_USER" not in session:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+#     if "CURR_USER" not in session:
+#         flash("Access unauthorized.", "danger")
+#         return redirect("/")
 
-    user = User.query.get_or_404(user_id)
-    return render_template("users/following.html", user=user)
-
-
-@app.route("/users/<int:user_id>/followers")
-def users_followers(user_id):
-    """Show list of followers of this user."""
-
-    if "CURR_USER" not in session:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    user = User.query.get_or_404(user_id)
-    return render_template("users/followers.html", user=user)
+#     user = User.query.get_or_404(user_id)
+#     return render_template("users/following.html", user=user)
 
 
-@app.route("/users/follow/<int:follow_id>", methods=["POST"])
-def add_follow(follow_id):
-    """Add a follow for the currently-logged-in user."""
+# @app.route("/users/<int:user_id>/followers")
+# def users_followers(user_id):
+#     """Show list of followers of this user."""
 
-    if "CURR_USER" not in session:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+#     if "CURR_USER" not in session:
+#         flash("Access unauthorized.", "danger")
+#         return redirect("/")
 
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.append(followed_user)
-    db.session.commit()
-
-    return redirect(f"/users/{g.user.id}/following")
+#     user = User.query.get_or_404(user_id)
+#     return render_template("users/followers.html", user=user)
 
 
-@app.route("/users/stop-following/<int:follow_id>", methods=["POST"])
-def stop_following(follow_id):
-    """Have currently-logged-in-user stop following this user."""
+# @app.route("/users/follow/<int:follow_id>", methods=["POST"])
+# def add_follow(follow_id):
+#     """Add a follow for the currently-logged-in user."""
 
-    if "CURR_USER" not in session:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+#     if "CURR_USER" not in session:
+#         flash("Access unauthorized.", "danger")
+#         return redirect("/")
 
-    followed_user = User.query.get(follow_id)
-    g.user.following.remove(followed_user)
-    db.session.commit()
+#     followed_user = User.query.get_or_404(follow_id)
+#     g.user.following.append(followed_user)
+#     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+#     return redirect(f"/users/{g.user.id}/following")
+
+
+# @app.route("/users/stop-following/<int:follow_id>", methods=["POST"])
+# def stop_following(follow_id):
+#     """Have currently-logged-in-user stop following this user."""
+
+#     if "CURR_USER" not in session:
+#         flash("Access unauthorized.", "danger")
+#         return redirect("/")
+
+#     followed_user = User.query.get(follow_id)
+#     g.user.following.remove(followed_user)
+#     db.session.commit()
+
+#     return redirect(f"/users/{g.user.id}/following")
 
 
 @app.route("/users/profile", methods=["GET", "POST"])
@@ -514,6 +517,7 @@ def signup():
 
 
 @app.route("/signup/user", methods=["GET", "POST"])
+
 def signup_user():
     """Handle user signup.
 
@@ -544,46 +548,26 @@ def signup_user():
             db.session.commit()
 
             # seed animal_preferences for the user
-            submitted_animal_types = form.animal_types.data
-            # create list to contain WTForm.data objects to insert
-            pref_list = []
-            for animal in submitted_animal_types:
-                # create new form & validate it so it's saved with all the default choices
-                pref_form = SpecificAnimalPreferencesForm(animal)
-                # add pref_form to pref_list
-                for pref_key, pref_value in pref_form.data.items():
-                    #append object of mapped values to UserAnimalPreferences table column name
-                    if pref_key != "csrf_token":
-                        pref_list.append(
-                            {
-                                "species": animal,
-                                "user_preference_name": pref_key,
-                                "user_preference_data": json.dumps(pref_value),
-                                "user_id": user.id,
-                            }
-                        )
-                # add updated animal preference to db
-                db.session.bulk_insert_mappings(UserAnimalPreferences, pref_list)
-
-            if len(pref_list) > 0:
-                # commit changes to db
-                db.session.commit()
-            else:
-                # handle if no changes are made
-                db.session.rollback()
+            UserAnimalPreferences.seed_user_pref(
+                user_id=user.id, form=SpecificAnimalPreferencesForm
+            )
 
             # init_orgs = pf_api.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
             db.session.rollback()
             return render_template("users/signup.html", form=form)
-
+        
         do_login(user)
 
         # Redirect to user home
         return redirect(url_for("homepage"))
 
+
+
     else:
+        
+        db.session.rollback()
         return render_template("users/signup.html", form=form, next=True)
 
 
@@ -619,10 +603,6 @@ def carousel_form_test():
 def animal_preferences(animal_type):
     print("test animal_preferences route")
     form = SpecificAnimalPreferencesForm(animal_type=animal_type)
-    # form = LoginForm()
-    # if request.method == "POST"
-    print(form.csrf_token)
-    print(" 595 test animal_preferences")
     if form.validate_on_submit():
         # app.logger.info(form.data) //form data is an object with data
         current_user_id = session.get("CURR_USER")["id"]
@@ -759,12 +739,12 @@ def add_header(req):
 if __name__ == "__main__":
     flask_env = os.environ.get("FLASK_ENV", "development")
     app.logger.warning(f"Starting app with FLASK_ENV={flask_env}")
-    
+
     # #for testing / dev purposes, drop and recreate the db tables
     # db.drop_all()
     # db.create_all()
-    
-    #run app
+
+    # run app
     app.run(
         use_reloader=True,
         host=os.environ.get("HOST", "localhost"),

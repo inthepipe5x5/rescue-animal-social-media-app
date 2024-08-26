@@ -49,6 +49,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', "SECRET KEY")
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
     WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None #set to None to disable expiration
     CSRF_ENABLED = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
