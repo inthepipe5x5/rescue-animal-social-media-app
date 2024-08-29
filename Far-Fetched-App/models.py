@@ -306,37 +306,37 @@ class UserAnimalPreferences(db.Model):
     UniqueConstraint("user_id", "species", name="unique_animal_preference")
     # )
 
+    # @classmethod
+    # def insert_user_animal_preferences_on_conflict_do_update(
+    #     cls, curr_user_id, species, pref_name, pref_data
+    # ):
+    #     # Class method for creating a SQL statement for inserting data into a table.
+    #     # It specifies the table name (`cls`), the columns to insert data into (`user_id`, `species`,
+    #     # `user_preference_name`, `user_preference_data`), and the values to insert.
+
+    #     stmt = insert(cls).values(
+    #         user_id=curr_user_id,
+    #         species=species,
+    #         user_preference_name=pref_name,
+    #         user_preference_data=pref_data,
+    #     )
+
+    #     stmt = stmt.on_conflict_do_update(
+    #         index_elements=["user_id", "species"],
+    #         set_={
+    #             "user_preference_data": stmt.excluded.user_preference_data,
+    #         },
+    #     )
+
+    # return stmt
+
     @classmethod
-    def update_user_animal_preferences(
-        cls, curr_user_id, species, pref_name, pref_data
-    ):
-        # Class method for creating a SQL statement for inserting data into a table.
-        # It specifies the table name (`cls`), the columns to insert data into (`user_id`, `species`,
-        # `user_preference_name`, `user_preference_data`), and the values to insert.
-
-        stmt = insert(cls).values(
-            user_id=curr_user_id,
-            species=species,
-            user_preference_name=pref_name,
-            user_preference_data=pref_data,
-        )
-
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["user_id", "species"],
-            set_={
-                "user_preference_data": stmt.excluded.user_preference_data,
-            },
-        )
-
-        return stmt
-
-    @classmethod
-    def get_user_animal_pref_list(cls, u_id, animal_type="dog"):
+    def get_user_animal_pref_obj(cls, u_id, animal_type="dog"):
         """
         The function `get_user_animal_preference` retrieves a user's preferences for a specific animal
         species from a database.
 
-        Returns: a list of animal_preferences grouped by species
+        Returns: a python object of animal_preferences
         """
         results = (
             db.session.query(User, UserAnimalPreferences)
@@ -345,11 +345,19 @@ class UserAnimalPreferences(db.Model):
             .all()
         )
 
-        if not results:
+        if not results or len(results) == 0:
             # handle no results with a 404 error
             abort(404, description="No results found")
         else:
-            return results
+            out = {"user_id": u_id, "species": animal_type}
+            for user, preference in results:
+                # add result to out if matches user_id and species
+                if user.id == u_id and preference.species == animal_type:
+                    # parse JSON value to python values
+                    key = preference.user_preference_name
+                    value = preference.user_preference_data
+                    out[key] = value
+            return out
 
     @classmethod
     def get_all_user_animal_preferences(cls, u_id):
@@ -369,30 +377,6 @@ class UserAnimalPreferences(db.Model):
         return None  # In case user is not found, though get_or_404 should handle this
 
     @classmethod
-    def get_user_animal_preference(cls, curr_user_id, pref_name):
-        """
-        The function `get_user_animal_preference` retrieves a user's preferences for a specific animal
-        species from a database.
-
-
-        :return: The function `get_user_animal_preference` returns a list of tuples containing the
-        species, user preference name, and an array of user preference data for a specific user and
-        preference name.
-        """
-        result = (
-            db.session.query(
-                cls.species,
-                cls.user_preference_name,
-                func.array_agg(cls.user_preference_data).label(pref_name),
-            )
-            .filter(user_id=curr_user_id, user_preference_name=pref_name)
-            .group_by(cls.species, cls.user_preference_name)
-            .all()
-        )
-        print(result)
-        return result
-
-    @classmethod
     def seed_user_pref(cls, user_id, form):
         """Seeds animal preferences for the user
 
@@ -409,7 +393,7 @@ class UserAnimalPreferences(db.Model):
             "scales-fins-other",
             "barnyard",
         ]
-        
+
         # List to contain the data objects to insert
         pref_list = []
 
@@ -425,7 +409,7 @@ class UserAnimalPreferences(db.Model):
                         "user_preference_data": json.dumps(pref_value),
                         "user_id": user_id,
                     }
-                        
+
                 # Append pref_data to pref_list
                 pref_list.append(pref_obj)
 
@@ -439,6 +423,51 @@ class UserAnimalPreferences(db.Model):
         print(pref_list)
         return pref_list
 
+    @classmethod
+    def update_user_pref(cls, user_id, species, form_data_obj):
+        """Updates animal preferences for the user
+
+        Args:
+            user_id (int): ID of the user for whom preferences are being updated
+            species: type of animal
+            form_data_obj (dict): WTForms.data.items()
+        """
+
+        # List to contain the data objects to insert
+        pref_list = []
+        # grab previous preferences stored
+        prev_prefs = (
+            db.session.query(UserAnimalPreferences)
+            .filter(
+                UserAnimalPreferences.user_id == user_id,
+                UserAnimalPreferences.species == species,
+            )
+            .all()
+        )
+        # loop through Result objects and update with new values
+        for pref_obj in prev_prefs:
+            if pref_obj.species == species and pref_obj.user_id == user_id:
+                data_name = pref_obj.user_preference_name
+                if data_name in form_data_obj:
+                    # update the result object with the new values from submitted form
+                    pref_obj.user_preference_data = form_data_obj[data_name]
+                    # Append pref_data to pref_list
+                    print("pref_obj=", pref_obj)
+                    pref_list.append(pref_obj)
+        try:
+            # Bulk insert the data into the database
+            if len(pref_list) > 0:
+                updated_prefs = db.session.bulk_update_mappings(cls, pref_list)
+                db.session.commit()
+            else:
+                raise Exception("No preferences passed in to be saved")
+        except Exception as e:
+            print(e)
+            db.session.rollback()
+            return
+
+        print(updated_prefs)
+        return updated_prefs
 
 
 # User Application Data Tables

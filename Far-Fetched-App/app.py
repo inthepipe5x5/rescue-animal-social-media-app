@@ -117,8 +117,6 @@ def create_app():
     )
     app_config_instance.config_app(app=app, obj=config[flask_env_type])
 
-
-    
     # register blueprints
     app.register_blueprint(data_bp)
 
@@ -144,7 +142,7 @@ flask_env_type = (
 
 app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 # app = create_app()
-#config bcrypt 
+# config bcrypt
 bcrypt = Bcrypt(app)
 
 
@@ -517,7 +515,6 @@ def signup():
 
 
 @app.route("/signup/user", methods=["GET", "POST"])
-
 def signup_user():
     """Handle user signup.
 
@@ -557,16 +554,14 @@ def signup_user():
             flash("Username already taken", "danger")
             db.session.rollback()
             return render_template("users/signup.html", form=form)
-        
+
         do_login(user)
 
         # Redirect to user home
         return redirect(url_for("homepage"))
 
-
-
     else:
-        
+
         db.session.rollback()
         return render_template("users/signup.html", form=form, next=True)
 
@@ -598,59 +593,64 @@ def carousel_form_test():
     return render_template("carousel-form.html", form=form)
 
 
-@auth_required
 @app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
+@auth_required
 def animal_preferences(animal_type):
-    print("test animal_preferences route")
-    form = SpecificAnimalPreferencesForm(animal_type=animal_type)
-    if form.validate_on_submit():
-        # app.logger.info(form.data) //form data is an object with data
-        current_user_id = session.get("CURR_USER")["id"]
-        # try:
-        for user_preference_name, user_preference_data in form.data.items():
-            # For list data, insert each item separately
-            if isinstance(user_preference_data, list):
-                for data in user_preference_data:
-                    insert_statement = (
-                        UserAnimalPreferences.update_user_animal_preferences(
-                            curr_user_id=current_user_id,
-                            species=animal_type,
-                            pref_name=user_preference_name,
-                            pref_data=data,
-                        )
-                    )
-                    app.logger.info(insert_statement)
-                    db.session.execute(insert_statement)
-            else:
-                # For non-list data, insert directly
+    current_user_id = session.get("CURR_USER")["id"]
+    if request.method == "GET":
+        user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
+            u_id=current_user_id, animal_type=animal_type
+        )
 
-                existing_pref = (
-                    session.query(UserAnimalPreferences)
-                    .filter(
-                        and_(
-                            UserAnimalPreferences.user_id == current_user_id,
-                            UserAnimalPreferences.species == animal_type,
-                        )
-                    )
-                    .all()
-                )
-                if existing_pref:
-                    new_insert = form.populate_from_obj(UserAnimalPreferences)
-                    db.session.add(new_insert)
-                else:
-                    # insert a new record if no entry found
-                    db.session.execute(insert_statement)
-
-        db.session.commit()
-
-    # except Exception as e:
-    #     app.logger.error(f"Error inserting preferences: {e}")
-    #     db.session.rollback()
-    #     flash("An error occurred while saving your preferences. Please try again.", "danger")
-    #     return redirect(url_for("users_show"))
-
+    if request.method == "POST":
+        #list of SpecificAnimalPreferences field names 
+        form_field_names = [
+            "user_id",
+            "species",
+            "declawed",
+            "shots_current",
+            "special_needs",
+            "spayed_neutered",
+            "house_trained",
+            "child_friendly",
+            "dogs_friendly",
+            "cats_friendly",
+            "breeds",
+            "color",
+            "coat",
+            "age",
+            "personality_tags",
+            "size",
+            "gender",
+        ]
+        #create data obj from request.form to be passed into the  WTForms class
+        submitted_data = {
+            key: request.form[key] for key in request.form if key in form_field_names
+        }
+        #create a new flask WTForms instance to prevent submitted form data from being overridden by user_animal_prefs
+        form = SpecificAnimalPreferencesForm(animal_type, obj=submitted_data)
     else:
-        app.logger.warning("Form validation failed: %s", form.errors)
+        form = SpecificAnimalPreferencesForm(animal_type, obj=user_animal_prefs)
+
+    if form.validate_on_submit():
+        try:
+            new_prefs = UserAnimalPreferences.update_user_pref(
+                user_id=current_user_id,
+                species=animal_type,
+                form_data_obj=form.data,
+            )
+            print(new_prefs)
+            flash(f"Successfully updated {animal_type} preferences.")
+            return redirect(url_for("users_show", user_id=current_user_id))
+
+        except Exception as e:
+            app.logger.error(f"Error updating preferences: {e}")
+            db.session.rollback()
+            flash(
+                "An error occurred while saving your preferences. Please try again.",
+                "danger",
+            )
+            return redirect(url_for("users_show", user_id=current_user_id))
 
     return render_template(
         "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type

@@ -47,6 +47,7 @@ class ModelForm(BaseModelForm):
     def get_session(cls):
         return db.session
 
+
 def uppercase_2_chars(form, field):
     """
     Helper form filter function to always output 2 upper case str characters
@@ -54,6 +55,7 @@ def uppercase_2_chars(form, field):
     """
     if field.data:
         field.data = field.data.upper()[:2]
+
 
 class ValidState(object):
     """Custom validator for state WTForm field because creating a SelectField with pycountry.subdivisions as options is too long"""
@@ -140,8 +142,8 @@ class UserAddForm(UserExperiencesForm):
     Extends:
         - StateCountryForm => For state, country inputs
         - UserExperienceForm => for animal_type & rescue_action_type inputs
-    
-    
+
+
     """
 
     # Rescue Action Type
@@ -211,6 +213,7 @@ class UserEditForm(ModelForm):
     Args:
         ModelForm (FlaskWTForms): _description_
     """
+
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[Length(min=6)])
@@ -252,9 +255,11 @@ class UserEditForm(ModelForm):
         validators=[DataRequired()],
     )
 
-    state = StringField("State/Province - eg. 'NY'", validators=[Length(min=2, max=2), ValidState()], 
-                        # filters=[uppercase_2_chars]
-                        )
+    state = StringField(
+        "State/Province - eg. 'NY'",
+        validators=[Length(min=2, max=2), ValidState()],
+        # filters=[uppercase_2_chars]
+    )
     bio = TextAreaField(
         "(Optional) Tell us about what makes you interested in animal rescue?"
     )
@@ -288,33 +293,23 @@ class SpecificAnimalPreferencesForm(FlaskForm):
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
 
+        # Fetch dynamic choices
         breed_choices = api.breeds(animal_type)["breeds"][animal_type]
         animals = api.animal_types(animal_type)
-
-        # print("Breed choices:", breed_choices)
-        # print("API form choices:", animals)
-
         coat_choices = animals["type"]["coats"] or []
         coat_color_choices = animals["type"]["colors"] or []
 
-        # Dynamically populate form choices based on API results
+        # Set dynamic choices
         if breed_choices:
-            self.breeds.default = breed_choices
-            self.breeds.choices = [(name, name.capitalize()) for name in breed_choices]
-            # update the form
-            self.process()
+            for name in breed_choices:
+                self.breeds.choices.append((name, name.capitalize()))
+
         if coat_choices:
-            self.coat.default = coat_choices
-            self.coat.choices = [(name, name.capitalize()) for name in coat_choices]
-            # update the form
-            self.process()
+            for name in coat_choices:
+                self.coat.choices.append((name, name.capitalize()))
         if coat_color_choices:
-            self.color.default = coat_color_choices
-            self.color.choices = [
-                (name, name.capitalize()) for name in coat_color_choices
-            ]
-            # update the form
-            self.process()
+            for name in coat_color_choices:
+                self.color.choices.append((name, name.capitalize()))
 
     # Medical Preferences
     declawed = BooleanField("Declawed", default=False)
@@ -322,29 +317,45 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     special_needs = BooleanField("Special Needs", default=False)
     spayed_neutered = BooleanField("Spayed/Neutered", default=False)
 
-    # Animal Training & Socialization Preferences
     house_trained = BooleanField("House Trained", default=False)
     child_friendly = BooleanField("Friendly to children?", default=False)
     dogs_friendly = BooleanField("Friendly to dogs", default=False)
     cats_friendly = BooleanField("Friendly to cats", default=False)
 
-    # Appearance Preferences
-    breeds = SelectMultipleField("Breed Preferences", choices=[], validate_choice=False) #set validate_choice=False because choices are dynamically populated which interacts poorly with validate_choices=True
-    color = SelectMultipleField("Animal Coat Color Preference", choices=[], validate_choice=False) #set validate_choice=False because choices are dynamically populated which interacts poorly with validate_choices=True
-    coat = SelectMultipleField("Animal Coat Preference", choices=[], validate_choice=False) #set validate_choice=False because choices are dynamically populated which interacts poorly with validate_choices=True
+    breeds = SelectMultipleField(
+        "Select Desired Breed(s)",
+        choices=[("any", "Any")],
+        default=["any"],
+        validate_choice=False,
+    )
+    color = SelectMultipleField(
+        "Select Desired Coat Color(s)",
+        choices=[("any", "Any")],
+        default=["any"],
+        validate_choice=False,
+    )
+    coat = SelectMultipleField(
+        "Select Desired Coat Type(s)",
+        choices=[("any", "Any")],
+        default=["any"],
+        validate_choice=False,
+    )
 
-    # Age Preferences
     age = SelectMultipleField(
         "Animal Age Preference",
         choices=[
+            ("any", "Any"),
             ("baby", "baby"),
             ("young", "young"),
             ("adult", "adult"),
             ("senior", "senior"),
+            ("unknown", "Unknown"),
         ],
-        default=["baby", "young", "adult", "senior"],
+        default=["any"],
     )
+
     personality_choices = [
+        ("any", "Any"),
         ("cute", "Cute"),
         ("intelligent", "Intelligent"),
         ("friendly", "Friendly"),
@@ -358,28 +369,33 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ("gentle", "Gentle"),
         ("sweet", "Sweet"),
     ]
-    # Personality Preferences
+
     personality_tags = SelectMultipleField(
         "Animal Personality Tags Preferences",
         choices=personality_choices,
-        default=[value for value, label in personality_choices],
+        default=["any"],
     )
 
-    # Size Preferences
     size = SelectMultipleField(
         "Animal Physical Attributes Preferences",
         choices=[
+            ("any", "Any"),
             ("small", "Small"),
             ("medium", "Medium"),
             ("large", "Large"),
             ("xlarge", "Extra Large"),
+            ("unknown", "Unknown"),
         ],
-        default=["small", "medium", "large", "xlarge"],
+        default=["any"],
     )
 
-    # Gender Preferences
     gender = SelectMultipleField(
         "Gender Preference",
-        choices=[("male", "Male"), ("female", "Female")],
-        default=["male", "female"],
+        choices=[
+            ("any", "Any"),
+            ("male", "Male"),
+            ("female", "Female"),
+            ("unknown", "Unknown"),
+        ],
+        default=["any"],
     )

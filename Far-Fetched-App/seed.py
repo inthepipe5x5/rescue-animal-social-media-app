@@ -10,6 +10,17 @@ from models import (
     db,
 )
 import os
+import bcrypt
+
+test_user = {
+    "username": "test123",
+    "email": "test123@test123.com",
+    "bio": "test123",
+    "password": "test123",
+    "animal_types": ["dog"],
+    "image_url": "../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
+    "rescue_action_type": ["volunteering", "donation", "adoption", "animal foster"],
+}
 
 # create app context for db
 app.app_context().push()
@@ -20,15 +31,9 @@ db.create_all()
 
 
 if os.environ.get("FLASK_ENV") != "production":
-    test123 = User.signup(
-        username="test123",
-        email="test123@test123.com",
-        bio="test123",
-        password="test123",
-        animal_types=["dog"],
-        image_url="../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
-        rescue_action_type=["volunteering", "donation", "adoption", "animal foster"],
-    )
+    salt = bcrypt.gensalt()
+    test_user.password = bcrypt(test_user.password.encode('utf-8'), salt)
+    test123 = User.signup(**test_user)
     test123_location = UserLocation(country="CA", state="ON")
     db.session.add(test123_location)
 
