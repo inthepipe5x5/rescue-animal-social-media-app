@@ -339,9 +339,8 @@ class UserAnimalPreferences(db.Model):
         Returns: a python object of animal_preferences
         """
         results = (
-            db.session.query(User, UserAnimalPreferences)
-            .join(UserAnimalPreferences)
-            .filter(User.id == u_id, UserAnimalPreferences.species == animal_type)
+            db.session.query(UserAnimalPreferences)
+            .filter(UserAnimalPreferences.user_id == u_id, UserAnimalPreferences.species == animal_type)
             .all()
         )
 
@@ -350,9 +349,9 @@ class UserAnimalPreferences(db.Model):
             abort(404, description="No results found")
         else:
             out = {"user_id": u_id, "species": animal_type}
-            for user, preference in results:
+            for preference in results:
                 # add result to out if matches user_id and species
-                if user.id == u_id and preference.species == animal_type:
+                if preference.user_id == u_id and preference.species == animal_type:
                     # parse JSON value to python values
                     key = preference.user_preference_name
                     value = preference.user_preference_data
@@ -451,14 +450,22 @@ class UserAnimalPreferences(db.Model):
                 if data_name in form_data_obj:
                     # update the result object with the new values from submitted form
                     pref_obj.user_preference_data = form_data_obj[data_name]
+                    new_obj = {
+                        "id": pref_obj.id,
+                        "user_preference_name":data_name,
+                        "user_preference_data":form_data_obj[data_name],
+                        "species": species
+                    }
                     # Append pref_data to pref_list
-                    print("pref_obj=", pref_obj)
-                    pref_list.append(pref_obj)
+                    print("pref_obj=", new_obj)
+                    pref_list.append(new_obj)
+                    print("pref_list length=", len(pref_list))
         try:
             # Bulk insert the data into the database
             if len(pref_list) > 0:
                 updated_prefs = db.session.bulk_update_mappings(cls, pref_list)
                 db.session.commit()
+                return updated_prefs
             else:
                 raise Exception("No preferences passed in to be saved")
         except Exception as e:
@@ -466,8 +473,6 @@ class UserAnimalPreferences(db.Model):
             db.session.rollback()
             return
 
-        print(updated_prefs)
-        return updated_prefs
 
 
 # User Application Data Tables

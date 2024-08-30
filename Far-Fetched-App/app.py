@@ -593,8 +593,8 @@ def carousel_form_test():
     return render_template("carousel-form.html", form=form)
 
 
-@app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 @auth_required
+@app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     current_user_id = session.get("CURR_USER")["id"]
     if request.method == "GET":
@@ -640,7 +640,7 @@ def animal_preferences(animal_type):
                 form_data_obj=form.data,
             )
             print(new_prefs)
-            flash(f"Successfully updated {animal_type} preferences.")
+            flash(f"Successfully updated {animal_type} preferences.", "success")
             return redirect(url_for("users_show", user_id=current_user_id))
 
         except Exception as e:

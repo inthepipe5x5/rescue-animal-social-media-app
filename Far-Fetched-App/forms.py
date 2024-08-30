@@ -299,17 +299,21 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         coat_choices = animals["type"]["coats"] or []
         coat_color_choices = animals["type"]["colors"] or []
 
-        # Set dynamic choices
-        if breed_choices:
-            for name in breed_choices:
-                self.breeds.choices.append((name, name.capitalize()))
+        # Fetch dynamic choices
+        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
+        animals = api.animal_types(animal_type)
+        coat_choices = animals["type"]["coats"] or []
+        coat_color_choices = animals["type"]["colors"] or []
 
-        if coat_choices:
-            for name in coat_choices:
-                self.coat.choices.append((name, name.capitalize()))
-        if coat_color_choices:
-            for name in coat_color_choices:
-                self.color.choices.append((name, name.capitalize()))
+        # Set dynamic choices
+        self.breeds.choices = [("any", "Any")] + [(name, name.capitalize()) for name in breed_choices]
+        self.coat.choices = [("any", "Any")] + [(name, name.capitalize()) for name in coat_choices]
+        self.color.choices = [("any", "Any")] + [(name, name.capitalize()) for name in coat_color_choices]
+
+        # # Process data from obj after setting choices to populate defaults
+        # if "obj" in kwargs:
+        #     obj = kwargs["obj"]
+        #     self.process(obj=obj)
 
     # Medical Preferences
     declawed = BooleanField("Declawed", default=False)
