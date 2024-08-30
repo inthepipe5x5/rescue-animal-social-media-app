@@ -101,6 +101,7 @@ class StateCountryForm(ModelForm):
     state = StringField(
         "State/Province - eg. 'ON'",
         validators=[Length(min=2, max=2), DataRequired(), ValidState()],
+        default="ON",
         # filters=uppercase_2_chars #always ensure the output data is 2 upper case str
     )
 
@@ -302,16 +303,25 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         # Fetch dynamic choices
         breed_choices = api.breeds(animal_type)["breeds"][animal_type]
         animals = api.animal_types(animal_type)
-        coat_choices = animals["type"]["coats"] or []
-        coat_color_choices = animals["type"]["colors"] or []
+        coat_choices = animals["type"]["coats"] 
+        coat_color_choices = animals["type"]["colors"]
 
         # Set dynamic choices
-        self.breeds.choices = [("any", "Any")] + [(name, name.capitalize()) for name in breed_choices]
-        self.coat.choices = [("any", "Any")] + [(name, name.capitalize()) for name in coat_choices]
-        self.color.choices = [("any", "Any")] + [(name, name.capitalize()) for name in coat_color_choices]
+        if breed_choices and len(breed_choices) > 0:
+            for name in breed_choices:
+                self.breeds.choices.append((name, name.capitalize()))
+
+        if coat_choices and len(coat_choices) > 0:
+            for name in coat_choices:
+                self.coat.choices.append((name, name.capitalize()))
+
+        if coat_color_choices and len(coat_color_choices) > 0:
+            for name in coat_color_choices:
+                self.color.choices.append((name, name.capitalize()))
+
 
         # # Process data from obj after setting choices to populate defaults
-        # if "obj" in kwargs:
+        # if "obj" in kwargs and "formdata" not in kwargs:
         #     obj = kwargs["obj"]
         #     self.process(obj=obj)
 
@@ -320,7 +330,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     shots_current = BooleanField("Immunizations are up to date", default=False)
     special_needs = BooleanField("Special Needs", default=False)
     spayed_neutered = BooleanField("Spayed/Neutered", default=False)
-
+    #Environmental/Interaction Preferences 
     house_trained = BooleanField("House Trained", default=False)
     child_friendly = BooleanField("Friendly to children?", default=False)
     dogs_friendly = BooleanField("Friendly to dogs", default=False)
@@ -403,3 +413,4 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=["any"],
     )
+    

@@ -223,7 +223,7 @@ def logout():
     if CURR_USER_KEY in session:
         print(session[CURR_USER_KEY])
     do_logout()
-    flash(f"Log out successful. Hope to see you again")
+    flash(f"Log out successful. Hope to see you again", "success")
     return redirect("/")
 
 
@@ -375,7 +375,7 @@ def submit_section():
 
 
 @app.route("/data/animals", methods=["GET", "POST"])
-def data():
+def animal_data():
     """TEST ROUTE TO USE PETPY API
 
     Args:
@@ -385,13 +385,25 @@ def data():
         _type_: _description_
     """
 
-    # country = get_user_preference(key="country", session=session, g=g)
-    # print(country)
+    # # country = get_user_preference(key="country", session=session, g=g)
+    # # print(country)
     results = pf_api.petpy_api.animals(
         location="ON", sort="distance"
     )  # (**pf_api.default_options_obj)
-    # return jsonify(results)
+    # # return jsonify(results)
     return render_template("results.html", results=results)
+
+# @auth_required
+@app.route("/data/prefs/<animal_type>", methods=["GET"])
+def animal_pref_data(animal_type):
+    if "CURR_USER" in session:
+        current_user_id = session.get("CURR_USER")["id"]
+        user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
+                u_id=current_user_id, animal_type=animal_type
+            )
+        return jsonify(user_animal_prefs)
+    else:
+       return redirect(url_for('login'))
 
 
 @app.route("/data/orgs", methods=["GET", "POST"])
@@ -655,6 +667,7 @@ def animal_preferences(animal_type):
     return render_template(
         "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
     )
+
 
 
 ##############################################################################

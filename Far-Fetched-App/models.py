@@ -402,6 +402,11 @@ class UserAnimalPreferences(db.Model):
             for pref_key, pref_value in pref_form.data.items():
                 if pref_key != "csrf_token":
                     # object to be copied and inserted into pref_list
+                    
+                    #handle if pref_value is [] with no real values
+                    if isinstance(pref_value, list) and len(pref_value) == 0:
+                        pref_value.append("any")
+                         
                     pref_obj = {
                         "species": animal,
                         "user_preference_name": pref_key,

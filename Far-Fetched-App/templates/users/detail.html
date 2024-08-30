@@ -45,7 +45,7 @@
             <h4>{{ user.likes | length }}</h4>
           </li>
           <div class="ml-auto">
-            {% if session["CURR_USER"].id == user.id %}
+            {% if "CURR_USER" in session and session["CURR_USER"].id == user.id %}
             <a href="/users/profile" class="btn btn-outline-secondary">
               Edit Profile
             </a>
