@@ -12,7 +12,6 @@ from flask import (  # type: ignore
 )
 import json
 
-# from flask_font_awesome import FontAwesome
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from sqlalchemy import and_  # , Index
 from dotenv import load_dotenv  # type: ignore
@@ -20,7 +19,7 @@ import os
 import requests
 from functools import wraps
 from flask_bcrypt import Bcrypt
-
+from werkzeug.datastructures import MultiDict
 from .models import (
     db,
     User,
@@ -387,23 +386,83 @@ def animal_data():
 
     # # country = get_user_preference(key="country", session=session, g=g)
     # # print(country)
-    results = pf_api.petpy_api.animals(
-        location="ON", sort="distance"
-    )  # (**pf_api.default_options_obj)
-    # # return jsonify(results)
-    return render_template("results.html", results=results)
+    # results = pf_api.petpy_api.animals(location="CA", sort="distance")
+    user_id = 12  # session["CURR_USER"].id
+    species = "dog"  # session["CURR_USER"].animal_types[0]
+    user_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
+        u_id=user_id, animal_type=species
+    )
+    if "color" in user_prefs:
+        user_prefs["colors"] = user_prefs["color"]
+        del user_prefs["color"]
+        
+    location_str = "CA"
+    results = pf_api.get_mapped_animals_by_type(
+        species=species,
+        location_str=location_str,
+        user_preferences_dict=user_prefs.get("results"),
+    )
+    return jsonify(results)
+
+    # WHEN READY TO DISPLAY IN HTML
+
+    # flash message if not success
+    # if not results.success_flag:
+    #     flash(f"Your search preferences are too strict; try adjusting {", ".join(results.bad_keys)} In the mean time, here's animals in your area in the mean time.")
+    #     # return render_template("results.html", results=results)
+
 
 # @auth_required
 @app.route("/data/prefs/<animal_type>", methods=["GET"])
 def animal_pref_data(animal_type):
-    if "CURR_USER" in session:
-        current_user_id = session.get("CURR_USER")["id"]
-        user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
-                u_id=current_user_id, animal_type=animal_type
-            )
-        return jsonify(user_animal_prefs)
+    if animal_type[-1].lower() == "s":
+        species = animal_type.lower()[:-1]
     else:
-       return redirect(url_for('login'))
+        species = animal_type.lower()
+
+    if "CURR_USER" in session:
+        user_id = session.get("CURR_USER")["id"]
+    else:
+        user_id = 18  # user: 99299@99299.com
+
+    user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
+        u_id=user_id, animal_type=species
+    )
+    output = pf_api.create_filter_conditions(user_animal_prefs.results)
+    return jsonify(user_animal_prefs)
+    # else:
+    # return redirect(url_for("login"))
+
+
+@app.route("/reseed_db", methods=["GET"])
+def reseed_db():
+    """
+    recreate db
+    """
+
+    app.logger.info("recreating db by dropping & recreating tables")
+
+    # drop and recreate all tables
+    db.drop_all()
+    db.create_all()
+
+    test_user = {
+        "username": "test123",
+        "email": "test123@test123.com",
+        "bio": "test123",
+        "password": "test123",
+        "animal_types": ["dog"],
+        "image_url": "../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
+        "rescue_action_type": ["volunteering", "donation", "adoption", "animal foster"],
+    }
+
+    salt = bcrypt.gensalt()
+    test_user.password = bcrypt(test_user.password.encode("utf-8"), salt)
+    test123 = User.signup(**test_user)
+    app.logger.info(f"created user: test123 {test123}")
+    test123_location = UserLocation(country="CA", state="ON")
+    db.session.add(test123_location)
+    db.commit()
 
 
 @app.route("/data/orgs", methods=["GET", "POST"])
@@ -615,7 +674,7 @@ def animal_preferences(animal_type):
         )
 
     if request.method == "POST":
-        #list of SpecificAnimalPreferences field names 
+        # list of SpecificAnimalPreferences field names
         form_field_names = [
             "user_id",
             "species",
@@ -635,14 +694,16 @@ def animal_preferences(animal_type):
             "size",
             "gender",
         ]
-        #create data obj from request.form to be passed into the  WTForms class
+        # create data obj from request.form to be passed into the  WTForms class
         submitted_data = {
             key: request.form[key] for key in request.form if key in form_field_names
         }
-        #create a new flask WTForms instance to prevent submitted form data from being overridden by user_animal_prefs
+        # create a new flask WTForms instance to prevent submitted form data from being overridden by user_animal_prefs
         form = SpecificAnimalPreferencesForm(animal_type, obj=submitted_data)
     else:
-        form = SpecificAnimalPreferencesForm(animal_type, obj=user_animal_prefs)
+        del user_animal_prefs["user_id"]
+        del user_animal_prefs["species"]
+        form = SpecificAnimalPreferencesForm(animal_type, MultiDict(user_animal_prefs))
 
     if form.validate_on_submit():
         try:
@@ -653,8 +714,8 @@ def animal_preferences(animal_type):
             )
             print(new_prefs)
             flash(f"Successfully updated {animal_type} preferences.", "success")
-            return redirect(url_for("users_show", user_id=current_user_id))
-
+            # return redirect(url_for("users_show", user_id=current_user_id))
+            return redirect(url_for("animal_pref_data", {"animal_type": animal_type}))
         except Exception as e:
             app.logger.error(f"Error updating preferences: {e}")
             db.session.rollback()
@@ -667,7 +728,6 @@ def animal_preferences(animal_type):
     return render_template(
         "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
     )
-
 
 
 ##############################################################################

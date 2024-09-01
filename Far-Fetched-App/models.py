@@ -340,13 +340,21 @@ class UserAnimalPreferences(db.Model):
         """
         results = (
             db.session.query(UserAnimalPreferences)
-            .filter(UserAnimalPreferences.user_id == u_id, UserAnimalPreferences.species == animal_type)
+            .filter(
+                UserAnimalPreferences.user_id == u_id,
+                UserAnimalPreferences.species == animal_type,
+            )
             .all()
         )
 
         if not results or len(results) == 0:
             # handle no results with a 404 error
-            abort(404, description="No results found")
+            return {
+                "success_flag": False,
+                "statusCode": 404,
+                "message": "No results found",
+                "results": []
+            }
         else:
             out = {"user_id": u_id, "species": animal_type}
             for preference in results:
@@ -356,7 +364,12 @@ class UserAnimalPreferences(db.Model):
                     key = preference.user_preference_name
                     value = preference.user_preference_data
                     out[key] = value
-            return out
+            return {
+                "success_flag": True,
+                "statusCode": 200,
+                "message": f"Results found for user: {u_id} for type: {animal_type}",
+                "results": out
+            } 
 
     @classmethod
     def get_all_user_animal_preferences(cls, u_id):
@@ -402,11 +415,11 @@ class UserAnimalPreferences(db.Model):
             for pref_key, pref_value in pref_form.data.items():
                 if pref_key != "csrf_token":
                     # object to be copied and inserted into pref_list
-                    
-                    #handle if pref_value is [] with no real values
+
+                    # handle if pref_value is [] with no real values
                     if isinstance(pref_value, list) and len(pref_value) == 0:
                         pref_value.append("any")
-                         
+
                     pref_obj = {
                         "species": animal,
                         "user_preference_name": pref_key,
@@ -424,7 +437,6 @@ class UserAnimalPreferences(db.Model):
         else:
             db.session.rollback()
 
-        print(pref_list)
         return pref_list
 
     @classmethod
@@ -457,14 +469,12 @@ class UserAnimalPreferences(db.Model):
                     pref_obj.user_preference_data = form_data_obj[data_name]
                     new_obj = {
                         "id": pref_obj.id,
-                        "user_preference_name":data_name,
-                        "user_preference_data":form_data_obj[data_name],
-                        "species": species
+                        "user_preference_name": data_name,
+                        "user_preference_data": form_data_obj[data_name],
+                        "species": species,
                     }
                     # Append pref_data to pref_list
-                    print("pref_obj=", new_obj)
                     pref_list.append(new_obj)
-                    print("pref_list length=", len(pref_list))
         try:
             # Bulk insert the data into the database
             if len(pref_list) > 0:
@@ -477,7 +487,6 @@ class UserAnimalPreferences(db.Model):
             print(e)
             db.session.rollback()
             return
-
 
 
 # User Application Data Tables

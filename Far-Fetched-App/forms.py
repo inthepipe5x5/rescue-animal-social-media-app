@@ -287,44 +287,6 @@ class UserTravelForm(ModelForm):
 class SpecificAnimalPreferencesForm(FlaskForm):
     """To capture user preferences for specific animal species. To be used as optional filters on animals by behavior and appearance."""
 
-    def __init__(self, animal_type, *args, **kwargs):
-        super(SpecificAnimalPreferencesForm, self).__init__(*args, **kwargs)
-        self.animal_type = animal_type
-        api = Petfinder(
-            key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
-        )
-
-        # Fetch dynamic choices
-        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
-        animals = api.animal_types(animal_type)
-        coat_choices = animals["type"]["coats"] or []
-        coat_color_choices = animals["type"]["colors"] or []
-
-        # Fetch dynamic choices
-        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
-        animals = api.animal_types(animal_type)
-        coat_choices = animals["type"]["coats"] 
-        coat_color_choices = animals["type"]["colors"]
-
-        # Set dynamic choices
-        if breed_choices and len(breed_choices) > 0:
-            for name in breed_choices:
-                self.breeds.choices.append((name, name.capitalize()))
-
-        if coat_choices and len(coat_choices) > 0:
-            for name in coat_choices:
-                self.coat.choices.append((name, name.capitalize()))
-
-        if coat_color_choices and len(coat_color_choices) > 0:
-            for name in coat_color_choices:
-                self.color.choices.append((name, name.capitalize()))
-
-
-        # # Process data from obj after setting choices to populate defaults
-        # if "obj" in kwargs and "formdata" not in kwargs:
-        #     obj = kwargs["obj"]
-        #     self.process(obj=obj)
-
     # Medical Preferences
     declawed = BooleanField("Declawed", default=False)
     shots_current = BooleanField("Immunizations are up to date", default=False)
@@ -342,7 +304,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         default=["any"],
         validate_choice=False,
     )
-    color = SelectMultipleField(
+    colors = SelectMultipleField(
         "Select Desired Coat Color(s)",
         choices=[("any", "Any")],
         default=["any"],
@@ -359,10 +321,10 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         "Animal Age Preference",
         choices=[
             ("any", "Any"),
-            ("baby", "baby"),
-            ("young", "young"),
-            ("adult", "adult"),
-            ("senior", "senior"),
+            ("baby", "Baby"),
+            ("young", "Young"),
+            ("adult", "Adult"),
+            ("senior", "Senior"),
             ("unknown", "Unknown"),
         ],
         default=["any"],
@@ -413,4 +375,42 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=["any"],
     )
+    
+    def __init__(self, animal_type, *args, **kwargs):
+        super(SpecificAnimalPreferencesForm, self).__init__(*args, **kwargs)
+        self.animal_type = animal_type
+        api = Petfinder(
+            key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
+        )
+
+        # Fetch dynamic choices
+        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
+        animals = api.animal_types(animal_type)
+        coat_choices = animals["type"]["coats"] or []
+        coat_color_choices = animals["type"]["colors"] or []
+
+        # Fetch dynamic choices
+        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
+        animals = api.animal_types(animal_type)
+        coat_choices = animals["type"]["coats"] 
+        coat_color_choices = animals["type"]["colors"]
+
+        # Set dynamic choices
+        if breed_choices and len(breed_choices) > 0:
+            for name in breed_choices:
+                self.breeds.choices.append((name, name.capitalize()))
+
+        if coat_choices and len(coat_choices) > 0:
+            for name in coat_choices:
+                self.coat.choices.append((name, name.capitalize()))
+
+        if coat_color_choices and len(coat_color_choices) > 0:
+            for name in coat_color_choices:
+                self.color.choices.append((name, name.capitalize()))
+
+
+        # # # # Process data from obj after setting choices to populate defaults
+        # if "obj" in kwargs and "formdata" not in kwargs:
+        #     obj = kwargs["obj"]
+        #     self.process(obj=obj)
     
