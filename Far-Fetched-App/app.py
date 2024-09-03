@@ -384,41 +384,47 @@ def animal_data():
         _type_: _description_
     """
 
-    # # country = get_user_preference(key="country", session=session, g=g)
-    # # print(country)
-    # results = pf_api.petpy_api.animals(location="CA", sort="distance")
+    # Placeholder values, replace these with session-based values or dynamic user input
     user_id = 18  # session["CURR_USER"].id
     species = "dog"  # session["CURR_USER"].animal_types[0]
-    user_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
-        u_id=user_id, animal_type=species
-    )
 
-    # filter only by breeds for now
-    # if "breeds" in user_prefs:
-    user_prefs = user_prefs["results"]
+    try:
+        # Fetch user preferences
+        user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
+            u_id=user_id, animal_type=species
+        )
 
-    location_str = "CA" #does not work
-    geo_coordinates = "43.7190656,-79.347712" #works
-    animals = pf_api.petpy_api.animals(animal_type="dog", results_per_page=50, pages=3, location=geo_coordinates)
+        # Filter preferences for use in API call
+        user_prefs = (
+            user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
+        )
 
+        geo_coordinates = "43.7190656,-79.347712"  # works
+        results = pf_api.get_mapped_animals_by_type(
+            species=species,
+            location_str=geo_coordinates,
+            user_preferences_dict=user_prefs,
+        )
 
-    filters = pf_api.create_filter_conditions(user_prefs)
-    results = pf_api.filter_results_list(
-        filter_conditions=filters, results_list=animals["animals"]
-    )
-    # results = pf_api.get_mapped_animals_by_type(
-    #     species=species,
-    #     location_str=location_str,
-    #     user_preferences_dict={}#user_prefs #user_prefs.get("results"),
-    # )
-    return jsonify(results)
+        print(
+            f"results flag = {results['success_flag']}, results length: {len(results['results'])}"
+        )
 
-    # WHEN READY TO DISPLAY IN HTML
+        # Check if results are valid
+        if not results["success_flag"] or len(results["results"]) == 0:
+            flash(
+                f"Your search preferences are too strict; try adjusting {', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
+                "warning",
+            )
+        return jsonify(results["results"])            
+        # # Render results page
+        # return render_template("results.html", results=results["results"])
 
-    # flash message if not success
-    # if not results.success_flag:
-    #     flash(f"Your search preferences are too strict; try adjusting {", ".join(results.bad_keys)} In the mean time, here's animals in your area in the mean time.")
-    #     # return render_template("results.html", results=results)
+    except Exception as e:
+        app.logger.error(f"Error producing filtered animal data: {e}")
+        flash("An error occurred while fetching animal data. Please try again later.", "danger")
+        return redirect(url_for('/'))  # 
+
 
 
 # @auth_required

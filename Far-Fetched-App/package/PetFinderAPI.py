@@ -282,7 +282,6 @@ class PetFinderPetPyAPI:
                 # check if current object meets the condition
                 if condition(obj):
                     # parse obj for to use in templates easier
-                    print("pre-parsing colors_obj", obj["colors"])
                     self.parse_api_animals_data(single_animal_data=obj)
                     
                     # add obj to temp_output after parsing
@@ -328,7 +327,7 @@ class PetFinderPetPyAPI:
         # create filter conditions based on user_preferences_dict
         filter_conditions = self.create_filter_conditions(user_preferences_dict)
 
-        # Now you can use these filter conditions with your filter_results_list function
+        # Now  use these filter conditions with filter_results_list function
         return self.filter_results_list(filter_conditions, init_animals)
 
     def animals_df_to_org_animal_count_dict(self, animals_df):
@@ -382,7 +381,7 @@ class PetFinderPetPyAPI:
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
         print(colors_obj)
-        if not colors_obj or colors_obj["primary"] == False:
+        if not colors_obj or not colors_obj["primary"]:
             return "Unknown Color"  # color is Unknown Color by default
 
         primary = colors_obj["primary"] or ""
