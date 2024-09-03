@@ -421,9 +421,10 @@ def animal_data():
         # return render_template("results.html", results=results["results"])
 
     except Exception as e:
-        app.logger.error(f"Error producing filtered animal data: {e}")
-        flash("An error occurred while fetching animal data. Please try again later.", "danger")
-        return redirect(url_for('/'))  # 
+        err_msg = f"ERROR /data/animals => Error producing filtered animal data: {e}"
+        print(err_msg)
+        flash(f"An error occurred while fetching animal data. Please try again later.{err_msg}", "danger")
+        return redirect(url_for('homepage'))  # 
 
 
 

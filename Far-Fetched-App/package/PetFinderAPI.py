@@ -283,7 +283,7 @@ class PetFinderPetPyAPI:
                 if condition(obj):
                     # parse obj for to use in templates easier
                     self.parse_api_animals_data(single_animal_data=obj)
-                    
+
                     # add obj to temp_output after parsing
                     temp_output.append(obj)
                     print("condition met for key=", key, len(temp_output))
@@ -315,13 +315,35 @@ class PetFinderPetPyAPI:
             list_of_orgs (ARR or Pandas DataFrame): list of organization IDs from API in a Python List (Array) or a Pandas DataFrame format.
             user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
         """
+        # dynamically handle gender
+        gender_pref = user_preferences_dict.get("gender", ["any"])
+        if len(gender_pref) == 0 or "any" in gender_pref or "unknown" in gender_pref:
+            gender_pref = ["male", "female"]
+
+        # dynamically handle coats
+        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
+
+        coats_pref = user_preferences_dict.get("coat", default_coats)
+        coats_pref = (
+            default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
+        )
+
         init_animals = self.petpy_api.animals(
             # animal_type=species, location=location_str, sort="-recent"
+            breed=user_preferences_dict.get("breed", []),
+            gender=gender_pref,
+            good_with_cats=user_preferences_dict.get("cats_friendly", False),
+            good_with_children=user_preferences_dict.get("child_friendly", False),
+            good_with_dogs=user_preferences_dict.get("dogs_friendly", False),
+            declawed=user_preferences_dict.get("declawed", False),
+            special_needs=user_preferences_dict.get("special_needs", False),
+            house_trained=user_preferences_dict.get("house_trained", False),
             animal_type=species,
+            coat=coats_pref,
             location=location_str,
             sort="distance",
             results_per_page=50,
-            pages=4,
+            pages=5,
         )["animals"]
         print("API results len = ", len(init_animals))
         # create filter conditions based on user_preferences_dict
@@ -502,9 +524,9 @@ class PetFinderPetPyAPI:
         parsed_date = None
 
         # Determine the input date format
-        if '/' in pub_date:
+        if "/" in pub_date:
             input_format = "%d/%m/%Y"
-        elif 'T' in pub_date:
+        elif "T" in pub_date:
             input_format = "%Y-%m-%dT%H:%M:%S%z"
         else:
             raise ValueError(f"Unsupported date format: {pub_date}")
