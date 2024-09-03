@@ -5,11 +5,12 @@ import pytz
 from dateutil import parser
 import pycountry
 import pandas as pd
-from flask import sessions, jsonify, json
+from flask import json
 from ratelimit import limits, RateLimitException
 from petpy import Petfinder
+import requests
 
-from ..models import User, UserAnimalPreferences  # , #UserPreferences
+# from ..models import User, UserAnimalPreferences  # , #UserPreferences
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ class PetFinderPetPyAPI:
     API class with methods to store access PetFinder API and help functions to map user preference data to API search parameters
     """
 
-    BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
+    BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
 
@@ -51,35 +52,51 @@ class PetFinderPetPyAPI:
         self.petpy_api = Petfinder(
             key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
         )
-        self.auth_token_time = datetime.datetime.now()
-        # self.breed_choices = self.petpy_api.breeds() #commented out because
 
         # utilizing dependency injection here to prevent circular imports from app.py, form.py, helper.py and this file
         self.get_anon_preference = get_anon_preference_func
         self.get_user_preference = get_user_preference_func
 
-    def create_custom_url_for_api_request(self, category, action, params):
+    def create_custom_url_for_api_request(self, endpoint, request_url, **params):
         """Create a url to make an API request based off passed in params object.
 
 
-        GET https://api.petfinder.com/v2/{CATEGORY}/{ACTION}?{parameter_1}={value_1}&{parameter_2}={value_2}
+        GET https://api.petfinder.com/v2/{CATEGORY}/?{parameter_1}={value_1}&{parameter_2}={value_2}
 
         Args:
             category (str): category of API to be called on eg. animal, animals, organization, organizations
             action(str): what REST request to make on API eg. 'get' = GET request
             params (OBJECT {str:str}): params Python OBJECT will be iterated on to create the key:value string queries to the url separated by question marks eg. `?{parameter_1}={value_1}`
         """
+        # handle if no params passed in
+        params = {} if not params else params
+        # handle if no request_url passed in
+        request_url = (
+            f"{self.BASE_API_URL}/v2/{endpoint}" if not request_url else request_url
+        )
 
-        # WRITE CODE HERE
-        pass
-    
+        # Obtain the current access token within the self.petpy_api class
+        access_token = self.petpy_api._auth
+
+        # Make a request to the specified endpoint with the access token
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = requests.get(request_url, headers=headers, params=params)
+
+        # Check for a successful response
+        response.raise_for_status()
+        return {
+            "access_token": access_token,
+            "results": response[endpoint].json(),
+            "pagination": response["pagination"].json(),
+        }
+
     def create_filter_conditions(self, preferences):
         """
         Create filter conditions based on a nested object of boolean or list values.
-        
+
         Args:
         preferences (dict): A nested dictionary of preferences.
-        
+
         Returns:
         dict: A dictionary of lambda functions to be used as filter conditions.
         """
@@ -97,66 +114,110 @@ class PetFinderPetPyAPI:
             "dogs_friendly",
             "cats_friendly",
         ]
-        
+
         def create_list_condition(filter_key, filter_value):
-            """helper function that uses a closure to prevent scope pollution but still has access to key, value from outer parent function
-            
-            
-            use case: intended to handle creating conditions for lists containing varying data structures
-            returns condition
             """
-            def list_condition(obj):
-                obj_value = obj.get(filter_key, [])
-                if isinstance(obj_value, dict):
-                    return all(any(item == v for v in obj_value.values()) for item in filter_value)
-                elif isinstance(obj_value, list):
-                    return all(item in obj_value for item in filter_value)
+            Create a condition function for a list type preference.
+
+            Args:
+            filter_key (str): The key in the object to filter.
+            filter_value (list): The list of acceptable values.
+
+            Returns:
+            function: A lambda function representing the filter condition.
+            """
+
+            def list_condition(obj_to_filter):
+                obj_value = obj_to_filter.get(filter_key, [])
+                if isinstance(obj_value, list):
+                    # handle if obj_value is empty list
+                    if obj_value and len(obj_value) > 0:
+                        # Check if any of the filter values are in the object's list
+                        return any(
+                            target_item.lower() in nested_item.lower()
+                            for nested_item in obj_value
+                            for target_item in filter_value
+                        )
+                elif isinstance(obj_value, dict):
+                    # If the object value is a dictionary, check for any matching items
+                    return any(
+                        any(
+                            target_item.lower() in val.lower()
+                            for val in obj_value.values()
+                            if val
+                            and isinstance(
+                                val, str
+                            )  # so we skip any falsy and non-str values
+                        )
+                        for target_item in filter_value
+                    )
                 else:
-                    return obj_value == filter_value
+                    # Otherwise, just check for equality
+                    return (
+                        obj_value.lower() == filter_value.lower()
+                        or filter_value.lower() in obj_value.lower()
+                    )
+
             return list_condition
-        
+
         def create_condition(key, value):
-            #handle if the preference value is a list
+            # Handle list type preferences
             if isinstance(value, list):
-                #handle if any is contained in `value` => return no condition as no filtering is needed
+                # If "any" is in the list, no filter is needed
                 if "any" in [str(item).lower() for item in value]:
-                    return None 
-                #call helper function to handle if`value` has `list` type but does not contain `any`  
-                return create_list_condition(key, value)    
-            
-            #handle if the preference value is a boolean
+                    return None
+                # Create a list condition for lists without "any"
+                return create_list_condition(key, value)
+
+            # Handle boolean type preferences
             elif isinstance(value, bool):
-                if not value or "False":
+                if value is False:
                     return None
                 if key in attribute_keys:
-                    return lambda obj: obj.get('attributes', {}).get(key, False) == value
+                    return (
+                        lambda obj: obj.get("attributes", {}).get(key, False) == value
+                    )
                 elif key in environment_keys:
-                    return lambda obj: obj.get('environment', {}).get(key, False) == value
+                    return (
+                        lambda obj: obj.get("environment", {}).get(key, False) == value
+                    )
                 else:
                     return lambda obj: obj.get(key, False) == value
+
+            # Handle string type preferences
             elif isinstance(value, str):
-                if value.lower() == "any":
+                value_lower = value.lower()
+                if value_lower == "any":
                     return None
-                if value.lower() == "true":
+                if value_lower == "true":
                     if key in attribute_keys:
-                        return lambda obj: obj.get('attributes', {}).get(key, False) == True
+                        return (
+                            lambda obj: obj.get("attributes", {}).get(key, False)
+                            == True
+                        )
                     elif key in environment_keys:
-                        return lambda obj: obj.get('environment', {}).get(key, False) == True
+                        return (
+                            lambda obj: obj.get("environment", {}).get(key, False)
+                            == True
+                        )
                     else:
                         return lambda obj: obj.get(key, False) == True
-                if value.lower() == "false":
+                elif value_lower == "false":
                     return None
+
+            # Default to None if no condition is matched
             return None
-        
-        #loop through the preferences object and create lambda functions from the key:value pairings
+
+        # Loop through the preferences and create lambda functions
         for key, value in preferences.items():
-            if key not in ["species", "user_id"]: #avoid passing in meta info
-                condition = create_condition(key, value)
-                if condition:
-                    filter_conditions[key] = condition
+            condition = create_condition(key, value)
+
+            # Avoid adding conditions for meta keys
+            if condition and key not in ["species", "user_id"]:
+                filter_conditions[key] = condition
 
         return filter_conditions
-    
+
     def filter_results_list(self, filter_conditions, results_list):
         """function to filter lists of results
 
@@ -167,48 +228,87 @@ class PetFinderPetPyAPI:
 
         # Example usage
             animals = [
-                {"name": "Laptop", "coat": ["Long"], "adoptable": True},
-                {"name": "Phone", "coat": ["Long"], "adoptable": False},
-                {"name": "Tablet", "coat": ["Long"], "adoptable": True},
-                {"name": "Desktop", "coat": ["Long"], "adoptable": True}
+                {"name": "Biscuit", "coat": "Long", "colors":{
+                "primary": "Tortoiseshell",
+                "secondary": null,
+                "tertiary": null
+            }, "adoptable": True},
+                {"name": "Phone", "coat": "Long", "colors":{
+                "primary": "Tortoiseshell",
+                "secondary": null,
+                "tertiary": null
+            }, "adoptable": False},
+                {"name": "Tablet", "coat": "Long", "colors":{
+                "primary": "Tortoiseshell",
+                "secondary": null,
+                "tertiary": null
+            }, "adoptable": True},
+                {"name": "Desktop", "coat": "Long", "colors":{
+                "primary": "Tortoiseshell",
+                "secondary": null,
+                "tertiary": null
+            }, "adoptable": True}
             ]
+            #user preferences retrieved from db
+            prefs = {
+                "gender": ["any"],
+                "shots_current": false,
+                "spayed_neutered": false,
+                "child_friendly": false,
+                "dogs_friendly": false,
+                "breeds": ["Afghan Hound", "Airedale Terrier", "Akbash", "Akita", "Alaskan Malamute", "American Bulldog", "American Bully", "American Eskimo Dog", "American Foxhound", "American Hairless Terrier", "American Staffordshire Terrier", "American Water Spaniel", "Anatolian Shepherd"],
+                "coat": ["any"],
+                "age": ["any"],
+                "size": ["any"],
+                "color": ["Apricot / Beige", "Bicolor", "Black", "Brindle", "Brown / Chocolate", "Golden", "Gray / Blue / Silver", "Harlequin", "Merle (Blue)", "Merle (Red)", "Red / Chestnut / Orange", "Sable", "Tricolor (Brown, Black, & White)"],
+                "declawed": false,
+                "special_needs": false,
+                "house_trained": false,
+                "cats_friendly": false,
+                "personality_tags": ["any"],
+                "gender": ["any"],
+                            }
 
-            filtered_animals = filter_objects(
-                {
-                    "coat_check": lambda animal: animal["coat"] < 800,
-                    "adoptable": lambda animal: animal["adoptable"]
-                },
-                animals
-            )
+            filtered = self.filter_results_list(animals, prefs)
         """
-        #initialize variables to be returned at end
+        # initialize variables to be returned at end
         output = results_list
         bad_keys = []
+        temp_output = []
 
         for key, condition in filter_conditions.items():
-            temp_output = []
-            for obj in output:
-                #check if current object meets the condition
+            for idx in range(len(results_list)):
+                obj = results_list[idx]
+                # check if current object meets the condition
                 if condition(obj):
+                    # parse obj for to use in templates easier
+                    print("pre-parsing colors_obj", obj["colors"])
+                    self.parse_api_animals_data(single_animal_data=obj)
+                    
+                    # add obj to temp_output after parsing
                     temp_output.append(obj)
-            
+                    print("condition met for key=", key, len(temp_output))
+
             if not temp_output:
                 bad_keys.append(key)
                 flag = False
+                print("condition NOT met for key=", key, len(temp_output))
                 break
-            
-        #determine success (true/false) based on len(output) > 0 
-        flag = len(output) > 0
-        #return results_list if flag is false
-        # output = temp_output if flag else results_list
-        output = temp_output # if flag else results_list
+
+        # determine success (true/false) based on len(output) > 0
+        flag = len(temp_output) > 0
+        print(len(temp_output) > 0, type(temp_output), len(temp_output))
+
+        # return results_list if flag is false
+        output = temp_output if flag else results_list
+        # output = temp_output # if flag else results_list
 
         return {
             "results": output,
             "success_flag": flag,
             "bad_keys": bad_keys,
         }
-        
+
     def get_mapped_animals_by_type(self, species, location_str, user_preferences_dict):
         """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
 
@@ -217,107 +317,19 @@ class PetFinderPetPyAPI:
             user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
         """
         init_animals = self.petpy_api.animals(
-                animal_type=species, location=location_str, sort="-recent"
-            )["animals"]
-        #create filter conditions based on user_preferences_dict
+            # animal_type=species, location=location_str, sort="-recent"
+            animal_type=species,
+            location=location_str,
+            sort="distance",
+            results_per_page=50,
+            pages=4,
+        )["animals"]
+        print("API results len = ", len(init_animals))
+        # create filter conditions based on user_preferences_dict
         filter_conditions = self.create_filter_conditions(user_preferences_dict)
 
         # Now you can use these filter conditions with your filter_results_list function
         return self.filter_results_list(filter_conditions, init_animals)
-        
-        # if not user_preferences_dict:
-        #     user_preferences_dict = {}
-        #     init_animals = self.petpy_api.animals(
-        #         animal_type=species, location=location_str, sort="-recent"
-        #     )
-        #     return init_animals
-        # else:
-        #     # declare flag & bad_keys
-        #     # flag = boolean indicator if length of results list is > 0
-        #     flag = True
-
-        #     # bad_keys = list of preference keys that cause the length of results list to go to 0 when filtered
-        #     bad_keys = []
-
-        #     if "personality" in user_preferences_dict:
-        #         personality = user_preferences_dict["personality"]
-        #         del user_preferences_dict["personality"]
-
-        #     # get init_animals
-        #     init_animals = self.petpy_api.animals(
-        #         animal_type=species,
-        #         location=location_str,
-        #         sort="-recent",
-        #         **user_preferences_dict,
-        #     )
-
-        #     # first filter by personality
-        #     filtered_by_personality = self.filter_results_list(
-        #         {"personality": lambda result: result["tags"] in personality},
-        #         init_animals,
-        #     )
-        #     # handle if personality filter is too restrictive and results in len of 0 results
-        #     filtered_results_list = (
-        #         filtered_by_personality
-        #         if len(filtered_by_personality) > 0
-        #         else init_animals
-        #     )
-
-        #     # Loop through the rest of preferences
-        #     for pref_key in user_preferences_dict:
-        #         # Handle if list value
-        #         pref_list_value = user_preferences_dict[pref_key]
-        #         # if "any" is the pref list value, do not filter and move on
-        #         if (
-        #             pref_list_value.lower() == "any"
-        #             or pref_list_value[0].lower() == "any"
-        #         ):
-        #             next()
-
-        #         if isinstance(pref_list_value, list):
-        #             # Lambda expression to check if main_list contains all elements of sub_list
-        #             expression = lambda results_list: all(
-        #                 item in results_list for item in pref_list_value
-        #             )
-
-        #             # Assuming init_animals is a list that needs to be filtered
-        #             filtered_results_list = self.filter_results_list(
-        #                 expression, filtered_results_list
-        #             )
-        #         # handle if boolean value
-        #         elif isinstance(pref_list_value, str, bool):
-        #             if pref_list_value == "True" or pref_list_value == True:
-        #                 # filter by results
-        #                 # create boolean filter express
-
-        #                 if pref_key in [
-        #                     "spayed_neutered",
-        #                     "house_trained",
-        #                     "declawed",
-        #                     "special_needs",
-        #                     "shots_current",
-        #                 ]:
-        #                     key = "attributes"
-        #                 elif pref_key in [
-        #                     "child_friendly",
-        #                     "dogs_friendly",
-        #                     "cats_friendly",
-        #                 ]:
-        #                     key = "environment"
-
-        #                 expression = (
-        #                     lambda results_list: results_list[key][pref_key]
-        #                     == pref_list_value
-        #                 )
-        #                 filtered_results_list = self.filter_results_list(
-        #                     expression, filtered_results_list
-        #                 )
-
-        #     return {
-        #         "success_flag": flag,
-        #         "bad_keys": bad_keys,
-        #         "results": filtered_results_list,
-        #     }
 
     def animals_df_to_org_animal_count_dict(self, animals_df):
         """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.
@@ -369,7 +381,7 @@ class PetFinderPetPyAPI:
 
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
-
+        print(colors_obj)
         if not colors_obj or colors_obj["primary"] == False:
             return "Unknown Color"  # color is Unknown Color by default
 
@@ -379,10 +391,14 @@ class PetFinderPetPyAPI:
 
         if tertiary:
             if secondary:
-                return f"{primary}, {secondary}"
+                print("parse colors output", f"{primary}/ {secondary}")
+                return f"{primary}/ {secondary}"
             else:
+                print("parse colors output", primary)
                 return f"{primary}"
         else:
+            print("parse colors output", primary)
+            print("parse colors output")
             return primary
 
     def parse_photos(self, photos_list, type):
@@ -486,9 +502,22 @@ class PetFinderPetPyAPI:
         today = datetime.datetime.now(pytz.utc)
         parsed_date = None
 
+        # Determine the input date format
+        if '/' in pub_date:
+            input_format = "%d/%m/%Y"
+        elif 'T' in pub_date:
+            input_format = "%Y-%m-%dT%H:%M:%S%z"
+        else:
+            raise ValueError(f"Unsupported date format: {pub_date}")
+
+        # Parse the date
+        date_obj = datetime.datetime.strptime(pub_date, input_format)
+
         # handle if action = 'delta'
         if action == "delta":
-            date_obj = datetime.datetime.strptime(pub_date, "%Y-%m-%dT%H:%M:%S%z")
+            # If the parsed date doesn't have timezone info, assume it's UTC
+            if date_obj.tzinfo is None:
+                date_obj = date_obj.replace(tzinfo=pytz.utc)
             date_diff = today - date_obj
             # get the difference in days
             parsed_date = date_diff.days
@@ -496,62 +525,62 @@ class PetFinderPetPyAPI:
 
         # handle if action = 'format'
         if action == "format":
-            date_obj = datetime.datetime.strptime(pub_date, "%Y-%m-%dT%H:%M:%S%z")
-            parsed_date = datetime.datetime.strftime(date_obj, "%d/%m/%Y")
+            parsed_date = date_obj.strftime("%d/%m/%Y")
             return parsed_date
 
-    def parse_api_animals_data(self, api_data):
+    def parse_api_animals_data(self, single_animal_data):
         """
         Function to clean up missing data from api to be used in jinja templates
 
         Args:
-            api_data (json): API data to be cleaned up and turned into content for JINJA templates
+            single_animal_data (dict): Python dictionary of a single animal data. This is API data to be cleaned up and turned into content for JINJA templates after filtering
+        Use case:
+            After filtering results_list in .get_mapped_animals_by_type(), pass each filtered `obj` into here
         """
-        # output list of parsed animals
-        parsed = []
 
         # Check if api_data is None or an empty string
-        if api_data is None or api_data == "":
+        if single_animal_data is None or single_animal_data == "":
             print("Empty API data received.")
-            return parsed
+            return single_animal_data
 
-        # Assume api_data is a string (JSON string)
+        # copy the input obj
+        parsed = single_animal_data.copy()
         try:
-            data = json.loads(api_data)
+            # Parse the nested animal property objects
+
+            # parse breeds
+            single_animal_data["breeds"] = self.parse_breed(
+                single_animal_data["breeds"]
+            )
+            # parse colors
+            single_animal_data["colors"] = self.parse_color(
+                colors_obj=single_animal_data["colors"]
+            )
+            # parse photos
+            single_animal_data["photos"] = self.parse_photos(
+                photos_list=single_animal_data.get("photos"),
+                type=single_animal_data.get("type", "misc"),
+            )
+            # parse location
+            single_animal_data["location"] = self.parse_location_obj(
+                loc_obj=single_animal_data.get("contact")
+            )
+            # parse published_date
+            single_animal_data["published_at"] = self.parse_publish_date(
+                pub_date=single_animal_data.get("published_at", ""), action="format"
+            )
+            # create date_delta
+            single_animal_data["date_delta"] = self.parse_publish_date(
+                pub_date=single_animal_data.get("published_at", ""), action="delta"
+            )
+
+            # Remove videos
+            if "videos" in single_animal_data:
+                del single_animal_data["videos"]
 
         except TypeError as e:
-            print(f"Error parsing JSON data: {e}")
-            # If parsing fails, assume api_data is already in the desired format
-            data = api_data["animals"]
-            print(f"Animals received from API: {len(api_data['animals'])}")
-
-        # Check if data is a list of dictionaries
-        if isinstance(data, list) and all(isinstance(item, dict) for item in data):
-            for animal in data:
-                # Parse the nested animal property objects
-                animal["breeds"] = self.parse_breed(animal["breeds"])
-                animal["color"] = self.parse_color(colors_obj=animal["colors"])
-                animal["photos"] = self.parse_photos(
-                    photos_list=animal.get("photos"), type=animal.get("type", "misc")
-                )
-                animal["location"] = self.parse_location_obj(
-                    loc_obj=animal.get("contact")
-                )
-                animal["published_date"] = self.parse_publish_date(
-                    pub_date=animal.get("published_date", ""), action="format"
-                )
-                animal["date_delta"] = self.parse_publish_date(
-                    pub_date=animal.get("published_date", ""), action="delta"
-                )
-
-                # Remove videos
-                if "videos" in animal:
-                    del animal["videos"]
-                parsed.append(animal)
-        else:
-            print(
-                "Data is not valid python lists; data not in the expected format."
-            )  # data is not a list of dictionaries
+            print(f"API data parsing error: {e}.")
+            return single_animal_data
 
         # Return final list of parsed animals
         return parsed

@@ -387,21 +387,30 @@ def animal_data():
     # # country = get_user_preference(key="country", session=session, g=g)
     # # print(country)
     # results = pf_api.petpy_api.animals(location="CA", sort="distance")
-    user_id = 12  # session["CURR_USER"].id
+    user_id = 18  # session["CURR_USER"].id
     species = "dog"  # session["CURR_USER"].animal_types[0]
     user_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
         u_id=user_id, animal_type=species
     )
-    if "color" in user_prefs:
-        user_prefs["colors"] = user_prefs["color"]
-        del user_prefs["color"]
-        
-    location_str = "CA"
-    results = pf_api.get_mapped_animals_by_type(
-        species=species,
-        location_str=location_str,
-        user_preferences_dict=user_prefs.get("results"),
+
+    # filter only by breeds for now
+    # if "breeds" in user_prefs:
+    user_prefs = user_prefs["results"]
+
+    location_str = "CA" #does not work
+    geo_coordinates = "43.7190656,-79.347712" #works
+    animals = pf_api.petpy_api.animals(animal_type="dog", results_per_page=50, pages=3, location=geo_coordinates)
+
+
+    filters = pf_api.create_filter_conditions(user_prefs)
+    results = pf_api.filter_results_list(
+        filter_conditions=filters, results_list=animals["animals"]
     )
+    # results = pf_api.get_mapped_animals_by_type(
+    #     species=species,
+    #     location_str=location_str,
+    #     user_preferences_dict={}#user_prefs #user_prefs.get("results"),
+    # )
     return jsonify(results)
 
     # WHEN READY TO DISPLAY IN HTML
@@ -428,7 +437,7 @@ def animal_pref_data(animal_type):
     user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
         u_id=user_id, animal_type=species
     )
-    output = pf_api.create_filter_conditions(user_animal_prefs.results)
+    # output = pf_api.create_filter_conditions(user_animal_prefs["results"])
     return jsonify(user_animal_prefs)
     # else:
     # return redirect(url_for("login"))
@@ -667,7 +676,7 @@ def carousel_form_test():
 @auth_required
 @app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
-    current_user_id = session.get("CURR_USER")["id"]
+    current_user_id = session.get("CURR_USER").get("id", None)
     if request.method == "GET":
         user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
             u_id=current_user_id, animal_type=animal_type
@@ -701,8 +710,10 @@ def animal_preferences(animal_type):
         # create a new flask WTForms instance to prevent submitted form data from being overridden by user_animal_prefs
         form = SpecificAnimalPreferencesForm(animal_type, obj=submitted_data)
     else:
-        del user_animal_prefs["user_id"]
-        del user_animal_prefs["species"]
+        if "user_id" in user_animal_prefs:
+            del user_animal_prefs["user_id"]
+        if "species" in user_animal_prefs:
+            del user_animal_prefs["species"]
         form = SpecificAnimalPreferencesForm(animal_type, MultiDict(user_animal_prefs))
 
     if form.validate_on_submit():
@@ -715,7 +726,7 @@ def animal_preferences(animal_type):
             print(new_prefs)
             flash(f"Successfully updated {animal_type} preferences.", "success")
             # return redirect(url_for("users_show", user_id=current_user_id))
-            return redirect(url_for("animal_pref_data", {"animal_type": animal_type}))
+            return redirect(url_for("animal_pref_data", animal_type=animal_type))
         except Exception as e:
             app.logger.error(f"Error updating preferences: {e}")
             db.session.rollback()

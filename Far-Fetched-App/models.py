@@ -303,32 +303,10 @@ class UserAnimalPreferences(db.Model):
 
     # # This will ensure that these columns together uniquely identify a record in the table, and the ON CONFLICT clause can use this constraint to perform the conflict resolution.
     # __table_args__ = tuple(
-    UniqueConstraint("user_id", "species", name="unique_animal_preference")
+    UniqueConstraint(
+        "user_id", "species", "user_preference_name", name="unique_animal_preference"
+    )
     # )
-
-    # @classmethod
-    # def insert_user_animal_preferences_on_conflict_do_update(
-    #     cls, curr_user_id, species, pref_name, pref_data
-    # ):
-    #     # Class method for creating a SQL statement for inserting data into a table.
-    #     # It specifies the table name (`cls`), the columns to insert data into (`user_id`, `species`,
-    #     # `user_preference_name`, `user_preference_data`), and the values to insert.
-
-    #     stmt = insert(cls).values(
-    #         user_id=curr_user_id,
-    #         species=species,
-    #         user_preference_name=pref_name,
-    #         user_preference_data=pref_data,
-    #     )
-
-    #     stmt = stmt.on_conflict_do_update(
-    #         index_elements=["user_id", "species"],
-    #         set_={
-    #             "user_preference_data": stmt.excluded.user_preference_data,
-    #         },
-    #     )
-
-    # return stmt
 
     @classmethod
     def get_user_animal_pref_obj(cls, u_id, animal_type="dog"):
@@ -353,7 +331,7 @@ class UserAnimalPreferences(db.Model):
                 "success_flag": False,
                 "statusCode": 404,
                 "message": "No results found",
-                "results": []
+                "results": [],
             }
         else:
             out = {"user_id": u_id, "species": animal_type}
@@ -364,12 +342,16 @@ class UserAnimalPreferences(db.Model):
                     key = preference.user_preference_name
                     value = preference.user_preference_data
                     out[key] = value
+            # handle bad keys
+            if "color" in results:
+                results["colors"] = results["color"]
+                del results["color"]
             return {
                 "success_flag": True,
                 "statusCode": 200,
                 "message": f"Results found for user: {u_id} for type: {animal_type}",
-                "results": out
-            } 
+                "results": out,
+            }
 
     @classmethod
     def get_all_user_animal_preferences(cls, u_id):

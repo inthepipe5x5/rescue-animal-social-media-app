@@ -406,7 +406,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
 
         if coat_color_choices and len(coat_color_choices) > 0:
             for name in coat_color_choices:
-                self.color.choices.append((name, name.capitalize()))
+                self.colors.choices.append((name, name.capitalize()))
 
 
         # # # # Process data from obj after setting choices to populate defaults
