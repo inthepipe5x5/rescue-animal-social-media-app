@@ -34,6 +34,8 @@ from .forms import (
     UserLocationForm,
     AnonExperiencesForm,
     SpecificAnimalPreferencesForm,
+    HiddenForm,
+    HiddenLocationForm,
 )
 from .package.helper import (
     data_bp,
@@ -383,48 +385,54 @@ def animal_data():
     Returns:
         _type_: _description_
     """
-
+    user_id =  session["CURR_USER"].id
+    species = session["CURR_USER"].animal_types[0]
+    user_location = db.session.query(UserLocation).filter(user_id == user_id).first()
+    form = HiddenLocationForm(obj=user_location)
+            
+    if request.method == "GET":
+        return render_template(url_for('templates', filename="animalResults.html"), form=form)
     # Placeholder values, replace these with session-based values or dynamic user input
-    user_id = 18  # session["CURR_USER"].id
-    species = "dog"  # session["CURR_USER"].animal_types[0]
-
-    try:
-        # Fetch user preferences
-        user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
-            u_id=user_id, animal_type=species
-        )
-
-        # Filter preferences for use in API call
-        user_prefs = (
-            user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
-        )
-
-        geo_coordinates = "43.7190656,-79.347712"  # works
-        results = pf_api.get_mapped_animals_by_type(
-            species=species,
-            location_str=geo_coordinates,
-            user_preferences_dict=user_prefs,
-        )
-
-        print(
-            f"results flag = {results['success_flag']}, results length: {len(results['results'])}"
-        )
-
-        # Check if results are valid
-        if not results["success_flag"] or len(results["results"]) == 0:
-            flash(
-                f"Your search preferences are too strict; try adjusting {', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
-                "warning",
+    if request.method == "POST" and form.validate_on_submit():
+        
+        try:
+            # Fetch user preferences
+            user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
+                u_id=user_id, animal_type=species
             )
-        return jsonify(results["results"])            
-        # # Render results page
-        # return render_template("results.html", results=results["results"])
 
-    except Exception as e:
-        err_msg = f"ERROR /data/animals => Error producing filtered animal data: {e}"
-        print(err_msg)
-        flash(f"An error occurred while fetching animal data. Please try again later.{err_msg}", "danger")
-        return redirect(url_for('homepage'))  # 
+            # Filter preferences for use in API call
+            user_prefs = (
+                user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
+            )
+
+            geo_coordinates = form.geolocation.data #"43.7190656,-79.347712"  # works
+            location_str = geo_coordinates if geo_coordinates else form.postal_code.data
+            results = pf_api.get_mapped_animals_by_type(
+                species=species,
+                location_str=location_str,
+                user_preferences_dict=user_prefs,
+            )
+
+            print(
+                f"results flag = {results['success_flag']}, results length: {len(results['results'])}"
+            )
+
+            # Check if results are valid
+            if not results["success_flag"] or len(results["results"]) == 0:
+                flash(
+                    f"Your search preferences are too strict; try adjusting {', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
+                    "warning",
+                )
+            return jsonify(results["results"])            
+            # # Render results page
+            # return render_template("results.html", results=results["results"])
+
+        except Exception as e:
+            err_msg = f"ERROR /data/animals => Error producing filtered animal data: {e}"
+            print(err_msg)
+            flash(f"An error occurred while fetching animal data. Please try again later.{err_msg}", "danger")
+            return redirect(url_for('homepage'))  # 
 
 
 
@@ -525,18 +533,20 @@ def update_data_session():
 
 @app.route("/set_location", methods=["POST"])
 def set_location():
-    """Route to set location for anonymous search results
+    """Route to set location for search results
 
     Returns:
         _type_: _description_
     """
     # grab location from request body
-    location = request.args.get("location")
+    location = request.values.get("location") #Use request.values for a combined view of query and form data.
     # handle lack of location provided from request body
     if not location:
         # check if country, state is provided in request body
-        country = request.args.get("country")
-        state = request.args.get("state")
+        country = request.values.get("country", None)
+        state = request.values.get("state", None)
+        geolocation = request.values.get("geolocation", None)
+        
         # if country, state not provided in request body, grab location from .flaskenv
         if not country or not state:
             session["CURR_LOCATION"] = os.environ.get("CURR_LOCATION", "ON,CA")
@@ -546,8 +556,11 @@ def set_location():
 
     # set location in session
     session["CURR_LOCATION"] = location
-    print(f'App.py: Current CURR_LOCATION set to: {session["CURR_LOCATION"]}')
-    return add_location_to_g()
+    
+    success_msg = f"App.py: Current CURR_LOCATION set to: {session["CURR_LOCATION"]}"
+    add_location_to_g()
+    
+    return jsonify({"message": success_msg})
 
 
 @app.route("/set_global", methods=["GET", "POST"])

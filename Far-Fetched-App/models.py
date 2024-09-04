@@ -80,7 +80,8 @@ class UserLocation(db.Model):
     # )
     country = db.Column(db.String(2), nullable=False, default="CA")
     state = db.Column(db.String(2), nullable=False, default="ON")
-    # postal_code = db.Column(db.String(7), nullable=False)
+    postal_code = db.Column(db.String(7))
+    geolocation = db.Column(db.String(100))
     city = db.Column(db.String(100))
 
     user = db.relationship(

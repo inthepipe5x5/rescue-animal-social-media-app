@@ -7,7 +7,7 @@
         <h3 class="text-muted-warning">Error 404: Nothing found!</h3>
         {% endif %} {% if results %} {% if results.animals %}
         <div class="row row-cols-1 row-cols-md-3 g-4">
-          {% for animal in results.animals %}
+         {% for animal in results.animals %}
           <div class="col">
             <div class="card text-start h-100">
               {% if animal.photos | length > 0 %}
@@ -76,6 +76,16 @@
                 <p>{{ animal.description }}</p>
                 {% endif %} {% for tag in animal.tags %}
                 <span class="badge rounded-pill bg-success">{{ tag }}</span>
+                
+                <!--WHICH ONE ?? -->
+                <span class="badge rounded-pill bg-info">{{ date_delta }} Days</span>
+                <button type="button" class="btn btn-primary date_delta">
+                  Days Waiting: <span class="badge badge-light">{{date_delta}}</span>
+                  <span class="sr-only">unread messages</span>
+                </button>
+                <!--WHICH ONE ?? -->
+                
+                
                 {% endfor %} {% if animal.status == "adoptable" %}
                 <div
                   class="alert alert-success mt-2 justify-content-center"
@@ -88,7 +98,7 @@
               </div>
             </div>
           </div>
-          {% endfor %}
+          {% endfor %} 
         </div>
         {% endif %} {% endif %}
       </div>

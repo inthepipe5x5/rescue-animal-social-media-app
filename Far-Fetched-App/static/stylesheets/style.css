@@ -541,3 +541,55 @@ p.card-bio {
 .message-404 .form-inline input {
   flex: 1;
 }
+
+/* ================================ Loading Shimmer Effect */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.skeleton-card {
+  background-color: #f6f7f8;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.skeleton-img {
+  height: 200px;
+  background-color: #ddd;
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 80%;
+  margin: 15px 0;
+  background-color: #ddd;
+}
+
+.skeleton-text {
+  height: 100px;
+  margin-bottom: 15px;
+  background-color: #ddd;
+}
+
+.skeleton-badges {
+  display: flex;
+  gap: 10px;
+}
+
+.skeleton-badge {
+  height: 20px;
+  width: 60px;
+  background-color: #ddd;
+  border-radius: 20px;
+}
+
+.shimmer {
+  background: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+  background-size: 800px 104px;
+  animation: shimmer 1.5s infinite linear;
+}

@@ -1,0 +1,47 @@
+{% extends "base.html" %} {% block results %}
+<div class="container">
+  <div class="row text-center">
+    <div class="col">
+      <div id="parent-results-container">
+        <div id="animal-results-error-container" class="container">
+          <span class="text-danger"><!--PUT ERRORS HERE--></span>
+        </div>
+
+        <div
+          id="animal-results-cards-container"
+          class="row row-cols-1 row-cols-md-3 g-4"
+        >
+          <form id="hidden_form" method="POST" action={% url_for('animal_data')%}>
+            {{ form.hidden_tag() }} {% for field in form if
+            field.widget.input_type != 'hidden' %} {% for error in field.errors
+            %} {% endfor %} {{ field(placeholder=field.label.text,
+            class="form-control") }} {% endfor %}
+          </form>
+        </div>
+        <!-- Include geolocation.js -->
+        <script src="{{ url_for('static', filename='geolocation.js') }}"></script>
+
+        <!-- Include renderAnimalCards.js -->
+        <script src="{{ url_for('static', filename='renderAnimalCards.js') }}"></script>
+
+        <script>
+        // Run on page load
+        document.addEventListener("DOMContentLoaded", function () {
+            // Call this function to log the URL details
+            logCurrentUrlDetails();
+            // Render skeleton cards on page load
+            renderCards({}, 8);
+            // Fetch animals data from API and render cards
+            postHiddenForm();
+        });
+
+        document.addEventListener("submit", async () => {
+            // On API data reception
+            // Check if page has invisible form element
+        });
+        </script>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

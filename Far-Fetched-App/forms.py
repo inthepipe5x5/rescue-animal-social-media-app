@@ -6,6 +6,7 @@ from wtforms import (  # type: ignore # type: ignore
     SelectMultipleField,
     BooleanField,
     SelectField,
+    HiddenField,
 )
 from petpy import Petfinder
 import os
@@ -284,6 +285,19 @@ class UserTravelForm(ModelForm):
         model = UserTravelPreferences
 
 
+class HiddenForm(FlaskForm):
+    """Hidden form to submit CSRF token and any additional data"""
+
+    csrf_token = HiddenField()
+
+class HiddenLocationForm(UserLocationForm):
+    """Hidden form to submit CSRF token and location data to be used in API data queries"""
+
+    csrf_token = HiddenField()
+
+    def __init__(self, *args, **kwargs):
+        super(HiddenLocationForm, self).__init__(*args, **kwargs)
+            
 class SpecificAnimalPreferencesForm(FlaskForm):
     """To capture user preferences for specific animal species. To be used as optional filters on animals by behavior and appearance."""
 
