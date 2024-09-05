@@ -385,16 +385,18 @@ def animal_data():
     Returns:
         _type_: _description_
     """
-    user_id =  session["CURR_USER"].id
+    user_id = session["CURR_USER"].id
     species = session["CURR_USER"].animal_types[0]
     user_location = db.session.query(UserLocation).filter(user_id == user_id).first()
     form = HiddenLocationForm(obj=user_location)
-            
+
     if request.method == "GET":
-        return render_template(url_for('templates', filename="animalResults.html"), form=form)
+        return render_template(
+            url_for("templates", filename="animalResults.html"), form=form
+        )
     # Placeholder values, replace these with session-based values or dynamic user input
     if request.method == "POST" and form.validate_on_submit():
-        
+
         try:
             # Fetch user preferences
             user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
@@ -406,7 +408,7 @@ def animal_data():
                 user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
             )
 
-            geo_coordinates = form.geolocation.data #"43.7190656,-79.347712"  # works
+            geo_coordinates = form.geolocation.data  # "43.7190656,-79.347712"  # works
             location_str = geo_coordinates if geo_coordinates else form.postal_code.data
             results = pf_api.get_mapped_animals_by_type(
                 species=species,
@@ -424,16 +426,20 @@ def animal_data():
                     f"Your search preferences are too strict; try adjusting {', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
                     "warning",
                 )
-            return jsonify(results["results"])            
+            return jsonify(results["results"])
             # # Render results page
             # return render_template("results.html", results=results["results"])
 
         except Exception as e:
-            err_msg = f"ERROR /data/animals => Error producing filtered animal data: {e}"
+            err_msg = (
+                f"ERROR /data/animals => Error producing filtered animal data: {e}"
+            )
             print(err_msg)
-            flash(f"An error occurred while fetching animal data. Please try again later.{err_msg}", "danger")
-            return redirect(url_for('homepage'))  # 
-
+            flash(
+                f"An error occurred while fetching animal data. Please try again later.{err_msg}",
+                "danger",
+            )
+            return redirect(url_for("homepage"))  #
 
 
 # @auth_required
@@ -480,13 +486,69 @@ def reseed_db():
         "rescue_action_type": ["volunteering", "donation", "adoption", "animal foster"],
     }
 
-    salt = bcrypt.gensalt()
-    test_user.password = bcrypt(test_user.password.encode("utf-8"), salt)
+    test_user_location = {
+        "country": "CA",
+        "state": "ON",
+        "postal_code": "m5j 0b3",
+        "geolocation": "43.6429,79.3889",
+        "city": "Toronto",
+    }
+    default_animal_prefs = [
+        {"declawed": False},
+        {"shots_current": False},
+        {"special_needs": False},
+        {"spayed_neutered": False},
+        {"house_trained": False},
+        {"child_friendly": False},
+        {"dogs_friendly": False},
+        {"cats_friendly": False},
+        {"breeds": ["any"]},
+        {"colors": ["any"]},
+        {"coat": ["any"]},
+        {"age": ["any"]},
+        {"gender": ["any"]},
+        {"size": ["any"]},
+        {"personality": ["any"]},
+    ]
+    # Creating a list of user preferences
+    test_user_animal_prefs = [
+        {
+            "user_id": 1, #assuming test123 id is "1"
+            "species": test_user["animal_types"][0],
+            "user_preference_name": list(pref.keys())[0],
+            "user_preference_data": list(pref.values())[0],
+        }
+        for pref in default_animal_prefs
+    ]
+    
+    #create user
+    # test_user["password"] = bcrypt.generate_password_hash(
+    #     password=test_user["password"]
+    # ).decode("utf8")
     test123 = User.signup(**test_user)
+    db.session.add(test123)
+    db.session.commit()
     app.logger.info(f"created user: test123 {test123}")
-    test123_location = UserLocation(country="CA", state="ON")
+    
+    #create location
+    test123_location = UserLocation(**test_user_location)
     db.session.add(test123_location)
-    db.commit()
+    db.session.commit()
+    app.logger.info(f"created location: test123_location {test123_location}")
+    
+    # create prefs
+    test123_prefs = db.session.bulk_insert_mappings(
+        UserAnimalPreferences, test_user_animal_prefs
+    )
+
+    return jsonify(
+        {
+            "message": "database recreated and user test123 inserted",
+            "user": {"id": test123.id, **test_user},
+            "location": test_user_location,
+            "animal_prefs": test123_prefs,
+        }
+    )
 
 
 @app.route("/data/orgs", methods=["GET", "POST"])
@@ -539,14 +601,16 @@ def set_location():
         _type_: _description_
     """
     # grab location from request body
-    location = request.values.get("location") #Use request.values for a combined view of query and form data.
+    location = request.values.get(
+        "location"
+    )  # Use request.values for a combined view of query and form data.
     # handle lack of location provided from request body
     if not location:
         # check if country, state is provided in request body
         country = request.values.get("country", None)
         state = request.values.get("state", None)
         geolocation = request.values.get("geolocation", None)
-        
+
         # if country, state not provided in request body, grab location from .flaskenv
         if not country or not state:
             session["CURR_LOCATION"] = os.environ.get("CURR_LOCATION", "ON,CA")
@@ -556,10 +620,10 @@ def set_location():
 
     # set location in session
     session["CURR_LOCATION"] = location
-    
-    success_msg = f"App.py: Current CURR_LOCATION set to: {session["CURR_LOCATION"]}"
+
+    success_msg = f"App.py: Current CURR_LOCATION set to: {session['CURR_LOCATION']}"
     add_location_to_g()
-    
+
     return jsonify({"message": success_msg})
 
 
