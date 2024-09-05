@@ -51,7 +51,8 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None #set to None to disable expiration
     CSRF_ENABLED = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
+    SUPABASE_URI = os.environ.get("SUPABASE_URI", None)
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') if not SUPABASE_URI else SUPABASE_URI
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False #set to true to debug db logs; else False to not flood terminal
     
