@@ -195,7 +195,7 @@ function renderCards(animals = [], skeletonCount = 8) {
 
 function createSkeletonCard() {
   const colDiv = document.createElement("div");
-  colDiv.className = "col";
+  colDiv.className = "col-lg-4 mb-4 mb-lg-0";
 
   const cardDiv = document.createElement("div");
   cardDiv.className = "card text-start h-100 skeleton-card";
