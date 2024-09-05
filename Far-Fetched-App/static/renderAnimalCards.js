@@ -17,11 +17,13 @@ const postHiddenForm = async () => {
     if (hiddenForm) {
       const geolocationInput = document.getElementById("geolocation-input");
       if (!geolocationInput || geolocationInput.value === "") {
-        const geolocation = await getUserLocation(); 
+        const geolocation = await getUserLocation();
+        console.log("Geolocation fetched:", geolocation);
+
         const data = {
-          state: "state_value", 
-          country: "country_value",
-          postal_code: "postal_code_value",
+          // state: document.getElementById("state_field").value || "",
+          // country: document.getElementById("country_field").value || "",
+          // postal_code: document.getElementById("postal_code_field").value || "",
           geolocation: geolocation,
         };
         for (let key in data) {
@@ -173,7 +175,7 @@ function renderCards(animals = [], skeletonCount = 8) {
   container.innerHTML = ""; // Clear existing content
 
   const rowDiv = document.createElement("div");
-  rowDiv.className = "row row-cols-1 row-cols-md-3 g-4";
+  rowDiv.className = "row row-cols-3 row-cols-md-3 g-4";
 
   if (!animals || animals.length === 0) {
     // Create skeleton cards
@@ -233,7 +235,7 @@ function fetchDataAndRender(apiURL) {
   fetch(apiURL)
     .then((response) => response.json())
     .then((data) => {
-      if (data.results && data.results.animals) {
+      if (data.results && data.results.animals.length > 0) {
         renderCards(data.results.animals);
       }
     })
@@ -241,3 +243,4 @@ function fetchDataAndRender(apiURL) {
       console.error("Error fetching data:", error, logCurrentUrlDetails())
     );
 }
+

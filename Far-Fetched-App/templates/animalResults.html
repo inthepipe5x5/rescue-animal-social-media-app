@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block results %}
+{% extends "base.html" %} {% block content %} {% block results %}
 <div class="container">
   <div class="row text-center">
     <div class="col">
@@ -11,11 +11,20 @@
           id="animal-results-cards-container"
           class="row row-cols-1 row-cols-md-3 g-4"
         >
-          <form id="hidden_form" method="POST" action={% url_for('animal_data')%}>
-            {{ form.hidden_tag() }} {% for field in form if
-            field.widget.input_type != 'hidden' %} {% for error in field.errors
-            %} {% endfor %} {{ field(placeholder=field.label.text,
-            class="form-control") }} {% endfor %}
+          <form
+            id="hidden_form"
+            class="hidden
+            method="POST"
+            action="{{ url_for('animal_data') }}"
+          >
+            {% for field in form %}
+                {% if field.widget.input_type == 'hidden' %}
+                    {% for error in field.errors %}
+                        <div class="error">{{ error }}</div>
+                    {% endfor %}
+                    {{ field(placeholder=field.label.text, class="form-control") }}
+                {% endif %}
+            {% endfor %}
           </form>
         </div>
         <!-- Include geolocation.js -->
@@ -25,23 +34,17 @@
         <script src="{{ url_for('static', filename='renderAnimalCards.js') }}"></script>
 
         <script>
-        // Run on page load
-        document.addEventListener("DOMContentLoaded", function () {
-            // Call this function to log the URL details
-            logCurrentUrlDetails();
-            // Render skeleton cards on page load
-            renderCards({}, 8);
-            // Fetch animals data from API and render cards
-            postHiddenForm();
-        });
+          // Call this function to log the URL details
+          logCurrentUrlDetails();
+          // Render skeleton cards on page load
+          renderCards([], 9);
+          // Fetch animals data from API and render cards
+          postHiddenForm();
 
-        document.addEventListener("submit", async () => {
-            // On API data reception
-            // Check if page has invisible form element
-        });
+
         </script>
       </div>
     </div>
   </div>
 </div>
-{% endblock %}
+{% endblock %} {% endblock %}

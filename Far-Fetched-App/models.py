@@ -211,7 +211,12 @@ class User(db.Model):
     # followed_orgs = db.relationship("FollowedOrg", back_populates="user")
     # user_reviews = db.relationship("UserReviews", back_populates="user")
     def serialize(self):
-        obj = {"username": self.username, "id": self.id, "image_url": self.image_url}
+        obj = {
+            "username": self.username,
+            "id": self.id,
+            "image_url": self.image_url,
+            "animal_types": self.animal_types,
+        }
         return obj
 
     def __repr__(self):

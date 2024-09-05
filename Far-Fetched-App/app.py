@@ -65,7 +65,7 @@ pf_api = PetFinderPetPyAPI(
 
 
 default_session_keys = {
-    "location": os.environ.get("CURR_LOCATION", "ON,CA"),
+    "location": os.environ.get("CURR_LOCATION", "43.6429,79.3889"),
     "state": os.environ.get("state", "ON"),
     "country": os.environ.get("country", "CA"),
     "animal_types": os.environ.get("animal_types", ["dog"]),
@@ -208,6 +208,7 @@ def login():
         if user:
             do_login(user)
             g.user = user
+            session["CURR_USER"] = user.serialize()
             print(g.user)
             flash(f"Hello, {user.username}!", "success")
             return redirect("/")
@@ -385,15 +386,22 @@ def animal_data():
     Returns:
         _type_: _description_
     """
-    user_id = session["CURR_USER"].id
-    species = session["CURR_USER"].animal_types[0]
-    user_location = db.session.query(UserLocation).filter(user_id == user_id).first()
-    form = HiddenLocationForm(obj=user_location)
+    user_id = session["CURR_USER"]["id"] or None
+    if user_id:
+        user = db.session.query(User).filter(User.id == session[CURR_USER_KEY]).first()
+        species = user.animal_types[0] or default_session_keys["animal_types"]
+        user_location = (
+            db.session.query(UserLocation).filter(user_id == user_id).first()
+        )
+        location = {
+            c.name: getattr(user_location, c.name)
+            for c in user_location.__table__.columns
+        }
+
+    form = HiddenLocationForm(obj=location) if user_id else HiddenLocationForm()
 
     if request.method == "GET":
-        return render_template(
-            url_for("templates", filename="animalResults.html"), form=form
-        )
+        return render_template("animalResults.html", form=form)
     # Placeholder values, replace these with session-based values or dynamic user input
     if request.method == "POST" and form.validate_on_submit():
 
@@ -439,7 +447,7 @@ def animal_data():
                 f"An error occurred while fetching animal data. Please try again later.{err_msg}",
                 "danger",
             )
-            return redirect(url_for("homepage"))  #
+            return redirect(url_for("homepage"))  
 
 
 # @auth_required
@@ -513,15 +521,15 @@ def reseed_db():
     # Creating a list of user preferences
     test_user_animal_prefs = [
         {
-            "user_id": 1, #assuming test123 id is "1"
+            "user_id": 1,  # assuming test123 id is "1"
             "species": test_user["animal_types"][0],
             "user_preference_name": list(pref.keys())[0],
             "user_preference_data": list(pref.values())[0],
         }
         for pref in default_animal_prefs
     ]
-    
-    #create user
+
+    # create user
     # test_user["password"] = bcrypt.generate_password_hash(
     #     password=test_user["password"]
     # ).decode("utf8")
@@ -529,13 +537,13 @@ def reseed_db():
     db.session.add(test123)
     db.session.commit()
     app.logger.info(f"created user: test123 {test123}")
-    
-    #create location
+
+    # create location
     test123_location = UserLocation(**test_user_location)
     db.session.add(test123_location)
     db.session.commit()
     app.logger.info(f"created location: test123_location {test123_location}")
-    
+
     # create prefs
     test123_prefs = db.session.bulk_insert_mappings(
         UserAnimalPreferences, test_user_animal_prefs
