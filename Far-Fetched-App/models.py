@@ -411,7 +411,7 @@ class UserAnimalPreferences(db.Model):
                     pref_obj = {
                         "species": animal,
                         "user_preference_name": pref_key,
-                        "user_preference_data": json.dumps(pref_value),
+                        "user_preference_data": pref_value,
                         "user_id": user_id,
                     }
 

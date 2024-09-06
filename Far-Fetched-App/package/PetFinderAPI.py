@@ -296,7 +296,7 @@ class PetFinderPetPyAPI:
 
         # determine success (true/false) based on len(output) > 0
         flag = len(temp_output) > 0
-        print(len(temp_output) > 0, type(temp_output), len(temp_output))
+        print(len(temp_output) > 0, len(temp_output))
 
         # return results_list if flag is false
         output = temp_output if flag else results_list
@@ -308,7 +308,7 @@ class PetFinderPetPyAPI:
             "bad_keys": bad_keys,
         }
 
-    def get_mapped_animals_by_type(self, species, location_str, user_preferences_dict):
+    def get_mapped_animals_by_type(self, species, location_str, user_preferences_dict, page=1):
         """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
 
         Args:
@@ -327,24 +327,24 @@ class PetFinderPetPyAPI:
         coats_pref = (
             default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
         )
-
-        init_animals = self.petpy_api.animals(
-            # animal_type=species, location=location_str, sort="-recent"
-            breed=user_preferences_dict.get("breed", []),
-            gender=gender_pref,
-            good_with_cats=user_preferences_dict.get("cats_friendly", False),
-            good_with_children=user_preferences_dict.get("child_friendly", False),
-            good_with_dogs=user_preferences_dict.get("dogs_friendly", False),
-            declawed=user_preferences_dict.get("declawed", False),
-            special_needs=user_preferences_dict.get("special_needs", False),
-            house_trained=user_preferences_dict.get("house_trained", False),
-            animal_type=species,
-            coat=coats_pref,
-            location=location_str,
-            sort="distance",
-            results_per_page=50,
-            pages=5,
-        )["animals"]
+        init_animals = self.petpy_api.animals(location=location_str, results_per_page=50, pages=page)
+        # init_animals = self.petpy_api.animals(
+        #     animal_type=species, location=location_str, sort="-recent"
+        #     breed=user_preferences_dict.get("breed", []),
+        #     gender=gender_pref,
+        #     good_with_cats=user_preferences_dict.get("cats_friendly", False),
+        #     good_with_children=user_preferences_dict.get("child_friendly", False),
+        #     good_with_dogs=user_preferences_dict.get("dogs_friendly", False),
+        #     declawed=user_preferences_dict.get("declawed", False),
+        #     special_needs=user_preferences_dict.get("special_needs", False),
+        #     house_trained=user_preferences_dict.get("house_trained", False),
+        #     animal_type=species,
+        #     coat=coats_pref,
+        #     location=location_str,
+        #     sort="distance",
+        #     results_per_page=50,
+        #     pages=page,
+        # )["animals"]
         print("API results len = ", len(init_animals))
         # create filter conditions based on user_preferences_dict
         filter_conditions = self.create_filter_conditions(user_preferences_dict)

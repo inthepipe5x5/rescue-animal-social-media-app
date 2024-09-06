@@ -56,6 +56,7 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # set to None to disable expiration
     CSRF_ENABLED = True
+    # SQLALCHEMY_DATABASE_URI =  os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_DATABASE_URI = URL.create(
         drivername="postgresql",
         username=os.environ.get("SUPABASE_USER"),

@@ -1,9 +1,9 @@
 //front-end logic to grab user geolocation
 //run on page load
-const postLocationData = async (params) => {
+const postLocationData = async (endpoint, params) => {
   const { state, postal_code, country, geolocation } = params || null;
 
-  const API_URL = "localhost";
+  const API_URL = "localhost/" + endpoint;
   try {
     const response = await fetch(API_URL, {
       body: JSON.stringify({

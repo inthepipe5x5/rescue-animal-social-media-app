@@ -1,5 +1,27 @@
 //UI logic to render animal data into card elements
 
+const getUserLocation = async () => {
+  if (!("geolocation" in navigator)) {
+    throw new Error("Geolocation is not supported by this browser.");
+  }
+
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0,
+      });
+    });
+
+    const { latitude, longitude } = position.coords;
+    return `${latitude},${longitude}`;
+  } catch (error) {
+    console.error("Error getting user location:", error);
+    throw error;
+  }
+};
+
 //log URL details
 function logCurrentUrlDetails() {
   console.debug("Full URL:", window.location.href);
@@ -12,6 +34,9 @@ function logCurrentUrlDetails() {
 }
 
 const postHiddenForm = async () => {
+  //render placeholder skeleton cards
+  renderCards([], 9);
+
   try {
     const hiddenForm = document.getElementById("hidden_form");
     if (hiddenForm) {
@@ -21,9 +46,9 @@ const postHiddenForm = async () => {
         console.log("Geolocation fetched:", geolocation);
 
         const data = {
-          // state: document.getElementById("state_field").value || "",
-          // country: document.getElementById("country_field").value || "",
-          // postal_code: document.getElementById("postal_code_field").value || "",
+          state: document.getElementById("state_field").value || "",
+          country: document.getElementById("country_field").value || "",
+          postal_code: document.getElementById("postal_code_field").value || "",
           geolocation: geolocation,
         };
         for (let key in data) {
@@ -34,7 +59,8 @@ const postHiddenForm = async () => {
       }
     } else {
       console.log("No hidden form found @", window.location.pathname);
-      const apiPathName = window.location.origin + "/data/animals";
+
+      alert("No hidden form found, making API call now");
       return fetchDataAndRender(apiPathName);
     }
   } catch (error) {
@@ -169,13 +195,20 @@ function createCardElementFromData(animal) {
   return colDiv;
 }
 
-// Function to render cards
-function renderCards(animals = [], skeletonCount = 8) {
-  const container = document.getElementById("animal-results-cards-container");
-  container.innerHTML = ""; // Clear existing content
+const clearContainer = (containerId = "animal-results-cards-container") => {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = ""; // Clear all child elements
+  } else {
+    console.error(`Container with ID "${containerId}" not found.`);
+  }
+};
 
-  const rowDiv = document.createElement("div");
-  rowDiv.className = "row row-cols-3 row-cols-md-3 g-4";
+// Function to render cards
+function renderCards(animals = [], skeletonCount = 9) {
+  const rowDivID = "animal-results-cards-container";
+  const rowDiv = document.getElementById("animal-results-cards-container");
+  clearContainer(rowDivID);
 
   if (!animals || animals.length === 0) {
     // Create skeleton cards
@@ -185,12 +218,12 @@ function renderCards(animals = [], skeletonCount = 8) {
     }
   } else {
     animals.forEach((animal) => {
-      const cardElement = createCardElement(animal);
+      const cardElement = createCardElementFromData(animal);
       rowDiv.appendChild(cardElement);
     });
   }
 
-  container.appendChild(rowDiv);
+  // container.appendChild(rowDiv);
 }
 
 function createSkeletonCard() {
@@ -233,9 +266,13 @@ function createSkeletonCard() {
 // Fetch data from API and render cards
 function fetchDataAndRender(apiURL) {
   fetch(apiURL)
-    .then((response) => response.json())
+    .then((response) => {
+      console.log(response.text);
+      response.json();
+    })
     .then((data) => {
       if (data.results && data.results.animals.length > 0) {
+        clearContainer();
         renderCards(data.results.animals);
       }
     })
@@ -243,4 +280,3 @@ function fetchDataAndRender(apiURL) {
       console.error("Error fetching data:", error, logCurrentUrlDetails())
     );
 }
-

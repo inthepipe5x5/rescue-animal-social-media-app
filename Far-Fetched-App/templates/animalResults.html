@@ -17,6 +17,7 @@
             method="POST"
             action="{{ url_for('animal_data') }}"
           >
+            {{form.hidden_tag()}}
             {% for field in form %}
                 {% if field.widget.input_type == 'hidden' %}
                     {% for error in field.errors %}
@@ -28,7 +29,6 @@
           </form>
         </div>
         <!-- Include geolocation.js -->
-        <script src="{{ url_for('static', filename='geolocation.js') }}"></script>
 
         <!-- Include renderAnimalCards.js -->
         <script src="{{ url_for('static', filename='renderAnimalCards.js') }}"></script>
@@ -37,10 +37,9 @@
           // Call this function to log the URL details
           logCurrentUrlDetails();
           // Render skeleton cards on page load
-          renderCards([], 9);
+          renderCards([],9)
           // Fetch animals data from API and render cards
-          postHiddenForm();
-
+          fetchDataAndRender(window.location.origin + "/data/animals");
 
         </script>
       </div>

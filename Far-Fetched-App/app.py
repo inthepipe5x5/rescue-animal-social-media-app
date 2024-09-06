@@ -393,18 +393,23 @@ def animal_data():
         user_location = (
             db.session.query(UserLocation).filter(user_id == user_id).first()
         )
-        location = {
-            c.name: getattr(user_location, c.name)
-            for c in user_location.__table__.columns
-        }
-
-    form = HiddenLocationForm(obj=location) if user_id else HiddenLocationForm()
+    
+    location = user_location if user_id else {
+        "geolocation": "43.6429,79.3889",
+        "state": "ON",
+        "country": "CA",
+        "postal_code": "m5j0b3",
+        "city": "Toronto",
+    }
+    
+    form = HiddenLocationForm(obj=location)
 
     if request.method == "GET":
         return render_template("animalResults.html", form=form)
-    # Placeholder values, replace these with session-based values or dynamic user input
+    if request.method == "POST":
+        request_data = request.get_json()
+        print(request_data)
     if request.method == "POST" and form.validate_on_submit():
-
         try:
             # Fetch user preferences
             user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
@@ -416,11 +421,12 @@ def animal_data():
                 user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
             )
 
-            geo_coordinates = form.geolocation.data  # "43.7190656,-79.347712"  # works
-            location_str = geo_coordinates if geo_coordinates else form.postal_code.data
+            #geo_coordinates = form.geolocation.data 
+            #location_str = geo_coordinates if geo_coordinates else form.postal_code.data
+            
             results = pf_api.get_mapped_animals_by_type(
                 species=species,
-                location_str=location_str,
+                location_str=location.geolocation,#location_str,
                 user_preferences_dict=user_prefs,
             )
 
@@ -434,13 +440,13 @@ def animal_data():
                     f"Your search preferences are too strict; try adjusting {', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
                     "warning",
                 )
-            return jsonify(results["results"])
+            return jsonify(results)
             # # Render results page
             # return render_template("results.html", results=results["results"])
 
         except Exception as e:
             err_msg = (
-                f"ERROR /data/animals => Error producing filtered animal data: {e}"
+                f"ERROR /data/animals => {e}"
             )
             print(err_msg)
             flash(
@@ -612,6 +618,7 @@ def set_location():
     location = request.values.get(
         "location"
     )  # Use request.values for a combined view of query and form data.
+    
     # handle lack of location provided from request body
     if not location:
         # check if country, state is provided in request body
@@ -619,12 +626,7 @@ def set_location():
         state = request.values.get("state", None)
         geolocation = request.values.get("geolocation", None)
 
-        # if country, state not provided in request body, grab location from .flaskenv
-        if not country or not state:
-            session["CURR_LOCATION"] = os.environ.get("CURR_LOCATION", "ON,CA")
-        # if country, state provided in request body, join and set as location
-        else:
-            location = ",".join(country, state)
+        location = ",".join(country, state)
 
     # set location in session
     session["CURR_LOCATION"] = location
