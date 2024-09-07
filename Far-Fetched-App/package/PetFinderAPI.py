@@ -57,7 +57,12 @@ class PetFinderPetPyAPI:
         self.get_anon_preference = get_anon_preference_func
         self.get_user_preference = get_user_preference_func
 
-    def create_custom_url_for_api_request(self, endpoint, request_url, **params):
+    def _get_request(
+        self,
+        endpoint="animals",
+        request_url="https://api.petfinder.com/v2/animals",
+        **params,
+    ):
         """Create a url to make an API request based off passed in params object.
 
 
@@ -71,24 +76,35 @@ class PetFinderPetPyAPI:
         # handle if no params passed in
         params = {} if not params else params
         # handle if no request_url passed in
-        request_url = (
-            f"{self.BASE_API_URL}/v2/{endpoint}" if not request_url else request_url
-        )
 
         # Obtain the current access token within the self.petpy_api class
         access_token = self.petpy_api._auth
 
         # Make a request to the specified endpoint with the access token
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = requests.get(request_url, headers=headers, params=params)
+        try:
+            response = requests.get(request_url, headers=headers, params=params)
 
-        # Check for a successful response
-        response.raise_for_status()
-        return {
-            "access_token": access_token,
-            "results": response[endpoint].json(),
-            "pagination": response["pagination"].json(),
-        }
+            # Check for a successful response
+            response.raise_for_status()
+            result = response.json()
+            output = {
+                "access_token": access_token,
+                "results": result[endpoint],
+                "pagination": result["pagination"],
+                "success_flag": (len(result[endpoint]) > 0),
+            }
+            # print(output)
+            return output
+        except Exception as e:
+            print(f"endpoint, request_url, params=> { request_url, params}")
+            print(f"_get_request ERROR=> ERROR: {e}")
+            return {
+                "access_token": access_token,
+                "results": response,
+                "pagination": [],
+                "success_flag": False,
+            }
 
     def create_filter_conditions(self, preferences):
         """
@@ -144,19 +160,20 @@ class PetFinderPetPyAPI:
                         any(
                             target_item.lower() in val.lower()
                             for val in obj_value.values()
-                            if val
-                            and isinstance(
-                                val, str
-                            )  # so we skip any falsy and non-str values
+                            if val and isinstance(val, str)  # so we skip any falsy and non-str values
                         )
                         for target_item in filter_value
                     )
                 else:
-                    # Otherwise, just check for equality
-                    return (
-                        obj_value.lower() == filter_value.lower()
-                        or filter_value.lower() in obj_value.lower()
-                    )
+                    # Otherwise, check for equality or inclusion based on the type of filter_value
+                    if isinstance(filter_value, (str, bool)):
+                        return str(obj_value).lower() == str(filter_value).lower()
+                    elif isinstance(filter_value, dict):
+                        return obj_value in filter_value.keys()
+                    elif isinstance(filter_value, list):
+                        return str(obj_value).lower() in [str(val).lower() for val in filter_value]
+                    else:
+                        return None  # Handle any other unexpected types
 
             return list_condition
 
@@ -218,7 +235,7 @@ class PetFinderPetPyAPI:
 
         return filter_conditions
 
-    def filter_results_list(self, filter_conditions, results_list):
+    def filter_results_list(self, filter_conditions, results_list, pagination):
         """function to filter lists of results
 
         Pass in lambda filter expressions as filters KWARG
@@ -306,9 +323,12 @@ class PetFinderPetPyAPI:
             "results": output,
             "success_flag": flag,
             "bad_keys": bad_keys,
+            "pagination": pagination,
         }
 
-    def get_mapped_animals_by_type(self, species, location_str, user_preferences_dict, page=1):
+    def get_mapped_animals_by_type(
+        self, species, location_str, user_preferences_dict, page=1
+    ):
         """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
 
         Args:
@@ -327,30 +347,45 @@ class PetFinderPetPyAPI:
         coats_pref = (
             default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
         )
-        init_animals = self.petpy_api.animals(location=location_str, results_per_page=50, pages=page)
-        # init_animals = self.petpy_api.animals(
-        #     animal_type=species, location=location_str, sort="-recent"
-        #     breed=user_preferences_dict.get("breed", []),
-        #     gender=gender_pref,
-        #     good_with_cats=user_preferences_dict.get("cats_friendly", False),
-        #     good_with_children=user_preferences_dict.get("child_friendly", False),
-        #     good_with_dogs=user_preferences_dict.get("dogs_friendly", False),
-        #     declawed=user_preferences_dict.get("declawed", False),
-        #     special_needs=user_preferences_dict.get("special_needs", False),
-        #     house_trained=user_preferences_dict.get("house_trained", False),
-        #     animal_type=species,
-        #     coat=coats_pref,
-        #     location=location_str,
-        #     sort="distance",
-        #     results_per_page=50,
-        #     pages=page,
-        # )["animals"]
-        print("API results len = ", len(init_animals))
+        init_params = {"type": species, "page": page, "location": location_str}
+        params = init_params.copy()
+        excluded_values = ["any", "Any", "ANY", "/Any/", "/any/", "false", False, None]
+
+        for key, value in user_preferences_dict.items():
+            if isinstance(value, (str, bool)):
+                if value not in excluded_values:
+                    params[key] = value
+            elif isinstance(value, list):
+                filtered_list = [item for item in value if item not in excluded_values]
+                if filtered_list:
+                    params[key] = filtered_list
+            elif isinstance(value, dict):
+                filtered_dict = {
+                    k: v for k, v in value.items() if v not in excluded_values
+                }
+                if filtered_dict:
+                    params[key] = filtered_dict
+
+        api_request_counter = 0
+        init_animals = self._get_request(
+            request_url="https://api.petfinder.com/v2/animals", params=params
+        )
+        api_request_counter += 1
+        print("API results len = ", len(init_animals["results"]))
+        if len(init_animals["results"]) == 0:
+            init_animals = self._get_request(
+                request_url="https://api.petfinder.com/v2/animals", params=init_params
+            )
+            # self._get_request(endpoint='animals', request_url=)
         # create filter conditions based on user_preferences_dict
         filter_conditions = self.create_filter_conditions(user_preferences_dict)
 
         # Now  use these filter conditions with filter_results_list function
-        return self.filter_results_list(filter_conditions, init_animals)
+        return self.filter_results_list(
+            filter_conditions=filter_conditions,
+            results_list=init_animals["results"],
+            pagination=init_animals["pagination"],
+        )
 
     def animals_df_to_org_animal_count_dict(self, animals_df):
         """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.
@@ -382,23 +417,27 @@ class PetFinderPetPyAPI:
         """Function to parse breeds object property in a single Animal result from PetFinder API results"""
         if not breeds_obj or breeds_obj["unknown"] == True:
             return "Super Mutt"  # breed is Super Mutt by default
-
-        primary = breeds_obj["primary"] or ""
-        secondary = breeds_obj["secondary"] or False
-        mixed_bool = breeds_obj["mixed"] or False
-        unknown_bool = breeds_obj["unknown"] or False
-        # check if unknown breed
-        if unknown_bool == True:
-            return "Super Mutt"
-        # check if mixed breed
-        if mixed_bool == True:
-            # check if secondary breed is provided
-            if secondary:
-                return f"{primary} {secondary} mix"
+        elif isinstance(breeds_obj, str):
+            return breeds_obj
+        elif isinstance(breeds_obj, dict):
+            primary = breeds_obj["primary"] or ""
+            secondary = breeds_obj["secondary"] or False
+            mixed_bool = breeds_obj["mixed"] or False
+            unknown_bool = breeds_obj["unknown"] or False
+            # check if unknown breed
+            if unknown_bool == True:
+                return "Super Mutt"
+            # check if mixed breed
+            if mixed_bool == True:
+                # check if secondary breed is provided
+                if secondary:
+                    return f"{primary} {secondary} mix"
+                else:
+                    return f"{primary} Mix"
             else:
-                return f"{primary} Mix"
+                return primary
         else:
-            return primary
+            print('parsing breeds error on => ', breeds_obj)
 
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""

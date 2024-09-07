@@ -1,6 +1,9 @@
 //UI logic to render animal data into card elements
+let pageOffsetCount = 0; // this is the number (of content elements rendered) to increment with repeated API calls and to send to backend
+let totalResultsCount = null; //this is the number of total results returned by API
+let currentPage = 1;
 
-const getUserLocation = async () => {
+const askUserLocation = async () => {
   if (!("geolocation" in navigator)) {
     throw new Error("Geolocation is not supported by this browser.");
   }
@@ -25,6 +28,7 @@ const getUserLocation = async () => {
 //log URL details
 function logCurrentUrlDetails() {
   console.debug("Full URL:", window.location.href);
+  console.debug("API CALL URL:", window.location.origin + "/data/animals");
   console.debug("Protocol:", window.location.protocol);
   console.debug("Hostname:", window.location.hostname);
   console.debug("Port:", window.location.port);
@@ -42,7 +46,7 @@ const postHiddenForm = async () => {
     if (hiddenForm) {
       const geolocationInput = document.getElementById("geolocation-input");
       if (!geolocationInput || geolocationInput.value === "") {
-        const geolocation = await getUserLocation();
+        const geolocation = await askUserLocation();
         console.log("Geolocation fetched:", geolocation);
 
         const data = {
@@ -53,6 +57,7 @@ const postHiddenForm = async () => {
         };
         for (let key in data) {
           const field = document.getElementById(`${key}_field`);
+
           if (field) field.value = data[key];
         }
         hiddenForm.submit();
@@ -98,7 +103,7 @@ function createCardElementFromData(animal) {
 
   // Add animal type emoji or question mark
   if (animal.type) {
-    const typeEmoji = animal_emojis[animal.type.toUpperCase()] || "❓";
+    const typeEmoji = animal_emojis[animal.type.toLowerCase()] || "❓";
     cardText.appendChild(document.createTextNode(typeEmoji + " "));
   }
 
@@ -195,40 +200,133 @@ function createCardElementFromData(animal) {
   return colDiv;
 }
 
+// UI UTIL FUNCTIONS //////////////////////////////////////////////////////////////////////////////////////////
+
+const animal_emojis = {
+  dog: "🐶",
+  cat: "🐱",
+  rabbit: "🐰",
+  "small-furry": "🐹",
+  horse: "🐴",
+  bird: "🐦",
+  "scales-fins-other": "🦎",
+  barnyard: "🐄",
+};
+
 const clearContainer = (containerId = "animal-results-cards-container") => {
   const container = document.getElementById(containerId);
-  if (container) {
+  if (container && container.hasChildNodes()) {
     container.innerHTML = ""; // Clear all child elements
+    while (container.childElementCount > 0) {
+      let lastChild = container.lastElementChild;
+      container.removeChild(lastChild);
+    }
   } else {
     console.error(`Container with ID "${containerId}" not found.`);
   }
 };
 
+const defaultBreakpoints = {
+  mobile: 1, // 1 column for mobile
+  tablet: 3, // 3 columns for tablet
+  desktop: 9, // 9 columns for desktop
+};
+
+function getColumnCount(breakpoints = defaultBreakpoints) {
+  const width = window.innerWidth;
+
+  if (width < 576) {
+    return breakpoints.mobile; // Mobile
+  } else if (width >= 576 && width < 768) {
+    return breakpoints.tablet; // Tablet
+  } else {
+    return breakpoints.desktop; // Desktop
+  }
+}
+
+function updateRenderedDiff() {
+  const rowDiv = document.getElementById("animal-results-cards-container");
+  const columnCount = getColumnCount();
+  const renderedDiff = rowDiv.childElementCount % columnCount;
+
+  if (renderedDiff !== 0) {
+    generateSkeletonCards(renderedDiff);
+  }
+}
+
+// UI UTIL FUNCTIONS //////////////////////////////////////////////////////////////////////////////////////////
+
+const generateSkeletonCards = (skeletonCount = 9) => {
+  const resultsContainerID = "animal-results-cards-container";
+  const resultsContainer = document.getElementById(resultsContainerID);
+  // Create skeleton cards
+  for (let i = 0; i < skeletonCount; i++) {
+    const skeletonCard = createSkeletonCard();
+    resultsContainer.appendChild(skeletonCard);
+
+    //increment page offset count
+    pageOffsetCount += i;
+  }
+  //logic to ensure pageOffsetCount is accurate
+
+  pageOffsetCount =
+    pageOffsetCount === resultsContainer.childElementCount
+      ? pageOffsetCount
+      : resultsContainer.childElementCount;
+};
+
 // Function to render cards
-function renderCards(animals = [], skeletonCount = 9) {
+const renderCards = (animals = []) => {
   const rowDivID = "animal-results-cards-container";
   const rowDiv = document.getElementById("animal-results-cards-container");
   clearContainer(rowDivID);
 
-  if (!animals || animals.length === 0) {
-    // Create skeleton cards
-    for (let i = 0; i < skeletonCount; i++) {
-      const skeletonCard = createSkeletonCard();
-      rowDiv.appendChild(skeletonCard);
-    }
-  } else {
+  //generate skeleton cards to create loading effect only if row.Div childElementCount === 0
+
+  if (!animals && rowDiv.childElementCount === 0) {
+    generateSkeletonCards(20);
+  }
+
+  //render cards
+  if (animals.length > 0) {
     animals.forEach((animal) => {
       const cardElement = createCardElementFromData(animal);
-      rowDiv.appendChild(cardElement);
+      // Filter skeleton cards
+      let ArrOfSkeletonCardToRemove = Array.from(rowDiv.children).filter(
+        (childNode) => childNode.className.includes("skeleton")
+      );
+      let firstSkeletonCard = ArrOfSkeletonCardToRemove[0];
+      if (firstSkeletonCard) {
+        rowDiv.replaceChild(cardElement, firstSkeletonCard);
+        pageOffsetCount += i;
+      }
+      //increment page offset count
     });
+    console.info(`Cards rendered, offset count updated to: ${pageOffsetCount}`);
+  } else {
+    //handle errors
+    flashMessage(
+      `Error, animals length === ${animals.length}, pageOffsetCount = ${pageOffsetCount}`,
+      false
+    );
+    //reset pageOffsetCount if incremented to num of children in rowDiv
+    pageOffsetCount =
+      pageOffsetCount === rowDiv.childElementCount
+        ? pageOffsetCount
+        : rowDiv.childElementCount;
+    return; //do nothing if no animals passed in
   }
 
   // container.appendChild(rowDiv);
-}
+};
 
 function createSkeletonCard() {
+  const resultsContainer = document.getElementById(
+    "animal-results-cards-container"
+  );
   const colDiv = document.createElement("div");
   colDiv.className = "col-lg-4 mb-4 mb-lg-0";
+  colDiv.id = `skeleton-card-${resultsContainer.childElementCount + 1}`;
 
   const cardDiv = document.createElement("div");
   cardDiv.className = "card text-start h-100 skeleton-card";
@@ -263,20 +361,103 @@ function createSkeletonCard() {
   return colDiv;
 }
 
-// Fetch data from API and render cards
-function fetchDataAndRender(apiURL) {
+const flashMessage = (message, success = false) => {
+  const errorContainer = document.getElementById(
+    "flash_message_container"//"animal-results-error-container"
+  );
+  // Create a div element for the error message
+  const errorDiv = document.createElement("div");
+  errorDiv.textContent = message;
+  errorDiv.style.position = "fixed";
+  errorDiv.style.top = "20px";
+  errorDiv.style.right = "20px";
+  errorDiv.style.padding = "10px";
+  errorDiv.style.backgroundColor = success ? "green" : "#red"; // Red background for error // Green for success
+  errorDiv.style.color = "white";
+  errorDiv.style.borderRadius = "5px";
+  errorDiv.style.zIndex = "1000";
+  errorDiv.style.opacity = "0";
+  errorDiv.style.transition = "opacity 0.5s";
+
+  // Append the error message to the body
+  errorContainer.appendChild(errorDiv);
+
+  // Show the error message
+  setTimeout(() => {
+    errorDiv.style.opacity = "1";
+  }, 1000);
+
+  // Hide the error message after 3 seconds
+  setTimeout(() => {
+    errorDiv.style.opacity = "0";
+    // Remove the error message from the DOM after fading out
+    setTimeout(() => {
+      errorDiv.remove();
+    }, 500);
+  }, 5000);
+
+  console.debug(`${success ? "Success" : "Error"} flash message => ${message}`)
+};
+
+const fetchDataAndRender = (apiURL) => {
   fetch(apiURL)
     .then((response) => {
-      console.log(response.text);
-      response.json();
+      // Check if the response is ok (status in the range 200-299)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json(); // Return the parsed JSON directly
     })
     .then((data) => {
-      if (data.results && data.results.animals.length > 0) {
-        clearContainer();
-        renderCards(data.results.animals);
+      flashMessage(
+        `Results fetched! ${window.location.pathname.split("/")[1]} found: ${
+          data?.results?.length || 0
+        }`,
+        true
+      );
+      console.log(`Fetched data: ${logCurrentUrlDetails()}`, {
+        results: data["results"]?.length,
+        ...data,
+      });
+
+      // Clear the container before rendering new cards
+      // clearContainer(); //commented out to try the other way instead
+
+      if (data.results && data.results.length > 0) {
+        renderCards(data?.results);
+        //set totalResultsCount
+        totalResultsCount = data?.pagination?.total_count;
+        currentPage = data?.pagination?.current_page;
+        console.log(
+          `total results = ${totalResultsCount}; current page = ${currentPage}`
+        );
+
+        updateRenderedDiff();
       }
     })
-    .catch((error) =>
-      console.error("Error fetching data:", error, logCurrentUrlDetails())
-    );
-}
+    .catch((error) => {
+      console.error("Error fetching data:", error, logCurrentUrlDetails());
+      flashMessage(`Error fetching data: ${error}`, false);
+    });
+};
+
+// Call this function to log the URL details
+logCurrentUrlDetails();
+// Render skeleton cards on page load
+// renderCards([], 9);
+// Fetch animals data from API and render cards
+let apiURLString = window.location.origin + "/data/animals";
+console.log(apiURLString);
+
+document.addEventListener("DOMContentLoaded", async () => {
+  generateSkeletonCards(20);
+  fetchDataAndRender(apiURLString);
+});
+
+// Call the function initially to set the correct renderedDiff
+updateRenderedDiff();
+
+window.addEventListener("resize", () => {
+  updateRenderedDiff();
+  console.log("breakpoints adjusted");
+});

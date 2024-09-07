@@ -33,15 +33,6 @@
         <!-- Include renderAnimalCards.js -->
         <script src="{{ url_for('static', filename='renderAnimalCards.js') }}"></script>
 
-        <script>
-          // Call this function to log the URL details
-          logCurrentUrlDetails();
-          // Render skeleton cards on page load
-          renderCards([],9)
-          // Fetch animals data from API and render cards
-          fetchDataAndRender(window.location.origin + "/data/animals");
-
-        </script>
       </div>
     </div>
   </div>

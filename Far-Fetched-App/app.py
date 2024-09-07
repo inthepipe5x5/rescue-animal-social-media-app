@@ -13,7 +13,6 @@ from flask import (  # type: ignore
 import json
 
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
-from sqlalchemy import and_  # , Index
 from dotenv import load_dotenv  # type: ignore
 import os
 import requests
@@ -364,6 +363,34 @@ def delete_user():
 ##############################################################################
 
 
+@app.route("/results", methods=["GET", "POST"])
+def results():
+    user_id = session["CURR_USER"]["id"] or None
+    if user_id:
+        user = db.session.query(User).filter(User.id == session[CURR_USER_KEY]).first()
+        species = user.animal_types[0]
+        user_location = (
+            db.session.query(UserLocation).filter(user_id == user_id).first()
+        )
+    species = session["CURR_USER"]["animal_types"][0]
+
+    location = (
+        user_location
+        if user_id
+        else {
+            "geolocation": "43.6429,79.3889",
+            "state": "ON",
+            "country": "CA",
+            "postal_code": "m5j0b3",
+            "city": "Toronto",
+        }
+    )
+
+    form = HiddenLocationForm(obj=location)
+
+    return render_template("animalResults.html", form=form)
+
+
 # Route to handle form submissions and API calls
 @app.route("/submit_section", methods=["POST"])
 def submit_section():
@@ -393,67 +420,73 @@ def animal_data():
         user_location = (
             db.session.query(UserLocation).filter(user_id == user_id).first()
         )
-    
-    location = user_location if user_id else {
-        "geolocation": "43.6429,79.3889",
-        "state": "ON",
-        "country": "CA",
-        "postal_code": "m5j0b3",
-        "city": "Toronto",
-    }
-    
-    form = HiddenLocationForm(obj=location)
 
-    if request.method == "GET":
-        return render_template("animalResults.html", form=form)
-    if request.method == "POST":
-        request_data = request.get_json()
-        print(request_data)
-    if request.method == "POST" and form.validate_on_submit():
-        try:
-            # Fetch user preferences
-            user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
-                u_id=user_id, animal_type=species
-            )
+    location = (
+        user_location
+        if user_id
+        else {
+            "geolocation": "43.6429,79.3889",
+            "state": "ON",
+            "country": "CA",
+            "postal_code": "m5j0b3",
+            "city": "Toronto",
+        }
+    )
 
-            # Filter preferences for use in API call
-            user_prefs = (
-                user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
-            )
+    # form = HiddenLocationForm(obj=location)
 
-            #geo_coordinates = form.geolocation.data 
-            #location_str = geo_coordinates if geo_coordinates else form.postal_code.data
-            
-            results = pf_api.get_mapped_animals_by_type(
-                species=species,
-                location_str=location.geolocation,#location_str,
-                user_preferences_dict=user_prefs,
-            )
+    # if request.method == "GET":
+    #     return render_template("animalResults.html", form=form)
+    # if request.method == "POST":
+    #     request_data = request.get_json()
+    #     print(request_data)
+    # if request.method == "POST" and form.validate_on_submit():
+    try:
+        # Fetch user preferences
+        user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
+            u_id=user_id, animal_type=species
+        )
 
-            print(
-                f"results flag = {results['success_flag']}, results length: {len(results['results'])}"
-            )
+        # Filter preferences for use in API call
+        user_prefs = (
+            user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
+        )
 
-            # Check if results are valid
-            if not results["success_flag"] or len(results["results"]) == 0:
-                flash(
-                    f"Your search preferences are too strict; try adjusting {', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
-                    "warning",
-                )
-            return jsonify(results)
-            # # Render results page
-            # return render_template("results.html", results=results["results"])
+        # geo_coordinates = form.geolocation.data
+        # location_str = geo_coordinates if geo_coordinates else form.postal_code.data
 
-        except Exception as e:
-            err_msg = (
-                f"ERROR /data/animals => {e}"
-            )
-            print(err_msg)
+        results = pf_api.get_mapped_animals_by_type(
+            species=species,
+            location_str="Toronto, ON",  # location.geolocation,#location_str,
+            user_preferences_dict=user_prefs,
+        )
+
+        print(
+            f"results flag = {results['success_flag']}, results length: {len(results['results'])}"
+        )
+
+        # Check if results are valid
+        if not results["success_flag"] or len(results["results"]) == 0:
             flash(
-                f"An error occurred while fetching animal data. Please try again later.{err_msg}",
-                "danger",
+                f"Your search preferences are too strict; try adjusting your search filters{', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
+                "warning",
             )
-            return redirect(url_for("homepage"))  
+        #add user_prefs to results dictionary if not empty dict
+        if len(user_prefs.values()) > 0:
+            results["user_prefs"] = user_prefs
+        
+        return jsonify(results)
+        # # Render results page
+        # return render_template("results.html", results=results["results"])
+
+    except Exception as e:
+        err_msg = f"ERROR /data/animals => {e}"
+        print(err_msg)
+        flash(
+            f"An error occurred while fetching animal data. Please try again later.{err_msg}",
+            "danger",
+        )
+        return redirect(url_for("homepage"))
 
 
 # @auth_required
@@ -618,7 +651,7 @@ def set_location():
     location = request.values.get(
         "location"
     )  # Use request.values for a combined view of query and form data.
-    
+
     # handle lack of location provided from request body
     if not location:
         # check if country, state is provided in request body
@@ -673,7 +706,7 @@ def set_global():
                 # Set global country and animal type for anonymous users
                 update_anon_preferences(form=form)
 
-    return render_template("users/form.html", form=form, next=url_for("data"))
+    return render_template("users/form.html", form=form, next=url_for("results"))
 
 
 ##############################################################################

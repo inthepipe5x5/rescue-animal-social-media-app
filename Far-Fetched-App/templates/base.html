@@ -73,7 +73,7 @@
     </ul>
   </div>
 </nav>
-<div class="container">
+<div class="container" id="flash_message_container">
   {% for category, message in get_flashed_messages(with_categories=True) %}
   <div class="alert alert-{{ category }}">{{ message }}</div>
   {% endfor %}
