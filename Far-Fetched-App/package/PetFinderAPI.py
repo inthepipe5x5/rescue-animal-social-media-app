@@ -84,10 +84,13 @@ class PetFinderPetPyAPI:
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             response = requests.get(request_url, headers=headers, params=params)
-
             # Check for a successful response
             response.raise_for_status()
             result = response.json()
+            
+            print([result["photos"] for result in result[endpoint]])
+            
+            
             output = {
                 "access_token": access_token,
                 "results": result[endpoint],

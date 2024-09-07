@@ -9,6 +9,7 @@ from flask import (  # type: ignore
     url_for,
     jsonify,
     Blueprint,
+    send_from_directory,
 )
 import json
 
@@ -361,7 +362,11 @@ def delete_user():
 
 
 ##############################################################################
+IMAGE_FOLDER = os.path.join('static', 'images', 'graphics')
 
+@app.route('/static/images/graphics/<path:filename>')
+def serve_image(filename):
+    return send_from_directory(IMAGE_FOLDER, filename)
 
 @app.route("/results", methods=["GET", "POST"])
 def results():

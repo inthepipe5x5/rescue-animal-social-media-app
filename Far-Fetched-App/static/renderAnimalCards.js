@@ -72,6 +72,63 @@ const postHiddenForm = async () => {
     console.error("Error in postHiddenForm:", error);
   }
 };
+
+const getImgSrcStr = (species, imgObj) => {
+  const defaultAnimalImages = {
+    dog: `${window.location}/static/images/graphics/dog_freepik.png`,
+    cat: `${window.location}/static/images/graphics/cat_freepik.png`,
+    rabbit: `${window.location}/static/images/graphics/easter_bunny_freepik.png`,
+    "small-furry": `${window.location}/static/images/graphics/small_furry_freepik.png`,
+    horse: `${window.location}/static/images/graphics/horse_freepik.png`,
+    bird: `${window.location}/static/images/graphics/bird_eucalyp.png`,
+    "scales-fins-other": `${window.location}/static/images/graphics/scales-smashicons.png`,
+    barnyard: `${window.location}/static/images/graphics/tracks_freepik.png`,
+    misc: `${window.location}/static/images/graphics/pets.png`,
+  };
+
+  const defaultOutput = defaultAnimalImages[species] || defaultAnimalImages.misc;
+
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const findValidImageUrl = (obj) => {
+    if (typeof obj === 'string') {
+      return isValidUrl(obj) ? obj : null;
+    }
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const result = findValidImageUrl(item);
+        if (result) return result;
+      }
+    }
+    if (typeof obj === 'object' && obj !== null) {
+      const sizeKeys = ["full", "large", "xxl", "medium", "small"];
+      for (const key of sizeKeys) {
+        if (obj[key]) {
+          const result = findValidImageUrl(obj[key]);
+          if (result) return result;
+        }
+      }
+      for (const value of Object.values(obj)) {
+        const result = findValidImageUrl(value);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  if (!imgObj) return defaultOutput;
+
+  const validImageUrl = findValidImageUrl(imgObj);
+  return validImageUrl || defaultOutput;
+};
+
 // Function to create card elements
 function createCardElementFromData(animal) {
   const colDiv = document.createElement("div");
@@ -82,7 +139,7 @@ function createCardElementFromData(animal) {
 
   if (animal.photos && animal.photos.length > 0) {
     const img = document.createElement("img");
-    img.src = animal.photos[0].full;
+    img.src = getImgSrcStr(animal?.type, animal.photos);
     img.className = "card-img-top";
     img.alt = `${animal.name}-photo`;
     cardDiv.appendChild(img);
@@ -250,6 +307,7 @@ function updateRenderedDiff() {
   const renderedDiff = rowDiv.childElementCount % columnCount;
 
   if (renderedDiff !== 0) {
+    console.log(`renderedDiff = ${renderedDiff}, generating skeleton cards`);
     generateSkeletonCards(renderedDiff);
   }
 }
@@ -262,7 +320,7 @@ const generateSkeletonCards = (skeletonCount = 9) => {
   // Create skeleton cards
   for (let i = 0; i < skeletonCount; i++) {
     const skeletonCard = createSkeletonCard();
-    resultsContainer.appendChild(skeletonCard);
+    resultsContainer.append(skeletonCard);
 
     //increment page offset count
     pageOffsetCount += i;
@@ -275,49 +333,40 @@ const generateSkeletonCards = (skeletonCount = 9) => {
       : resultsContainer.childElementCount;
 };
 
+// Function to clear skeleton cards
+const clearSkeletonCards = () => {
+  const rowDiv = document.getElementById("animal-results-cards-container");
+  // Filter out skeleton cards
+  Array.from(rowDiv.children).forEach((child) => {
+    if (child.className.includes("skeleton-card")) {
+      rowDiv.removeChild(child);
+    }
+  });
+};
+
 // Function to render cards
 const renderCards = (animals = []) => {
   const rowDivID = "animal-results-cards-container";
-  const rowDiv = document.getElementById("animal-results-cards-container");
-  clearContainer(rowDivID);
+  const rowDiv = document.getElementById(rowDivID);
 
-  //generate skeleton cards to create loading effect only if row.Div childElementCount === 0
+  // Remove skeleton cards before rendering actual data
+  clearSkeletonCards();
 
-  if (!animals && rowDiv.childElementCount === 0) {
-    generateSkeletonCards(20);
-  }
-
-  //render cards
+  // Check if there are animals to render
   if (animals.length > 0) {
     animals.forEach((animal) => {
       const cardElement = createCardElementFromData(animal);
-      // Filter skeleton cards
-      let ArrOfSkeletonCardToRemove = Array.from(rowDiv.children).filter(
-        (childNode) => childNode.className.includes("skeleton")
-      );
-      let firstSkeletonCard = ArrOfSkeletonCardToRemove[0];
-      if (firstSkeletonCard) {
-        rowDiv.replaceChild(cardElement, firstSkeletonCard);
-        pageOffsetCount += i;
-      }
-      //increment page offset count
+      rowDiv.appendChild(cardElement);
     });
     console.info(`Cards rendered, offset count updated to: ${pageOffsetCount}`);
   } else {
-    //handle errors
-    flashMessage(
-      `Error, animals length === ${animals.length}, pageOffsetCount = ${pageOffsetCount}`,
-      false
-    );
+    flashMessage("No animals to render.", false);
     //reset pageOffsetCount if incremented to num of children in rowDiv
     pageOffsetCount =
       pageOffsetCount === rowDiv.childElementCount
         ? pageOffsetCount
         : rowDiv.childElementCount;
-    return; //do nothing if no animals passed in
   }
-
-  // container.appendChild(rowDiv);
 };
 
 function createSkeletonCard() {
@@ -329,7 +378,7 @@ function createSkeletonCard() {
   colDiv.id = `skeleton-card-${resultsContainer.childElementCount + 1}`;
 
   const cardDiv = document.createElement("div");
-  cardDiv.className = "card text-start h-100 skeleton-card";
+  cardDiv.className = "card text-start skeleton-card";
 
   const skeletonImg = document.createElement("div");
   skeletonImg.className = "skeleton-img shimmer";
@@ -363,7 +412,7 @@ function createSkeletonCard() {
 
 const flashMessage = (message, success = false) => {
   const errorContainer = document.getElementById(
-    "flash_message_container"//"animal-results-error-container"
+    "flash_message_container" //"animal-results-error-container"
   );
   // Create a div element for the error message
   const errorDiv = document.createElement("div");
@@ -396,47 +445,38 @@ const flashMessage = (message, success = false) => {
     }, 500);
   }, 5000);
 
-  console.debug(`${success ? "Success" : "Error"} flash message => ${message}`)
+  console.debug(`${success ? "Success" : "Error"} flash message => ${message}`);
 };
 
 const fetchDataAndRender = (apiURL) => {
   fetch(apiURL)
     .then((response) => {
-      // Check if the response is ok (status in the range 200-299)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return response.json(); // Return the parsed JSON directly
+      return response.json();
     })
     .then((data) => {
-      flashMessage(
-        `Results fetched! ${window.location.pathname.split("/")[1]} found: ${
-          data?.results?.length || 0
-        }`,
-        true
-      );
-      console.log(`Fetched data: ${logCurrentUrlDetails()}`, {
-        results: data["results"]?.length,
-        ...data,
-      });
-
-      // Clear the container before rendering new cards
-      // clearContainer(); //commented out to try the other way instead
-
       if (data.results && data.results.length > 0) {
-        renderCards(data?.results);
-        //set totalResultsCount
-        totalResultsCount = data?.pagination?.total_count;
-        currentPage = data?.pagination?.current_page;
-        console.log(
-          `total results = ${totalResultsCount}; current page = ${currentPage}`
+        flashMessage(
+          `Results fetched! ${data.results.length} animals found.`,
+          true
         );
+        renderCards(data.results);
 
-        updateRenderedDiff();
+        // Update totalResultsCount and currentPage
+        totalResultsCount = data.pagination.total_count;
+        currentPage = data.pagination.current_page;
+
+        console.log(
+          `Total results = ${totalResultsCount}; current page = ${currentPage}`
+        );
+      } else {
+        flashMessage("No results found.", false);
       }
     })
     .catch((error) => {
-      console.error("Error fetching data:", error, logCurrentUrlDetails());
+      console.error("Error fetching data:", error);
       flashMessage(`Error fetching data: ${error}`, false);
     });
 };
@@ -447,15 +487,12 @@ logCurrentUrlDetails();
 // renderCards([], 9);
 // Fetch animals data from API and render cards
 let apiURLString = window.location.origin + "/data/animals";
-console.log(apiURLString);
+console.log(`apiURLString = ${apiURLString}`);
 
 document.addEventListener("DOMContentLoaded", async () => {
   generateSkeletonCards(20);
   fetchDataAndRender(apiURLString);
 });
-
-// Call the function initially to set the correct renderedDiff
-updateRenderedDiff();
 
 window.addEventListener("resize", () => {
   updateRenderedDiff();
