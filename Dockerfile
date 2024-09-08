@@ -19,7 +19,7 @@ RUN apk update && apk add --no-cache \
     zlib-dev
 
 # Create and set the working directory
-WORKDIR /Far-Fetched-App
+WORKDIR /Project
 
 # Copy the requirements file into the container
 COPY requirements.txt /app/
