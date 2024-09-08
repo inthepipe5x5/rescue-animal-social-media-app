@@ -139,7 +139,7 @@ function createCardElementFromData(animal) {
 
   if (animal.photos && animal.photos.length > 0) {
     const img = document.createElement("img");
-    img.src = getImgSrcStr(animal.type.toLowerCase(), animal.photos);
+    img.src = getImgSrcStr(animal?.type, animal.photos);
     img.className = "card-img-top";
     img.alt = `${animal.name}-photo`;
     cardDiv.appendChild(img);
@@ -176,8 +176,8 @@ function createCardElementFromData(animal) {
     cardText.appendChild(breedBadge);
   }
 
-  // Add size, age, gender, and special needs badges
-  ["size", "age", "gender", "attributes"].forEach((attr) => {
+  // Add size, age, gender badges
+  ["size", "age", "gender"].forEach((attr) => {
     if (animal[attr]) {
       const badge = document.createElement("span");
       badge.className = `badge rounded-pill bg-${
@@ -185,25 +185,54 @@ function createCardElementFromData(animal) {
           ? "info"
           : attr === "age"
           ? "warning"
-          : attr === "gender"
-          ? animal.gender === "Female"
-            ? "light text-dark"
-            : "primary text-dark"
-          : "danger"
+          : animal.gender === "Female"
+          ? "light text-dark"
+          : "primary text-dark"
       }`;
       badge.textContent = animal[attr];
-      if (attr === "gender")
-        badge.textContent +=
-          animal.gender === "Female"
-            ? "💅✨"
-            : animal.gender === "Male"
-            ? "🤠"
-            : "👩🏼‍🤝‍🧑🏼";
-      if (animal.attributes.special_needs)
-        badge.textContent = animal.attributes.special_needs ? "♿" : "";
       cardText.appendChild(badge);
     }
   });
+
+  // Add attributes badges
+  if (animal.attributes) {
+    const { spayed_neutered, house_trained, declawed, special_needs, shots_current } = animal.attributes;
+
+    if (spayed_neutered) {
+      const spayedBadge = document.createElement("span");
+      spayedBadge.className = "badge rounded-pill bg-success";
+      spayedBadge.textContent = "Spayed/Neutered";
+      cardText.appendChild(spayedBadge);
+    }
+
+    if (house_trained) {
+      const houseTrainedBadge = document.createElement("span");
+      houseTrainedBadge.className = "badge rounded-pill bg-success";
+      houseTrainedBadge.textContent = "House Trained";
+      cardText.appendChild(houseTrainedBadge);
+    }
+
+    if (declawed) {
+      const declawedBadge = document.createElement("span");
+      declawedBadge.className = "badge rounded-pill bg-danger";
+      declawedBadge.textContent = "Declawed";
+      cardText.appendChild(declawedBadge);
+    }
+
+    if (special_needs) {
+      const specialNeedsBadge = document.createElement("span");
+      specialNeedsBadge.className = "badge rounded-pill bg-danger";
+      specialNeedsBadge.textContent = "Special Needs";
+      cardText.appendChild(specialNeedsBadge);
+    }
+
+    if (shots_current) {
+      const shotsCurrentBadge = document.createElement("span");
+      shotsCurrentBadge.className = "badge rounded-pill bg-success";
+      shotsCurrentBadge.textContent = "Vaccinated";
+      cardText.appendChild(shotsCurrentBadge);
+    }
+  }
 
   cardBody.appendChild(cardText);
 
@@ -256,6 +285,7 @@ function createCardElementFromData(animal) {
 
   return colDiv;
 }
+
 
 // UI UTIL FUNCTIONS //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -418,7 +448,7 @@ const flashMessage = (message, success = false) => {
   const errorDiv = document.createElement("div");
   errorDiv.textContent = message;
   errorDiv.style.position = "fixed";
-  errorDiv.style.top = "20px";
+  errorDiv.style.top = "40px";
   errorDiv.style.right = "20px";
   errorDiv.style.padding = "10px";
   errorDiv.style.backgroundColor = success ? "green" : "#red"; // Red background for error // Green for success
@@ -434,7 +464,7 @@ const flashMessage = (message, success = false) => {
   // Show the error message
   setTimeout(() => {
     errorDiv.style.opacity = "1";
-  }, 1000);
+  }, 100000);
 
   // Hide the error message after 3 seconds
   setTimeout(() => {
@@ -443,7 +473,7 @@ const flashMessage = (message, success = false) => {
     setTimeout(() => {
       errorDiv.remove();
     }, 500);
-  }, 5000);
+  }, 50000);
 
   console.debug(`${success ? "Success" : "Error"} flash message => ${message}`);
 };

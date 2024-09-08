@@ -20,6 +20,7 @@ import requests
 from functools import wraps
 from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
+from ratelimit import limits
 from .models import (
     db,
     User,
@@ -362,11 +363,13 @@ def delete_user():
 
 
 ##############################################################################
-IMAGE_FOLDER = os.path.join('static', 'images', 'graphics')
+IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
-@app.route('/static/images/graphics/<path:filename>')
+
+@app.route("/static/images/graphics/<path:filename>")
 def serve_image(filename):
     return send_from_directory(IMAGE_FOLDER, filename)
+
 
 @app.route("/results", methods=["GET", "POST"])
 def results():
@@ -406,8 +409,8 @@ def submit_section():
     # Store API data in session
     session["api_data"] = api_data
     return "API data received"
-
-
+FIFTEEN_MINUTES = 60 * 15
+@limits(calls=15, period=FIFTEEN_MINUTES)
 @app.route("/data/animals", methods=["GET", "POST"])
 def animal_data():
     """ROUTE FOR JINJA TEMPLATES TO REQUEST PETPY API
@@ -418,6 +421,12 @@ def animal_data():
     Returns:
         _type_: _description_
     """
+    #create a new api wrapper instance to prevent access token expiration
+    new_api_wrapper_instance = PetFinderPetPyAPI(
+        get_anon_preference_func=get_anon_preference,
+        get_user_preference_func=get_user_preference,
+    )
+    
     user_id = session["CURR_USER"]["id"] or None
     if user_id:
         user = db.session.query(User).filter(User.id == session[CURR_USER_KEY]).first()
@@ -460,7 +469,7 @@ def animal_data():
         # geo_coordinates = form.geolocation.data
         # location_str = geo_coordinates if geo_coordinates else form.postal_code.data
 
-        results = pf_api.get_mapped_animals_by_type(
+        results = new_api_wrapper_instance.get_mapped_animals_by_type(
             species=species,
             location_str="Toronto, ON",  # location.geolocation,#location_str,
             user_preferences_dict=user_prefs,
@@ -476,10 +485,10 @@ def animal_data():
                 f"Your search preferences are too strict; try adjusting your search filters{', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
                 "warning",
             )
-        #add user_prefs to results dictionary if not empty dict
+        # add user_prefs to results dictionary if not empty dict
         if len(user_prefs.values()) > 0:
             results["user_prefs"] = user_prefs
-        
+
         return jsonify(results)
         # # Render results page
         # return render_template("results.html", results=results["results"])
@@ -871,7 +880,8 @@ def animal_preferences(animal_type):
     # return render_template(
     #     "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
     # )
-    return redirect(url_for('results'))
+    return redirect(url_for("results"))
+
 
 ##############################################################################
 # Homepage and error pages
