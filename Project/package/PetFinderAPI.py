@@ -87,10 +87,9 @@ class PetFinderPetPyAPI:
             # Check for a successful response
             response.raise_for_status()
             result = response.json()
-            
+
             print([result["photos"] for result in result[endpoint]])
-            
-            
+
             output = {
                 "access_token": access_token,
                 "results": result[endpoint],
@@ -163,7 +162,10 @@ class PetFinderPetPyAPI:
                         any(
                             target_item.lower() in val.lower()
                             for val in obj_value.values()
-                            if val and isinstance(val, str)  # so we skip any falsy and non-str values
+                            if val
+                            and isinstance(
+                                val, str
+                            )  # so we skip any falsy and non-str values
                         )
                         for target_item in filter_value
                     )
@@ -174,7 +176,9 @@ class PetFinderPetPyAPI:
                     elif isinstance(filter_value, dict):
                         return obj_value in filter_value.keys()
                     elif isinstance(filter_value, list):
-                        return str(obj_value).lower() in [str(val).lower() for val in filter_value]
+                        return str(obj_value).lower() in [
+                            str(val).lower() for val in filter_value
+                        ]
                     else:
                         return None  # Handle any other unexpected types
 
@@ -238,7 +242,9 @@ class PetFinderPetPyAPI:
 
         return filter_conditions
 
-    def filter_results_list(self, filter_conditions, results_list, pagination):
+    def filter_results_list(
+        self, filter_conditions, results_list, pagination, unfiltered=False
+    ):
         """function to filter lists of results
 
         Pass in lambda filter expressions as filters KWARG
@@ -295,39 +301,51 @@ class PetFinderPetPyAPI:
         output = results_list
         bad_keys = []
         temp_output = []
+        # if init_animals from API call led to a "unfiltered" results list because the search filters were too strict
+        if unfiltered:
+            return {
+                "results": output,
+                "success_flag": False,
+                "bad_keys": ["All"],
+                "pagination": pagination,
+            }
+        # if unfiltered == True, proceed to filter as per usual
+        else:
+            for key, condition in filter_conditions.items():
+                for idx in range(len(results_list)):
+                    obj = results_list[idx]
+                    # check if current object meets the condition
+                    if condition(obj):
+                        # parse obj for to use in templates easier
+                        self.parse_api_animals_data(single_animal_data=obj)
 
-        for key, condition in filter_conditions.items():
-            for idx in range(len(results_list)):
-                obj = results_list[idx]
-                # check if current object meets the condition
-                if condition(obj):
-                    # parse obj for to use in templates easier
-                    self.parse_api_animals_data(single_animal_data=obj)
+                        # add obj to temp_output after parsing
+                        temp_output.append(obj)
+                        print("condition met for key=", key, len(temp_output))
 
-                    # add obj to temp_output after parsing
-                    temp_output.append(obj)
-                    print("condition met for key=", key, len(temp_output))
+                if not temp_output:
+                    bad_keys.append(key)
+                    flag = False
+                    print("condition NOT met for key=", key, len(temp_output))
+                    break
 
-            if not temp_output:
-                bad_keys.append(key)
-                flag = False
-                print("condition NOT met for key=", key, len(temp_output))
-                break
+            # determine success (true/false) based on len(output) > 0
+            flag = len(temp_output) > 0 and len(bad_keys) == 0
+            print(len(temp_output) > 0, len(temp_output))
 
-        # determine success (true/false) based on len(output) > 0
-        flag = len(temp_output) > 0
-        print(len(temp_output) > 0, len(temp_output))
+            # return results_list if flag is false
+            output = temp_output if flag else results_list
+            # output = temp_output # if flag else results_list
 
-        # return results_list if flag is false
-        output = temp_output if flag else results_list
-        # output = temp_output # if flag else results_list
-
-        return {
-            "results": output,
-            "success_flag": flag,
-            "bad_keys": bad_keys,
-            "pagination": pagination,
-        }
+            return {
+                "results": [
+                    self.parse_api_animals_data(single_animal_data=animal)
+                    for animal in output
+                ],
+                "success_flag": flag,
+                "bad_keys": bad_keys,
+                "pagination": pagination,
+            }
 
     def get_mapped_animals_by_type(
         self, species, location_str, user_preferences_dict, page=1
@@ -440,11 +458,10 @@ class PetFinderPetPyAPI:
             else:
                 return primary
         else:
-            print('parsing breeds error on => ', breeds_obj)
+            print("parsing breeds error on => ", breeds_obj)
 
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
-        print(colors_obj)
         if not colors_obj or not colors_obj["primary"]:
             return "Unknown Color"  # color is Unknown Color by default
 

@@ -410,7 +410,7 @@ def submit_section():
 
 @app.route("/data/animals", methods=["GET", "POST"])
 def animal_data():
-    """TEST ROUTE TO USE PETPY API
+    """ROUTE FOR JINJA TEMPLATES TO REQUEST PETPY API
 
     Args:
         type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
@@ -868,10 +868,10 @@ def animal_preferences(animal_type):
             )
             return redirect(url_for("users_show", user_id=current_user_id))
 
-    return render_template(
-        "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
-    )
-
+    # return render_template(
+    #     "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
+    # )
+    return redirect(url_for('results'))
 
 ##############################################################################
 # Homepage and error pages

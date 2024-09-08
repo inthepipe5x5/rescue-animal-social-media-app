@@ -4,13 +4,14 @@
   "request": "launch",
   "module": "flask",
   "env": {
-    "FLASK_APP": "$./Project/app.py",
+    "FLASK_APP": "Project/app.py",
     "FLASK_DEBUG": "1"
   },
-  "args": ["run", "--no-debugger", "--no-reload"],
+  "args": ["run", "--debugger", "--reload"],
   "jinja": true,
   "justMyCode": true,
   "configurations": [
+    
     {
       "name": "Python Debugger: Flask",
       "type": "debugpy",

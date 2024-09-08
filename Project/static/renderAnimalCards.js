@@ -75,15 +75,15 @@ const postHiddenForm = async () => {
 
 const getImgSrcStr = (species, imgObj) => {
   const defaultAnimalImages = {
-    dog: `${window.location}/static/images/graphics/dog_freepik.png`,
-    cat: `${window.location}/static/images/graphics/cat_freepik.png`,
-    rabbit: `${window.location}/static/images/graphics/easter_bunny_freepik.png`,
-    "small-furry": `${window.location}/static/images/graphics/small_furry_freepik.png`,
-    horse: `${window.location}/static/images/graphics/horse_freepik.png`,
-    bird: `${window.location}/static/images/graphics/bird_eucalyp.png`,
-    "scales-fins-other": `${window.location}/static/images/graphics/scales-smashicons.png`,
-    barnyard: `${window.location}/static/images/graphics/tracks_freepik.png`,
-    misc: `${window.location}/static/images/graphics/pets.png`,
+    dog: `${window.location.origin}/static/images/graphics/dog_freepik.png`,
+    cat: `${window.location.origin}/static/images/graphics/cat_freepik.png`,
+    rabbit: `${window.location.origin}/static/images/graphics/easter_bunny_freepik.png`,
+    "small-furry": `${window.location.origin}/static/images/graphics/small_furry_freepik.png`,
+    horse: `${window.location.origin}/static/images/graphics/horse_freepik.png`,
+    bird: `${window.location.origin}/static/images/graphics/bird_eucalyp.png`,
+    "scales-fins-other": `${window.location.origin}/static/images/graphics/scales-smashicons.png`,
+    barnyard: `${window.location.origin}/static/images/graphics/tracks_freepik.png`,
+    misc: `${window.location.origin}/static/images/graphics/pets-iconixar.png`,
   };
 
   const defaultOutput = defaultAnimalImages[species] || defaultAnimalImages.misc;
@@ -139,7 +139,7 @@ function createCardElementFromData(animal) {
 
   if (animal.photos && animal.photos.length > 0) {
     const img = document.createElement("img");
-    img.src = getImgSrcStr(animal?.type, animal.photos);
+    img.src = getImgSrcStr(animal.type.toLowerCase(), animal.photos);
     img.className = "card-img-top";
     img.alt = `${animal.name}-photo`;
     cardDiv.appendChild(img);
@@ -199,8 +199,8 @@ function createCardElementFromData(animal) {
             : animal.gender === "Male"
             ? "🤠"
             : "👩🏼‍🤝‍🧑🏼";
-      if (attr === "attributes" && animal.attributes.special_needs)
-        badge.textContent = "♿";
+      if (animal.attributes.special_needs)
+        badge.textContent = animal.attributes.special_needs ? "♿" : "";
       cardText.appendChild(badge);
     }
   });
@@ -494,7 +494,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   fetchDataAndRender(apiURLString);
 });
 
-window.addEventListener("resize", () => {
-  updateRenderedDiff();
-  console.log("breakpoints adjusted");
-});
+// window.addEventListener("resize", () => {
+//   updateRenderedDiff();
+//   console.log("breakpoints adjusted");
+// });

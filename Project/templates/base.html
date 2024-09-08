@@ -35,7 +35,13 @@
         <li class="nav-item"><a href="{{ url_for('set_global') }}">{{ session['CURR_LOCATION'] }}📍</a></li>
       {% else %}
         <li class="nav-item"><a href="{{ url_for('set_global') }}"> ON, CA📍</a></li>
-      {% endif %}
+        {% endif %}
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-toggle="modal" data-target="#filterModal">
+            <i class="fas fa-cog" aria-hidden="true"></i>
+            <span class="sr-only">Animal Filters</span>
+          </a>
+        </li>
       <div class='vr'></div> <!-- vertical divider div -->
       {% if session["animal_types"] %} 
         {% for type in session["animal_types"] %}
@@ -73,6 +79,31 @@
     </ul>
   </div>
 </nav>
+<!-- Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1" role="dialog" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Set Animal Filters</h5>
+
+      </div>
+      <div class="modal-body">
+        <ul class="list-unstyled">
+          {% for animal, emoji in animal_emojis.items() %}
+            <li class="mb-2">
+              <a href="{{ url_for('animal_preferences', animal_type=animal) }}" class="btn btn-outline-primary btn-lg btn-block">
+                {{ emoji }} {{ animal | capitalize }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="container" id="flash_message_container">
   {% for category, message in get_flashed_messages(with_categories=True) %}
   <div class="alert alert-{{ category }}">{{ message }}</div>

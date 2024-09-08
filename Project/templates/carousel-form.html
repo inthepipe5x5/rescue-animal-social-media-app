@@ -1,4 +1,5 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+{% block content %}
 
 <div id="search-results-container">
   {% if not results %}
@@ -6,128 +7,75 @@
   {% else %}
   <ul id="search-results-list" class="list-group">
     
-    {% if results.animals %} {% for animal in results.animals %}
-    <div class="row">
-      <div class="col-sm-3">
-        <h4 id="result-name">{{ animal.name }}</h4>
-        <imge\ src={{animal.photos.small}} class="card-img-top"><img />
-        <h5 class="{{ animal.name }}">
-          <span class="fa fa-map-marker"></span>{{ animal.distance }}, {{
-            animal.city }}, {{ animal.state }}
+    {% if results.animals %}
+      {% for animal in results.animals %}
+      <div class="row">
+        <div class="col-sm-3">
+          <h4 id="result-name">{{ animal.name }}</h4>
+          <img src="{{ animal.photos.small }}" class="card-img-top">
+          <h5 class="{{ animal.name }}">
+            <span class="fa fa-map-marker"></span>{{ animal.distance }}, {{ animal.city }}, {{ animal.state }}
           </h5>
           <p>{{ animal.description }}</p>
-          {% if animal.status == "adoptable" %}<div class="alert alert-success" role="alert">
-            <a href={{animal.url}} class="alert-link">Adopt me!</a>
+          {% if animal.status == "adoptable" %}
+          <div class="alert alert-success" role="alert">
+            <a href="{{ animal.url }}" class="alert-link">Adopt me!</a>
           </div>
           {% endif %}
+        </div>
       </div>
-    </div>
-    {% endfor %} {% endif %}
-    
-    {% elif results.organizations %} {% for animal in results.organizations %}
-    <div class="row">
-      <div class="col-sm-3">
-        <img src={{organization.photos.small}} class="card-img-top"></img>
-        <h4 id="result-name">{{ organization.name }}</h4>
-        <h5 class="{{ organization.name }}">
-          <span class="fa fa-map-marker"></span>{{ organization.distance }}, {{
-            organization.city }}, {{ organization.state }}
+      {% endfor %}
+    {% elif results.organizations %}
+      {% for organization in results.organizations %}
+      <div class="row">
+        <div class="col-sm-3">
+          <img src="{{ organization.photos.small }}" class="card-img-top">
+          <h4 id="result-name">{{ organization.name }}</h4>
+          <h5 class="{{ organization.name }}">
+            <span class="fa fa-map-marker"></span>{{ organization.distance }}, {{ organization.city }}, {{ organization.state }}
           </h5>
           <p>{{ organization.description }}</p>
-          <p>{{organization.mission_statement}}<p>
-          <a href={{animal.url}} class="alert-link">Visit Page</a>
+          <p>{{ organization.mission_statement }}</p>
+          <a href="{{ organization.url }}" class="alert-link">Visit Page</a>
+        </div>
       </div>
-    </div>
-    {% endfor %} {% endif %}
+      {% endfor %}
+    {% endif %}
   
   </ul>
   {% endif %}
 </div>
 
 <form action="" method="post">
-  {% csrf_token %}
+  {{ form.hidden_tag() }}
 
-  <div
-    id="questionCarousel"
-    class="carousel slide"
-    data-ride="carousel"
-    data-interval="false"
-  >
+  <div id="questionCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
     <ol class="carousel-indicators">
-      {% for question in questions %}
-      <li
-        data-target="#questionCarousel"
-        data-slide-to="{{ loop.index0 }}"
-        {%
-        if
-        loop.first
-        %}class="active"
-        {%
-        endif
-        %}
-      ></li>
+      {% for question in form.questions %}
+      <li data-target="#questionCarousel" data-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active"{% endif %}></li>
       {% endfor %}
     </ol>
     <div class="carousel-inner">
-      {% for question in questions %}
+      {% for question in form.questions %}
       <div class="carousel-item {% if loop.first %}active{% endif %}">
         <div class="form-group">
-          <label for="question{{ loop.index }}">{{ question.text }}</label>
-          {% if question.type == 'text' %}
-          <input
-            type="text"
-            class="form-control"
-            id="question{{ loop.index }}"
-            name="question{{ loop.index }}"
-          />
-          {% elif question.type == 'textarea' %}
-          <textarea
-            class="form-control"
-            id="question{{ loop.index }}"
-            name="question{{ loop.index }}"
-            rows="3"
-          ></textarea>
-          {% elif question.type == 'radio' %} {% for option in question.options
-          %}
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="question{{ loop.index }}"
-              id="option{{ loop.index }}{{ loop.inner_loop.index }}"
-              value="{{ option.value }}"
-            />
-            <label
-              class="form-check-label"
-              for="option{{ loop.index }}{{ loop.inner_loop.index }}"
-              >{{ option.label }}</label
-            >
-          </div>
-          {% endfor %} {% endif %}
+          {{ question.label }}
+          {{ question }}
         </div>
       </div>
       {% endfor %}
     </div>
-    <a
-      class="carousel-control-prev"
-      href="#questionCarousel"
-      role="button"
-      data-slide="prev"
-    >
+    <a class="carousel-control-prev" href="#questionCarousel" role="button" data-slide="prev">
       <span class="carousel-control-prev-icon" aria-hidden="true"></span>
       <span class="sr-only">Previous</span>
     </a>
-    <a
-      class="carousel-control-next"
-      href="#questionCarousel"
-      role="button"
-      data-slide="next"
-    >
+    <a class="carousel-control-next" href="#questionCarousel" role="button" data-slide="next">
       <span class="carousel-control-next-icon" aria-hidden="true"></span>
       <span class="sr-only">Next</span>
     </a>
   </div>
-  <button type="submit" class="btn btn-primary">Submit</button>
+  {{ form.submit }}
 </form>
+
 
 {% endblock %}
