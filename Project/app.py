@@ -891,7 +891,7 @@ def get_app_data():
 def inject_global_vars():
     """Injects the session and g objects into the Jinja2 template context"""
     # print('template context processor being called', session['CURR_USER'])
-    return {"session": session, "g": g, "animal_emojis": pf_api.animal_emojis}
+    return {"session": session, "g": g, "animal_emojis": PetFinderPetPyAPI.animal_emojis}
 
 
 # Turn off all caching in Flask

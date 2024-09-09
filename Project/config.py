@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from flask_wtf.csrf import CSRFProtect
 from logging.config import dictConfig
@@ -15,6 +16,7 @@ os.environ["APP_DIR"] = basedir
 
 
 # custom formatter for Flask logger to log in different colors
+
 class CustomFormatter(logging.Formatter):
     # Define color codes
     grey = "\x1b[38;21m"
@@ -27,9 +29,15 @@ class CustomFormatter(logging.Formatter):
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
 
+    # Define highlight codes
+    green_highlight = "\x1b[42m"
+    yellow_highlight = "\x1b[43m"
+    red_highlight = "\x1b[41m"
+    purple_highlight = "\x1b[45m"
+
     # Define the format
     format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+        "%(levelname)s - %(name)s - (%(filename)s:%(lineno)d) - %(message)s"
     )
 
     FORMATS = {
@@ -43,7 +51,33 @@ class CustomFormatter(logging.Formatter):
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+        formatted_message = formatter.format(record)
+
+        # Highlight status codes
+        formatted_message = re.sub(
+            r'\b(200|201)\b',
+            f'{self.green_highlight}\\1{self.reset}',
+            formatted_message
+        )
+        formatted_message = re.sub(
+            r'\b(401|404)\b',
+            f'{self.yellow_highlight}\\1{self.reset}',
+            formatted_message
+        )
+        formatted_message = re.sub(
+            r'\b(500)\b',
+            f'{self.red_highlight}\\1{self.reset}',
+            formatted_message
+        )
+
+        # Highlight debugger PIN
+        formatted_message = re.sub(
+            r'(Debugger PIN: )(\d+-\d+-\d+-\d+-\d+)',
+            f'\\1{self.purple_highlight}\\2{self.reset}',
+            formatted_message
+        )
+
+        return formatted_message
 
 
 class Config:

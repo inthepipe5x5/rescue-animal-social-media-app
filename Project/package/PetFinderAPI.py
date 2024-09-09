@@ -122,12 +122,10 @@ class PetFinderPetPyAPI:
         """
         # handle if no params passed in
         params = {} if not params else params
-        # handle if no request_url passed in
-        pf_api_instance = Petfinder(
-            key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
-        )
+
         # Obtain the current access token within the self._get_access_token() instead of helper petpy_api class
         access_token = self._get_access_token()
+        print('_get_request', access_token)
 
         # Make a request to the specified endpoint with the access token
         headers = {"Authorization": f"Bearer {access_token}"}
