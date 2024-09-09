@@ -7,9 +7,7 @@ from flask import json
 from ratelimit import limits, RateLimitException
 from petpy import Petfinder
 import requests
-from .parse import Parse, ParseAnimal, ParseMultiAnimal
-
-from petpy.exceptions import PetfinderInsufficientAccess, Pet
+from .parse import ParseMultiAnimal
 
 # from ..models import User, UserAnimalPreferences  # , #UserPreferences
 
@@ -20,8 +18,9 @@ class PetFinderPetPyAPI:
     """
     API class with methods to store access PetFinder API and help functions to map user preference data to API search parameters
     """
+
     _petpy_api_instance = None
-    
+
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
@@ -49,6 +48,29 @@ class PetFinderPetPyAPI:
         "scales-fins-other": "🦎",
         "barnyard": "🐄",
     }
+    # user prefs that map to search params
+    attribute_keys = [
+        "spayed_neutered",
+        "house_trained",
+        "declawed",
+        "special_needs",
+        "shots_current",
+    ]
+    environment_keys = [
+        "child_friendly",
+        "dogs_friendly",
+        "cats_friendly",
+    ]
+    # keys that are dynamically generated
+    dynamic_keys = [
+        "breed",
+        "coat",
+        "colors",
+        "gender",
+        "size",
+        "personality",
+        "age",
+    ]
 
     def __init__(self, get_anon_preference_func, get_user_preference_func):
 
@@ -60,11 +82,27 @@ class PetFinderPetPyAPI:
     def petpy_api(cls):
         if cls._petpy_api_instance is None:
             cls._petpy_api_instance = Petfinder(
-                key=os.environ.get("API_KEY"),
-                secret=os.environ.get("API_SECRET")
+                key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
             )
         return cls._petpy_api_instance
 
+    def _get_access_token(self):
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": os.environ.get("API_KEY"),
+            "client_secret": os.environ.get("API_SECRET"),
+        }
+        url = self.BASE_API_URL + "oauth2/token"
+        response = requests.post(url, data=payload)
+
+        if response.status_code == 200:
+            token_info = response.json()
+            access_token = token_info["access_token"]
+            return access_token
+        else:
+            raise Exception(
+                f"Error getting access token: {response.status_code} - {response.text}"
+            )
 
     def _get_request(
         self,
@@ -85,9 +123,11 @@ class PetFinderPetPyAPI:
         # handle if no params passed in
         params = {} if not params else params
         # handle if no request_url passed in
-
-        # Obtain the current access token within the self.petpy_api class
-        access_token = self.petpy_api._auth
+        pf_api_instance = Petfinder(
+            key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
+        )
+        # Obtain the current access token within the self._get_access_token() instead of helper petpy_api class
+        access_token = self._get_access_token()
 
         # Make a request to the specified endpoint with the access token
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -115,6 +155,72 @@ class PetFinderPetPyAPI:
                 "success_flag": False,
             }
 
+    def preprocess_preferences(self, init_params_copy, prefs_obj):
+        """helper function to preprocess user prefs_obj and reduce if they include any values in excluded_values (ie. "any"/False)
+        use this to create search params mapped to PetPy animals function parameter requirements
+
+        Args:
+            init_params_copy (_type_): copy of init search params
+            prefs_obj (_type_): _description_
+
+        Returns:
+            search_params: search parameters mapped to
+        """
+        if not prefs_obj:
+            # prefs that only have true/false/None possibilities
+            boolean_prefs = {
+                bool_key: False
+                for bool_key in self.environment_keys.extend(self.attribute_keys)
+            }
+            # prefs that only have 'any' or a list possibilities
+            any_prefs = {pref_key: ["any"] for pref_key in self.dynamic_keys}
+            prefs_obj = boolean_prefs.update(any_prefs)
+
+        excluded_values = [
+            "any",
+            "Any",
+            "ANY",
+            "/Any/",
+            "/any/",
+            "false",
+            False,
+            None,
+        ]
+
+        # dynamically handle gender
+        gender_pref = prefs_obj.get("gender", ["any"])
+        if len(gender_pref) == 0 or "any" in gender_pref or "unknown" in gender_pref:
+            gender_pref = ["male", "female"]
+
+        coats_pref = prefs_obj.get("coat", default_coats)
+        coats_pref = (
+            default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
+        )
+
+        # dynamically handle coats
+        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
+        mapped_search_params = init_params_copy.copy()
+        for key, value in prefs_obj.items():
+            if isinstance(value, (str, bool)):
+                if value not in excluded_values:
+                    init_params_copy[key] = value
+            elif isinstance(value, list):
+                filtered_list = [item for item in value if item not in excluded_values]
+                if filtered_list:
+                    init_params_copy[key] = filtered_list
+            elif isinstance(value, dict):
+                filtered_dict = {
+                    k: v for k, v in value.items() if v not in excluded_values
+                }
+                if filtered_dict:
+                    init_params_copy[key] = filtered_dict
+
+        search_params = (
+            mapped_search_params if mapped_search_params else init_params_copy
+        )
+        print(search_params, "being passed as params to /animals API call")
+        return search_params
+
     def create_filter_conditions(self, preferences):
         """
         Create filter conditions based on a nested object of boolean or list values.
@@ -126,19 +232,6 @@ class PetFinderPetPyAPI:
         dict: A dictionary of lambda functions to be used as filter conditions.
         """
         filter_conditions = {}
-
-        attribute_keys = [
-            "spayed_neutered",
-            "house_trained",
-            "declawed",
-            "special_needs",
-            "shots_current",
-        ]
-        environment_keys = [
-            "child_friendly",
-            "dogs_friendly",
-            "cats_friendly",
-        ]
 
         def create_list_condition(filter_key, filter_value):
             """
@@ -204,11 +297,11 @@ class PetFinderPetPyAPI:
             elif isinstance(value, bool):
                 if value is False:
                     return None
-                if key in attribute_keys:
+                if key in self.attribute_keys:
                     return (
                         lambda obj: obj.get("attributes", {}).get(key, False) == value
                     )
-                elif key in environment_keys:
+                elif key in self.environment_keys:
                     return (
                         lambda obj: obj.get("environment", {}).get(key, False) == value
                     )
@@ -221,12 +314,12 @@ class PetFinderPetPyAPI:
                 if value_lower == "any":
                     return None
                 if value_lower == "true":
-                    if key in attribute_keys:
+                    if key in self.attribute_keys:
                         return (
                             lambda obj: obj.get("attributes", {}).get(key, False)
                             == True
                         )
-                    elif key in environment_keys:
+                    elif key in self.environment_keys:
                         return (
                             lambda obj: obj.get("environment", {}).get(key, False)
                             == True
@@ -308,12 +401,11 @@ class PetFinderPetPyAPI:
         temp_output = []
 
         for key, condition in filter_conditions.items():
-            for idx in range(len(results_list)):
-                obj = results_list[idx]
+            for idx in range(len(output)):
+                obj = output[idx]
                 # check if current object meets the condition
                 if condition(obj):
                     # parse obj for to use in templates easier
-                    parsed_result = ParseAnimal(single_animal_data=obj)
 
                     # add obj to temp_output after parsing
                     temp_output.append(obj)
@@ -344,54 +436,28 @@ class PetFinderPetPyAPI:
     def get_mapped_animals_by_type(
         self, species, location_str, user_preferences_dict, page=1
     ):
-        """Function that takes two args: list_of_orgs and a user_id and sends a GET request to PetFinder API for animals that match preferences from the user_id argument
 
-        Args:
-            list_of_orgs (ARR or Pandas DataFrame): list of organization IDs from API in a Python List (Array) or a Pandas DataFrame format.
-            user_id (INT): id of user making search request (eg. the user_id stored in 'g' -> g.user_id)
-        """
-        # dynamically handle gender
-        gender_pref = user_preferences_dict.get("gender", ["any"])
-        if len(gender_pref) == 0 or "any" in gender_pref or "unknown" in gender_pref:
-            gender_pref = ["male", "female"]
-
-        # dynamically handle coats
-        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
-
-        coats_pref = user_preferences_dict.get("coat", default_coats)
-        coats_pref = (
-            default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
-        )
         init_params = {"type": species, "page": page, "location": location_str}
-        params = init_params.copy()
-        excluded_values = ["any", "Any", "ANY", "/Any/", "/any/", "false", False, None]
+        params = self.preprocess_preferences(
+            init_params_copy=init_params.copy(), prefs_obj=user_preferences_dict
+        )
 
-        for key, value in user_preferences_dict.items():
-            if isinstance(value, (str, bool)):
-                if value not in excluded_values:
-                    params[key] = value
-            elif isinstance(value, list):
-                filtered_list = [item for item in value if item not in excluded_values]
-                if filtered_list:
-                    params[key] = filtered_list
-            elif isinstance(value, dict):
-                filtered_dict = {
-                    k: v for k, v in value.items() if v not in excluded_values
-                }
-                if filtered_dict:
-                    params[key] = filtered_dict
-
-        api_request_counter = 0
+        # grab init animal results with pre-processed mapped search params
         init_animals = self._get_request(
             request_url="https://api.petfinder.com/v2/animals", params=params
         )
-        api_request_counter += 1
         print("API results len = ", len(init_animals["results"]))
+
+        # try again init animal results with default search params instead
         if len(init_animals["results"]) == 0:
             init_animals = self._get_request(
                 request_url="https://api.petfinder.com/v2/animals", params=init_params
             )
-            # self._get_request(endpoint='animals', request_url=)
+            print(
+                "Init API request with search params mapped with user prefs FAILED. Refetched API results len = ",
+                len(init_animals["results"]),
+            )
+
         # create filter conditions based on user_preferences_dict
         filter_conditions = self.create_filter_conditions(user_preferences_dict)
 
@@ -407,7 +473,9 @@ class PetFinderPetPyAPI:
             filtered["success_flag"],
             f"filtered['unfiltered'] {filtered['unfiltered']}",
         )
-        return filtered
+        parsed_and_filtered = ParseMultiAnimal(iterable_animals=filtered["results"])
+
+        return parsed_and_filtered
 
     def animals_df_to_org_animal_count_dict(self, animals_df):
         """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.

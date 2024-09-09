@@ -434,7 +434,7 @@ const flashMessage = (message, success = false) => {
   // Show the error message
   setTimeout(() => {
     errorDiv.style.opacity = "1";
-  }, 1000);
+  }, 10000);
 
   // Hide the error message after 3 seconds
   setTimeout(() => {

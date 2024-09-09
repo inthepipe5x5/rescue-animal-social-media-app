@@ -400,12 +400,6 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         # Fetch dynamic choices
         breed_choices = api.breeds(animal_type)["breeds"][animal_type]
         animals = api.animal_types(animal_type)
-        coat_choices = animals["type"]["coats"] or []
-        coat_color_choices = animals["type"]["colors"] or []
-
-        # Fetch dynamic choices
-        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
-        animals = api.animal_types(animal_type)
         coat_choices = animals["type"]["coats"] 
         coat_color_choices = animals["type"]["colors"]
 

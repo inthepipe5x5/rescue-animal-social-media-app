@@ -57,13 +57,6 @@ CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
 load_dotenv()
 
-# #initialize instance of petFinderPetPyAPI wrapper with helper get functions from helper.py to avoid circular imports
-pf_api = PetFinderPetPyAPI(
-    get_anon_preference_func=get_anon_preference,
-    get_user_preference_func=get_user_preference,
-)
-
-
 default_session_keys = {
     "location": os.environ.get("CURR_LOCATION", "43.6429,79.3889"),
     "state": os.environ.get("state", "ON"),
@@ -362,11 +355,13 @@ def delete_user():
 
 
 ##############################################################################
-IMAGE_FOLDER = os.path.join('static', 'images', 'graphics')
+IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
-@app.route('/static/images/graphics/<path:filename>')
+
+@app.route("/static/images/graphics/<path:filename>")
 def serve_image(filename):
     return send_from_directory(IMAGE_FOLDER, filename)
+
 
 @app.route("/results", methods=["GET", "POST"])
 def results():
@@ -396,21 +391,9 @@ def results():
     return render_template("animalResults.html", form=form)
 
 
-# Route to handle form submissions and API calls
-@app.route("/submit_section", methods=["POST"])
-def submit_section():
-    section_data = request.params
-    # Make API call using section_data
-    mapped_preferences_data = pf_api.map_user_form_data(section_data)
-    api_data = pf_api.petpy_api.animals(**mapped_preferences_data)
-    # Store API data in session
-    session["api_data"] = api_data
-    return "API data received"
-
-
 @app.route("/data/animals", methods=["GET", "POST"])
 def animal_data():
-    """TEST ROUTE TO USE PETPY API
+    """DATA ROUTE FOR FRONTEND TO GET PETPY API ANIMALS DATA
 
     Args:
         type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
@@ -438,14 +421,6 @@ def animal_data():
         }
     )
 
-    # form = HiddenLocationForm(obj=location)
-
-    # if request.method == "GET":
-    #     return render_template("animalResults.html", form=form)
-    # if request.method == "POST":
-    #     request_data = request.get_json()
-    #     print(request_data)
-    # if request.method == "POST" and form.validate_on_submit():
     try:
         # Fetch user preferences
         user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
@@ -476,10 +451,10 @@ def animal_data():
                 f"Your search preferences are too strict; try adjusting your search filters{', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
                 "warning",
             )
-        #add user_prefs to results dictionary if not empty dict
+        # add user_prefs to results dictionary if not empty dict
         if len(user_prefs.values()) > 0:
             results["user_prefs"] = user_prefs
-        
+
         return jsonify(results)
         # # Render results page
         # return render_template("results.html", results=results["results"])
@@ -491,7 +466,6 @@ def animal_data():
             f"An error occurred while fetching animal data. Please try again later.{err_msg}",
             "danger",
         )
-        return redirect(url_for("homepage"))
 
 
 # @auth_required
@@ -510,7 +484,6 @@ def animal_pref_data(animal_type):
     user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
         u_id=user_id, animal_type=species
     )
-    # output = pf_api.create_filter_conditions(user_animal_prefs["results"])
     return jsonify(user_animal_prefs)
     # else:
     # return redirect(url_for("login"))
@@ -620,29 +593,14 @@ def orgs_data():
         country = get_anon_preference(key="country", session=session, g=g)
         state = get_anon_preference(key="state", session=session, g=g)
 
-    results = pf_api.petpy_api.organizations(
-        country=country, state=state, sort="distance"
-    )  # (**pf_api.default_options_obj)
-    print([(org.name, org.adoption.policy) for org in results.organizations])
-    # return jsonify(results)
-    return render_template("results.html", results=results)
-
-
-# Route to set & get API data in Flask Session
-@app.route("/data/session", methods=["GET", "POST"])
-def update_data_session():
-    if request.method == "GET":
-        if "api_data" in session:
-            del session["api_data"]
-            return jsonify(session["api_data"])
-        return jsonify({})  # Return empty JSON if no data in session
-
-    if request.method == "POST":
-        api_data = request.args.get("api_data")
-        if api_data:
-            session["api_data"] = pf_api.parse_api_animals_data(api_data=api_data)
-        else:
-            return ValueError("No api data received")
+    api = PetFinderPetPyAPI
+    orgs_search_args = {"country": country, "state": state, "sort": "distance"}
+    if "org_id" in request.args:
+        orgs_search_args["id"] = request.args["org_id"]
+        
+    org_results = api.organizations(**orgs_search_args)["organizations"]
+    print([(org.name, org.adoption.policy) for org in results])
+    return jsonify(results)
 
 
 @app.route("/set_location", methods=["POST"])
