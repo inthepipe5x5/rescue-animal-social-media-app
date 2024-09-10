@@ -435,7 +435,7 @@ def animal_data():
         # geo_coordinates = form.geolocation.data
         # location_str = geo_coordinates if geo_coordinates else form.postal_code.data
 
-        results = pf_api.get_mapped_animals_by_type(
+        results = PetFinderPetPyAPI.get_mapped_animals_by_type(
             species=species,
             location_str="Toronto, ON",  # location.geolocation,#location_str,
             user_preferences_dict=user_prefs,
@@ -484,6 +484,13 @@ def animal_pref_data(animal_type):
     user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
         u_id=user_id, animal_type=species
     )
+    if user_animal_prefs:
+        message = "User animal preferences retrieved successfully."
+        category="success"
+    else:
+        message = "No animal preferences found."
+        category="error"
+    flash(message=message, category=category)
     return jsonify(user_animal_prefs)
     # else:
     # return redirect(url_for("login"))
@@ -719,7 +726,7 @@ def signup_user():
                 user_id=user.id, form=SpecificAnimalPreferencesForm
             )
 
-            # init_orgs = pf_api.get_orgs_df()
+            # init_orgs = PetFinderPetPyAPI.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
             db.session.rollback()
@@ -766,7 +773,7 @@ def carousel_form_test():
 @auth_required
 @app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
-    current_user_id = session.get("CURR_USER").get("id", None)
+    current_user_id = session.get("CURR_USER")["id"]
     if request.method == "GET":
         user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
             u_id=current_user_id, animal_type=animal_type
@@ -852,9 +859,9 @@ def homepage():
 
     else:
         # try:
-        # params = {**pf_api.default_options_obj}
-        # # results = pf_api.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
-        # results = pf_api.get_orgs_df(**params)
+        # params = {**PetFinderPetPyAPI.default_options_obj}
+        # # results = PetFinderPetPyAPI.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
+        # results = PetFinderPetPyAPI.get_orgs_df(**params)
         # print(results)
         # except Exception as e:
         #     results = None

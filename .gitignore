@@ -168,3 +168,5 @@ cython_debug/
 .vscode/settings.json
 Project/rescue-animal-social-media-app.code-workspace
 prod-ca-2021.crt
+.vscode/launch.json
+vscode
