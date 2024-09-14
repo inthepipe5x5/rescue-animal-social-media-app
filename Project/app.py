@@ -508,7 +508,7 @@ def animal_data():
 
         # Log results for debugging
         print(
-            f"Results flag = {results['success_flag']}, results length: {len(results['results'])}"
+            f"Results flag = {len(results['results']) > 0 }, results length: {len(results['results'])}"
         )
 
         # Check if the results are valid

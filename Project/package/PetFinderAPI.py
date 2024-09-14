@@ -7,7 +7,7 @@ from flask import json
 from ratelimit import limits, RateLimitException
 from petpy import Petfinder
 import requests
-from .parse import ParseMultiAnimal
+from .parse import parse_multi_animal
 
 # from ..models import User, UserAnimalPreferences  # , #UserPreferences
 
@@ -410,7 +410,7 @@ class PetFinderPetPyAPI:
                 bad_keys.append(key)
                 flag = False
                 print("condition NOT met for key=", key, len(temp_output))
-                break
+                break  # stop loop #DO LATER; perhaps make the for loop a recursive helper function call that removes the "bad_key" from filter conditions and reruns filtering until len(temp_output) > 0
 
         # determine success (true/false) based on len(output) > 0
         flag = len(temp_output) > 0
@@ -468,13 +468,14 @@ class PetFinderPetPyAPI:
 
         # parse the filtered results
         if filtered["success_flag"] and len(filtered["results"]) > 0:
-            multi_animal_parser = ParseMultiAnimal(iterable_animals=filtered["results"])
-            multi_animal_parser.parse()  # Parse the animals
-            parsed_and_filtered = multi_animal_parser.get_results()
+            parsed_and_filtered = parse_multi_animal(animal_list=filtered["results"])
         else:
             parsed_and_filtered = []
 
-        return parsed_and_filtered
+        return {
+            "results": parsed_and_filtered,
+            "success_flag": filtered["success_flag"] and len(parsed_and_filtered),
+        }
 
     def animals_df_to_org_animal_count_dict(self, animals_df):
         """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.

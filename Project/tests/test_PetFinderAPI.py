@@ -52,7 +52,7 @@ class TestPetFinderPetPyAPI(unittest.TestCase):
         loc_obj = {'country': 'Canada'}
         self.assertEqual(self.api.parse_location_obj(loc_obj), {'location': 'CA', 'country': 'CA'})
 
-    def test_parse_publish_date(self):
+    def test_parse_published_at(self):
         #example published_date from PetFinder API response
         pub_date = '2024-05-01T12:00:00+0000' 
         
@@ -61,10 +61,10 @@ class TestPetFinderPetPyAPI(unittest.TestCase):
         current_date_obj = datetime.now(timezone.utc)
         expected_delta = (current_date_obj - pub_date_obj).days
         
-        self.assertEqual(self.api.parse_publish_date(pub_date, action='delta'), expected_delta) #date diff since June 14 2024
+        self.assertEqual(self.api.parse_published_at(pub_date, action='delta'), expected_delta) #date diff since June 14 2024
 
-        self.assertRaises(TypeError, lambda: self.api.parse_publish_date(None, action='delta'))
-        self.assertRaises(TypeError, lambda: self.api.parse_publish_date(None, action='invalid'))
+        self.assertRaises(TypeError, lambda: self.api.parse_published_at(None, action='delta'))
+        self.assertRaises(TypeError, lambda: self.api.parse_published_at(None, action='invalid'))
 
 
 if __name__ == '__main__':

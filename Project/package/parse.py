@@ -11,13 +11,39 @@ from copy import deepcopy
 from collections.abc import Iterable
 
 
+class ParsingError(Exception):
+    """The ParsingError class will store the details of the error, including the original data, its type, and the parsing function that failed.
+
+    Args:
+        data (any): original data that needed to be parsed
+        func_name (string): parsing function that failed
+    """
+
+    def __init__(self, data, func_name):
+        self.data = data
+        self.data_key = (
+            data.__name__
+        )  # key name of data being parsed within Data object
+        self.func_name = func_name
+        self.data_type = type(data).__name__  # Get the type of the data
+        super().__init__(self._generate_message())
+
+    def _generate_message(self):
+        """Generate an error message."""
+        return (
+            f"Error occurred while parsing {self.data.__name__} which is data of type '{self.data_type}' "
+            f"with function '{self.func_name}'. Data: {self.data}"
+        )
+
+
 class Parse:
     """Takes in a python dictionary and parses values"""
 
     key_function_mapping_dict = {
-        "published_date": "parse_publish_date",
-        "pub_date": "parse_publish_date",
-        "date": "parse_publish_date",
+        "published_date": "parse_published_at",
+        "published_at": "parse_published_at",
+        "pub_date": "parse_published_at",
+        "date": "parse_published_at",
         "photos": "parse_photos",
         "location": "parse_location_obj",
         "LOCATION": "parse_location_obj",
@@ -38,30 +64,15 @@ class Parse:
     parsed_keys = set()  # set of keys filtered
     success_flag = False
 
-    def __init__(self, object_data, type=None):
+    def __init__(self, type=None):
         """Initialize the Parse object, taking in a dictionary and an optional type."""
-        if not object_data:
-            return  # Exit if no data is provided
 
-        self.original_data = deepcopy(object_data)
         self.type = type
         self.parsed = None
         self.parsed_keys = set()
         self.success_flag = False
 
         self.parsed_types_tuples = self.get_parsed_types_types()
-
-        try:
-            self.parsed = self.parse(object=object_data)
-            self.success_flag = True if self.parsed and self.parsed_keys else False
-
-            if not self.success_flag:
-                raise ValueError(f"Failed parsing from {object_data}")
-
-        except (ValueError, TypeError) as e:
-            print(f"Parsing error ({type(e).__name__}): {e}, {self.meta_data}")
-            self.success_flag = False
-            self.parsed = self.original_data
 
     @property
     def meta_data(self):
@@ -73,6 +84,28 @@ class Parse:
             "success_flag": self.success_flag,
             "status": self.success_flag,
         }
+
+    def _parse_format(parse_func, data):
+        """
+        Higher-order function that wraps a parsing function and handles errors.
+
+        Args:
+            parse_func (function): The parsing function to be wrapped.
+            data (Any): The data to be passed into the parsing function.
+
+        Returns:
+            Any: Parsed data or the original data if an error occurs.
+
+        Raises:
+            ParsingError: If an exception occurs in the parsing function.
+        """
+        try:
+            # Try parsing the data with the provided parsing function
+            return parse_func(data)
+        except Exception as e:
+            # Log the error and raise a ParsingError with details
+            print(f"Error in function '{parse_func.__name__}': {e}")
+            raise ParsingError(data, parse_func.__name__) from e
 
     def parse(self, object=None):
         """Parse the input object, applying functions based on the key_function_mapping_dict."""
@@ -95,10 +128,10 @@ class Parse:
 
         # Process 'published_at' if available
         if "published_at" in parsed_object:
-            parsed_object["published_at"] = self.parse_publish_date(
+            parsed_object["published_at"] = self.parse_published_at(
                 parsed_object["published_at"], action="format"
             )
-            parsed_object["date_delta"] = self.parse_publish_date(
+            parsed_object["date_delta"] = self.parse_published_at(
                 parsed_object["published_at"], action="delta"
             )
 
@@ -190,7 +223,7 @@ class Parse:
             # If not JSON, process as plain text
             return self.clean_text(description)
 
-    def parse_publish_date(self, pub_date, action="delta"):
+    def parse_published_at(self, pub_date, action="any"):
         """Parse the published_date property in animal data object returned from API
 
         Args:
@@ -199,7 +232,7 @@ class Parse:
                 'delta' = get the difference between the pub_date and now() in days
                 'format' = format the pub_date into a readable form
         """
-        if action not in ["delta", "format"]:
+        if action not in ["any", "delta", "format"]:
             raise TypeError("Wrong Action Type")
 
         if not pub_date:
@@ -219,9 +252,17 @@ class Parse:
 
         # Parse the date
         date_obj = datetime.datetime.strptime(pub_date, input_format)
-
+        if action == "any":
+            return {
+                "published_at": self.parse_published_at(
+                    pub_date=pub_date, action="format"
+                ),
+                "date_delta": self.parse_published_at(
+                    pub_date=pub_date, action="delta"
+                ),
+            }
         # handle if action = 'delta'
-        if action == "delta":
+        elif action == "delta":
             # If the parsed date doesn't have timezone info, assume it's UTC
             if date_obj.tzinfo is None:
                 date_obj = date_obj.replace(tzinfo=pytz.utc)
@@ -231,7 +272,7 @@ class Parse:
             return parsed_date
 
         # handle if action = 'format'
-        if action == "format":
+        elif action == "format":
             parsed_date = date_obj.strftime("%d/%m/%Y")
             return parsed_date
 
@@ -251,7 +292,7 @@ class Parse:
                 else pycountry.countries.search_fuzzy(country)[0].alpha_2
             )
         if not loc_obj or not country:
-            return None
+            return ""
         elif city:  # if city, state, country
             # clean city, state, country strings
 
@@ -343,15 +384,11 @@ class ParseAnimal(Parse):
     )
     type = "animal"
 
-    def __init__(self, data):
-        self.data = self.check_for_nested(data)  # Parse any nested structures
-        self.results = None
-
     #############################################################################################################################################################################################
     # UTILITY FUNCTIONS
     #############################################################################################################################################################################################
 
-    def check_for_nested(self, data):
+    def check_for_nested(self, data={}):
         """
         Helper function to check if data is nested and needs to be deserialized prior to parsing.
 
@@ -366,58 +403,78 @@ class ParseAnimal(Parse):
             TypeError: If the data format is incorrect
         """
         if not data:
-            return None  # Return None if no data
+            raise ValueError("Empty data passed for parsing")
 
+        # Keys that can indicate multiple objects or a nested structure
         multi_obj_keys = ("animals", "organizations", "orgs")
-        single_obj_keys = tuple(
-            key[:-1] for key in multi_obj_keys
-        )  # Remove last character to make singular
+        single_obj_keys = tuple(key[:-1] for key in multi_obj_keys)  # Singular forms
 
+        # If the data is already in dict format, check if it's a valid animal object
         if isinstance(data, dict):
-            # Check for nested multi-object structure
+            # Check for nested multi-object structure like {'animals': [<animal1>, <animal2>]}
             for key in multi_obj_keys:
                 if key in data and isinstance(data[key], list):
-                    if len(data[key]) == 1:
-                        # Recursively process the single object
+                    if len(data[key]) == 1:  # If it's a list with one animal
+                        # Recursively check the nested structure
                         return self.check_for_nested(data[key][0])
                     elif len(data[key]) > 1:
                         raise ValueError(f"Multiple objects found in '{key}' key")
 
-            # Check for nested single-object structure
+            # Check for nested single-object structure like {'animal': {...}}
             for key in single_obj_keys:
                 if key in data and isinstance(data[key], dict):
-                    # Recursively process the single object
-                    return self.check_for_nested(data[key])
+                    # Return the single animal object
+                    return data[key]
 
-            # Check if it's already the desired format
-            if any(
-                key.lower() in self.key_function_mapping_dict for key in data.keys()
-            ):
-                return data  # Return the data if it's in the correct format
+            # If already a valid animal object with common keys, return it
+            common_animal_keys = [
+                "id",
+                "type",
+                "organization_id",
+                "breed",
+                "color",
+                self.key_function_mapping_dict.keys(),
+            ]
+            if any(key.lower() in common_animal_keys for key in data.keys()):
+                return data  # Return if it has common animal object keys
 
-        elif isinstance(data, (list, tuple, set)):
-            if len(data) == 0:
-                raise ValueError("Empty data passed in for parsing")
-            elif len(data) == 1:
-                # Recursively process the single item in the list
+        elif isinstance(data, list):
+            # If it's a list with one animal, process it recursively
+            if len(data) == 1:
                 return self.check_for_nested(data[0])
             else:
-                raise ValueError(f"Multiple objects passed in for processing: {data}")
+                raise ValueError(
+                    "Multiple objects passed in a list for a single animal"
+                )
 
-        else:
-            raise TypeError(f"Incorrect data format: {type(data)}")
-
-        # If no valid format found, raise an error
-        raise ValueError(f"Unexpected data structure: {data}")
+        # If no valid format is found
+        raise ValueError(f"Unexpected data structure: {type(data)} {data}")
 
     #############################################################################################################################################################################################
     # PARSING FUNCTIONS
     #############################################################################################################################################################################################
-    def parse(self):
-        """Parse the animal data."""
-        # You may want to initialize the parent class's parsing logic here
-        super().__init__(object=self.data)
-        self.results = self.meta_data["results"]
+    def parse(self, data={}):
+        """Dynamically parses the animal data."""
+        if not data or not isinstance(data, dict):
+            raise TypeError("Animal data must be a non-empty dictionary.")
+
+        for key, value in data.items():
+            func_name = self.key_function_mapping_dict.get(key.lower(), None)
+            if func_name:
+                parse_func = getattr(self, func_name)
+                print(parse_func)
+                if callable(parse_func):
+                    try:
+                        # Use _parse_format to handle parsing and errors
+                        self.results[key] = super()._parse_format(parse_func, value)
+                    except ParsingError as e:
+                        # Return original key/value if a ParsingError is raised
+                        print(f"ParseAnimal.parse() error @: {key}:{value} {e}")
+                        self.results[key] = value
+                else:
+                    self.results[key] = value
+            else:
+                self.results[key] = value
 
     def get_results(self):
         """Return the parsed results."""
@@ -476,62 +533,38 @@ class ParseAnimal(Parse):
             return "Mystery Mix"  # breed is Mystery Mix by default
 
 
-class ParseMultiAnimal(ParseAnimal):
+def parse_multi_animal(animal_list):
     """
-    Parses multiple animal data objects
+    Function to parse multiple animal objects.
+    Returns original object if any error occurs during parsing.
     """
+    parsed_animals = []
 
-    type = "multi_animal"
-
-    def __init__(self, iterable_animals):
-        self.original_data = deepcopy(iterable_animals)
-        self.parsed = []
-        self.success_flag = False
-
-        if not iterable_animals:
-            raise ValueError(f"Nothing passed for parsing @ {self.__class__.__name__}")
-        if not isinstance(iterable_animals, Iterable):
-            raise TypeError(
-                f"Non-iterable type passed in: {type(iterable_animals)} => {__name__}"
-            )
-
-    def parse(self):
-        """Parses each animal in the iterable."""
-        for idx, animal in enumerate(self.original_data):
+    # Ensure the input is a non-empty iterable
+    if animal_list and isinstance(animal_list, Iterable) and len(animal_list) > 0:
+        for idx, animal in enumerate(animal_list):
             try:
-                parsed_animal = ParseAnimal(animal)
-                parsed_animal.parse()  # Parse the individual animal
-                self.parsed.append(parsed_animal.get_results())
+                # Ensure animal is a dictionary before parsing
+                if not isinstance(animal, dict):
+                    raise TypeError(f"Animal at index {idx} is not a dictionary")
+                
+                # Parse the individual animal
+                parser = ParseAnimal()
+                animal_result = parser.parse(data=animal)
+                parsed_animals.append(animal_result)
+            except ParsingError as e:
+                # Handle ParsingError, reset original data in the animal object
+                print(f"ParsingError at index {idx}: {e}; Continuing with the rest")
+                animal[e.data_key] = e.data  # Restore the original key-value
+                parsed_animals.append(animal)
             except Exception as e:
-                print(f"Error parsing animal {animal} at index {idx}: {e}")
+                animal_name = (
+                    animal["name"] if animal["name"] else f"{animal['type']}#{idx}"
+                )
+                # Log any other unexpected exceptions and skip the current animal
+                print(
+                    f"Unexpected error parsing animal {animal_name} at index {idx}: {e}; Skipping"
+                )
+                parsed_animals.append(animal)  # Add original animal if unexpected error
 
-        if self.parsed:
-            self.success_flag = True
-
-    @property
-    def meta_data(self):
-        """
-        The `meta_data` function returns a dictionary containing metadata about a multi-animal parsing
-        operation.
-        :return: The `meta_data` property is returning a dictionary with the following keys and values:
-        - "type": STR subject matter being interated
-        - "parsed_keys": a list of keys from `self.parsed_keys`
-        - "results": the parsed data from `self.parsed`
-        - "success_flag": the success flag value from the object
-        - "status": the success flag value from the object
-        """
-        return {
-            "type": "multi_animal",
-            "parsed_keys": list(self.parsed_keys),
-            "results": self.parsed,
-            "success_flag": self.success_flag,
-            "status": self.success_flag,
-        }
-
-    def get_results(self):
-        """Return the parsed animals."""
-        return {
-            "type": "multi_animal",
-            "results": self.parsed,
-            "success_flag": self.success_flag,
-        }
+    return parsed_animals
