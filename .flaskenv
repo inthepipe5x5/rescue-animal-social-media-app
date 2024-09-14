@@ -2,5 +2,5 @@ FLASK_APP=Project/app.py
 FLASK_ENV=development
 CURR_USER_KEY=curr_user
 ANIMAL_TYPES=['dog']
-CURR_LOCATION="43.6429,79.3889"
-PETFINDER_API_URL=https://api.petfinder.com
+CURR_LOCATION="43.6429,-79.3889"
+PETFINDER_API_URL=https://api.petfinder.com/v2

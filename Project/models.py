@@ -8,6 +8,8 @@ from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert
+from sqlalchemy.sql import func
+from flask_login import UserMixin
 
 bcrypt = Bcrypt()
 db = SQLAlchemy()
@@ -96,50 +98,50 @@ class UserLocation(db.Model):
         Instance method that grabs the city, state and country to return a string "location"
         Returns:
             str: Returns a string describing the "location" parameter required for PetFinderAPI calls
-
         """
         city = self.city
         state = self.state
         country = self.country
 
-        if country:
-            # parse country string into 2 letter abbreviations
-            country = (
-                country
-                if (len(country) == 2)
-                else pycountry.countries.search_fuzzy(country)[0].alpha_2
-            )
-        elif city:  # if city, state, country
-            # clean city, state, country strings
-
-            if state:
+        try:
+            if country:
+                # parse country string into 2 letter abbreviations
+                country = (
+                    country
+                    if (len(country) == 2)
+                    else pycountry.countries.search_fuzzy(country)[0].alpha_2
+                )
+                if city and state:
+                    # parse state string into 2 letter abbreviations
+                    state = (
+                        state
+                        if (len(state) == 2)
+                        else pycountry.subdivisions.search_fuzzy(state)[0].code
+                    )
+                    return f"{city},{state},{country}"
+                elif state:
+                    return f"{state},{country}"
+                else:
+                    return country
+            elif city and state:
                 # parse state string into 2 letter abbreviations
                 state = (
                     state
                     if (len(state) == 2)
-                    else pycountry.subdivisions.search_fuzzy(state)[0].alpha_2
+                    else pycountry.subdivisions.search_fuzzy(state)[0].code
                 )
-                return {
-                    "location": "%s,%s" % (city, state),
-                    "state": state,
-                    "country": country,
-                    "city": city,
-                }
-        else:  # if state, country
-            if state:
-                return {
-                    "location": "%s,%s" % (state, country),
-                    "state": state,
-                    "country": country,
-                }
-            else:  # if only country
-                return {
-                    "location": "%s" % (country),
-                    "country": country,
-                }
+                return f"{city},{state}"
+            elif state:
+                return state
+            else:
+                raise ValueError("Insufficient location information provided")
+        except Exception as e:
+            # Log the error
+            print(f"Error in getLocStr: {str(e)}")
+            raise ValueError("Unable to process location information")
 
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     """User in the system."""
 
     __tablename__ = "users"
@@ -192,7 +194,7 @@ class User(db.Model):
         "animal_types", ARRAY(db.String), server_default=db.text("ARRAY['dog']")
     )  # Must be one of 6 potential values: "dog", "cat", "rabbit", "small-furry", "horse", "bird", "scales-fins-other", or "barnyard". Default='dog'
 
-    registration_date = db.Column(db.DateTime)
+    registration_date = db.Column(db.DateTime, server_default=func.now())
 
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences",

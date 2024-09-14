@@ -109,6 +109,8 @@ class Config:
     SESSION_REFRESH_EACH_REQUEST = (
         False  # set to false to ensure cookie is not refreshed on each request
     )
+    #keep session permanent to try fixing session resetting issues
+    SESSION_PERMANENT=True
     # session security configs
     SESSION_COOKIE_SECURE = True  # set to True for HTTPS
     SESSION_COOKIE_HTTPONLY = True  # prevent malicious scripts from accessing the session cookie on the client side.

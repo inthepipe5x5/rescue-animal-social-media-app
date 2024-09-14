@@ -21,13 +21,13 @@ class PetFinderPetPyAPI:
 
     _petpy_api_instance = None
 
-    BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com")
+    BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
 
     # store default user_preference
     default_options_obj = {
-        "location": "ON,CA",
+        "location": "Toronto, ON",
         "state": "ON",
         "country": "CA",
         "animal_types": [
@@ -72,11 +72,7 @@ class PetFinderPetPyAPI:
         "age",
     ]
 
-    def __init__(self, get_anon_preference_func, get_user_preference_func):
-
-        # utilizing dependency injection here to prevent circular imports from app.py, form.py, helper.py and this file
-        self.get_anon_preference = get_anon_preference_func
-        self.get_user_preference = get_user_preference_func
+    # def __init__(self):
 
     @classmethod
     def petpy_api(cls):
@@ -92,7 +88,7 @@ class PetFinderPetPyAPI:
             "client_id": os.environ.get("API_KEY"),
             "client_secret": os.environ.get("API_SECRET"),
         }
-        url = self.BASE_API_URL + "oauth2/token"
+        url = self.BASE_API_URL + "/oauth2/token"
         response = requests.post(url, data=payload)
 
         if response.status_code == 200:
@@ -125,7 +121,7 @@ class PetFinderPetPyAPI:
 
         # Obtain the current access token within the self._get_access_token() instead of helper petpy_api class
         access_token = self._get_access_token()
-        print('_get_request', access_token)
+        print("_get_request", access_token)
 
         # Make a request to the specified endpoint with the access token
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -140,6 +136,7 @@ class PetFinderPetPyAPI:
                 "results": result[endpoint],
                 "pagination": result["pagination"],
                 "success_flag": (len(result[endpoint]) > 0),
+                "status_code": response.status_code or 200,
             }
             # print(output)
             return output
@@ -190,13 +187,13 @@ class PetFinderPetPyAPI:
         if len(gender_pref) == 0 or "any" in gender_pref or "unknown" in gender_pref:
             gender_pref = ["male", "female"]
 
+        # dynamically handle coats
+        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
         coats_pref = prefs_obj.get("coat", default_coats)
         coats_pref = (
             default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
         )
 
-        # dynamically handle coats
-        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
         mapped_search_params = init_params_copy.copy()
         for key, value in prefs_obj.items():
             if isinstance(value, (str, bool)):
@@ -422,11 +419,12 @@ class PetFinderPetPyAPI:
         # return results_list if flag is false
         output = temp_output if flag else results_list
         # output = temp_output # if flag else results_list
-
+        # determine if unfiltered_results are passed back
+        unfiltered = True if len(temp_output) > 0 and output == results_list else False
         return {
             "results": output,
             "success_flag": flag,
-            "unfiltered": flag,
+            "unfiltered": unfiltered,
             "bad_keys": bad_keys,
             "pagination": pagination,
         }
@@ -434,44 +432,47 @@ class PetFinderPetPyAPI:
     def get_mapped_animals_by_type(
         self, species, location_str, user_preferences_dict, page=1
     ):
-
         init_params = {"type": species, "page": page, "location": location_str}
         params = self.preprocess_preferences(
             init_params_copy=init_params.copy(), prefs_obj=user_preferences_dict
         )
 
-        # grab init animal results with pre-processed mapped search params
+        # grab initial animal results with pre-processed mapped search params
         init_animals = self._get_request(
             request_url="https://api.petfinder.com/v2/animals", params=params
         )
         print("API results len = ", len(init_animals["results"]))
 
-        # try again init animal results with default search params instead
+        # if initial results are empty, try again with default search params
         if len(init_animals["results"]) == 0:
             init_animals = self._get_request(
                 request_url="https://api.petfinder.com/v2/animals", params=init_params
             )
             print(
-                "Init API request with search params mapped with user prefs FAILED. Refetched API results len = ",
+                "Refetched API results len = ",
                 len(init_animals["results"]),
             )
 
-        # create filter conditions based on user_preferences_dict
+        # create filter conditions based on user preferences
         filter_conditions = self.create_filter_conditions(user_preferences_dict)
 
-        # Now  use these filter conditions with filter_results_list function
+        # filter the results using the conditions
         filtered = self.filter_results_list(
             filter_conditions=filter_conditions,
             results_list=init_animals["results"],
             pagination=init_animals["pagination"],
         )
-        # check if successful filtering
-        print(
-            "filtering success:",
-            filtered["success_flag"],
-            f"filtered['unfiltered'] {filtered['unfiltered']}",
-        )
-        parsed_and_filtered = ParseMultiAnimal(iterable_animals=filtered["results"])
+
+        # check filtering success
+        print("Filtering success:", filtered["success_flag"])
+
+        # parse the filtered results
+        if filtered["success_flag"] and len(filtered["results"]) > 0:
+            multi_animal_parser = ParseMultiAnimal(iterable_animals=filtered["results"])
+            multi_animal_parser.parse()  # Parse the animals
+            parsed_and_filtered = multi_animal_parser.get_results()
+        else:
+            parsed_and_filtered = []
 
         return parsed_and_filtered
 

@@ -17,18 +17,18 @@ data_bp = Blueprint("data", __name__, template_folder="templates", url_prefix="/
 def get_anon_preference(key, session, g):
     """Get saved ANON user preferences for a specific key.
 
-    Returns: saved preferences in session, g, pf_api.default_options_obj or env var
+    Returns: saved preferences in session, g, PetFinderPetPyAPI.default_options_obj or env var
     """
     if key in session:
         return session.get(key)
     elif key in g:
         return g.get(key)
-    elif key in pf_api.default_options_obj:
-        return pf_api.default_options_obj.get(key)
+    elif key in PetFinderPetPyAPI.default_options_obj:
+        return PetFinderPetPyAPI.default_options_obj.get(key)
     else:
         print(f"No saved Anon User preference found for {key}: default anon preferences returned")
         env_key = "CURR_LOCATION" if key == "location" else key
-        anon_pref = os.environ.get(env_key, pf_api.default_options_obj.get(key))
+        anon_pref = os.environ.get(env_key, PetFinderPetPyAPI.default_options_obj.get(key))
         return anon_pref
 
 
@@ -97,7 +97,7 @@ def get_user_preference(key, session, g):
     if db_query is None:
         # Return default key preference value if none found in db, session nor g
         env_key = "CURR_LOCATION" if key == "location" else key
-        u_pref = os.environ.get(env_key, pf_api.default_options_obj.get(key))
+        u_pref = os.environ.get(env_key, PetFinderPetPyAPI.default_options_obj.get(key))
         print(f"No saved preference found for {key}: default returned: {u_pref}")
         return u_pref
     else:
@@ -109,14 +109,14 @@ def update_anon_preferences(form, session):
     state = (
         form.state.data
         if form.state.data
-        else pf_api.default_options_obj.get(
+        else PetFinderPetPyAPI.default_options_obj.get(
             "state", ",".split(os.environ.get("CURR_LOCATION"))[0]
         )
     )
     country = (
         form.country.data
         if form.country.data
-        else pf_api.default_options_obj.get(
+        else PetFinderPetPyAPI.default_options_obj.get(
             "country", ",".split(os.environ.get("CURR_LOCATION"))[1]
         )
     )
@@ -135,7 +135,7 @@ def update_anon_preferences(form, session):
         animal_types = (
             form.animal_types.data
             if form.animal_types.data
-            else pf_api.default_options_obj.get(
+            else PetFinderPetPyAPI.default_options_obj.get(
                 "animal_types", os.environ.get("ANIMAL_TYPES"), ["dog"]
             )
         )
@@ -243,35 +243,3 @@ def update_global_variables(session, g):
     add_animal_types_to_g(session=session, g=g)
     add_user_to_g(session=session, g=g)
 
-
-def get_init_api_data(session, g):
-    """Function to populate session with API data in between requests to simulate "live" API data updates to Jinja templates that make use of it"""
-    if "api_data" not in session:
-        animal_types = (
-            get_user_preference(key="animal_types")
-            if "CURR_USER_KEY" in session
-            else get_anon_preference(key="animal_types", session=session, g=g)
-        )
-        country = (
-            get_user_preference(key="country")
-            if "CURR_USER_KEY" in session
-            else get_anon_preference(key="country", session=session, g=g)
-        )
-        raw_data = pf_api.get_animals_as_per_user_preferences(
-            session=session, animal_types=animal_types, country=country
-        )
-        parsed_data = pf_api.parse_api_animals_data(api_data=raw_data)
-
-        return json.dumps({"api_data": parsed_data})
-
-    if "top_results" not in session:
-        session["top_results"] = pf_api.get_top_results(parsed_data=parsed_data)
-
-    else:
-        return json.dumps({session.get(key) for key in ["top_results", "api_data"]})
-
-
-pf_api = PetFinderPetPyAPI(
-    get_anon_preference_func=get_anon_preference,
-    get_user_preference_func=get_user_preference,
-)

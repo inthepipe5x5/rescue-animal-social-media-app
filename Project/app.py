@@ -11,7 +11,14 @@ from flask import (  # type: ignore
     Blueprint,
     send_from_directory,
 )
+from flask.sessions import (
+    SessionInterface,
+    SessionMixin,
+    NullSession,
+    session_json_serializer,
+)
 import json
+from flask_login import LoginManager, login_required, login_user, logout_user
 
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from dotenv import load_dotenv  # type: ignore
@@ -41,7 +48,6 @@ from .package.helper import (
     data_bp,
     get_anon_preference,
     get_user_preference,
-    get_init_api_data,
     update_anon_preferences,
     update_user_preferences,
     update_global_variables,  # currently in helper.py
@@ -65,35 +71,41 @@ default_session_keys = {
 }
 
 
-def init_session(session):
-    """Helper function to set default key-values in Flask session
-
-    Args:
-        session (Object): Flask session
-    """
+def init_session():
+    """Initialize the session with default values"""
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
-
-    app.logger.info(f"Session initialized - {session}")
-
-
-def reset_session(default_settings_obj):
-    """Helper function to RESET back to default key-values in Flask session
-
-    Args:
-        default_settings_obj (Object): object of default Flask session key:value settings
-    """
-    # Clear the current session
-    session.clear()
-
-    # If default settings are provided, update the session with them
-    if default_settings_obj and isinstance(default_settings_obj, dict):
-        session.update(default_settings_obj)
-
-    # Ensure the session is marked as modified
+    session.new = True
     session.modified = True
 
-    app.logger.info(f"Session reset to default - {session}")
+
+# class CustomSession(dict, SessionMixin):
+
+#     def init_session(self):
+#         """Initialize the session with default values"""
+#         for key, value in self.default_session_keys.items():
+#             self.setdefault(key, value)
+#         self.modified = True
+
+#     def reset_session(self):
+#         """Reset the session to default values"""
+#         self.clear()
+#         self.init_session()
+
+# class CustomSessionInterface(SessionInterface):
+#     def open_session(self, app, request):
+#         session = CustomSession()
+#         session.init_session()
+#         app.logger.info(f"Session initialized - {session}")
+#         return session
+
+#     def save_session(self, app, session, response):
+#         # Implement your session saving logic here
+#         pass
+
+#     def reset_session(self, app, session):
+#         session.reset_session()
+#         app.logger.info(f"Session reset to default - {session}")
 
 
 def create_app():
@@ -116,13 +128,13 @@ def create_app():
 
     # init default session values
     with app.app_context():
-        init_session(session)
+        app.session_interface.init_session(session)
     return app
 
 
 # create Flask app
 app = Flask(__name__)
-
+# app.session_interface = CustomSessionInterface()
 
 # create config instance
 app_config_instance = Config()
@@ -138,13 +150,16 @@ app_config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ign
 # app = create_app()
 # config bcrypt
 bcrypt = Bcrypt(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
 
 
 ##############################################################################
 # User signup/login/logout
 
 
-def auth_required(route_func):
+def login_required(route_func):
     @wraps(route_func)
     def protected_route(*args, **kwargs):
         if CURR_USER_KEY not in session:
@@ -158,12 +173,18 @@ def auth_required(route_func):
     return protected_route
 
 
+# user load function to load user session based on user_id
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
 def do_login(user):
     """Log in user."""
     # add user.id to session
     session[CURR_USER_KEY] = user.id
     session["CURR_USER"] = user.serialize()  # needs to be JSON serializable to be saved
-    g.user = user  # auto calls the Model.serialize()
+    g.user = user.serialize()  # auto calls the Model.serialize()
     # update the other global variables
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
@@ -172,6 +193,8 @@ def do_login(user):
         f"do_login({user.username}) successful. Session[CURR_USER]=",
         session["CURR_USER"],
     )
+    # use flask-login's login user function
+    login_user(user, remember=True)
 
 
 def do_logout():
@@ -185,8 +208,15 @@ def do_logout():
     session.pop(
         "ANIMAL_TYPES", default=os.environ.get("ANIMAL_TYPES", ["dog"])
     )  # reset CURR_LOCATION
-    session.pop("CURR_LOCATION", default=os.environ.get("CURR_LOCATION", "ON,CA"))
+    session.pop("CURR_LOCATION", default=os.environ.get("CURR_LOCATION", "Toronto, ON"))
     # app.logger.info(f"do_logout successful. Session[CURR_USER]=", (session["CURR_USER"] if "CURR_USER" in session  else None))
+    g.pop("user", None)
+    # clear session and create new session
+    session.clear()
+    session.new = True
+
+    # flask-login's logout user => will clean up the cookie if it exists
+    logout_user()
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -211,7 +241,7 @@ def login():
     return render_template("users/login.html", form=form)
 
 
-@auth_required
+@login_required
 @app.route("/logout")
 def logout():
     """Handle logout of user."""
@@ -375,7 +405,7 @@ def results():
     species = session["CURR_USER"]["animal_types"][0]
 
     location = (
-        user_location
+        user_location.getLocStr()
         if user_id
         else {
             "geolocation": "43.6429,79.3889",
@@ -399,76 +429,123 @@ def animal_data():
         type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
 
     Returns:
-        _type_: _description_
+        JSON: JSON data with animal results or error message
     """
-    user_id = session["CURR_USER"]["id"] or None
-    if user_id:
-        user = db.session.query(User).filter(User.id == session[CURR_USER_KEY]).first()
-        species = user.animal_types[0] or default_session_keys["animal_types"]
-        user_location = (
-            db.session.query(UserLocation).filter(user_id == user_id).first()
-        )
-
-    location = (
-        user_location
-        if user_id
-        else {
-            "geolocation": "43.6429,79.3889",
-            "state": "ON",
-            "country": "CA",
-            "postal_code": "m5j0b3",
-            "city": "Toronto",
-        }
-    )
-
     try:
-        # Fetch user preferences
-        user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
-            u_id=user_id, animal_type=species
-        )
+        # Fetch current user from session
+        user_id = session.get("CURR_USER", {}).get("id")
+        user = load_user(user_id=user_id)
+        if user_id:
+            # Fetch user from database
 
-        # Filter preferences for use in API call
-        user_prefs = (
-            user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
-        )
+            if not user:
+                return (
+                    jsonify(
+                        {
+                            "success_flag": False,
+                            "message": "User not found in database.",
+                        }
+                    ),
+                    404,
+                )
 
-        # geo_coordinates = form.geolocation.data
-        # location_str = geo_coordinates if geo_coordinates else form.postal_code.data
+            # Get user species preferences or fallback to default
+            species = (
+                user.animal_types[0]
+                if user.animal_types
+                else default_session_keys.get("animal_types")
+            )
+            if not species:
+                return (
+                    jsonify(
+                        {
+                            "success_flag": False,
+                            "message": "No animal types set for the user.",
+                        }
+                    ),
+                    400,
+                )
 
-        results = PetFinderPetPyAPI.get_mapped_animals_by_type(
+            # Fetch user location
+            user_location = (
+                db.session.query(UserLocation).filter_by(user_id=user_id).first()
+            )
+            location = (
+                user_location.getLocStr()
+                if user_location
+                else os.environ.get("CURR_LOCATION", "43.6429,-79.3889")
+            )
+
+            # Fetch user preferences for animal type
+            user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
+                u_id=user_id, animal_type=species
+            )
+            user_prefs = (
+                user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
+            )
+
+        else:
+            # Default species and location if no user is logged in
+            species = default_session_keys.get(
+                "animal_types", "dog"
+            )  # Default to "dog" if not set
+            location = os.environ.get(
+                "CURR_LOCATION", "43.6429,-79.3889"
+            )  # Default to a Toronto location
+            user_prefs = {}  # No preferences when no user is found
+
+        # Call PetFinder API with preferences and location
+        api = PetFinderPetPyAPI()
+        results = api.get_mapped_animals_by_type(
             species=species,
-            location_str="Toronto, ON",  # location.geolocation,#location_str,
+            location_str=(
+                location
+                if location
+                else os.environ.get("CURR_LOCATION", "Toronto, Canada")
+            ),
             user_preferences_dict=user_prefs,
         )
 
+        # Log results for debugging
         print(
-            f"results flag = {results['success_flag']}, results length: {len(results['results'])}"
+            f"Results flag = {results['success_flag']}, results length: {len(results['results'])}"
         )
 
-        # Check if results are valid
+        # Check if the results are valid
         if not results["success_flag"] or len(results["results"]) == 0:
-            flash(
-                f"Your search preferences are too strict; try adjusting your search filters{', '.join(results.get('bad_keys', []))}. In the meantime, here's animals in your area.",
-                "warning",
+            return (
+                jsonify(
+                    {
+                        "success_flag": False,
+                        "message": f"Your search preferences are too strict; try adjusting your search filters. {', '.join(results.get('bad_keys', []))}",
+                        "results": [],
+                    }
+                ),
+                200,
             )
-        # add user_prefs to results dictionary if not empty dict
-        if len(user_prefs.values()) > 0:
+
+        # Include user preferences in results if available
+        if user_prefs:
             results["user_prefs"] = user_prefs
 
-        return jsonify(results)
-        # # Render results page
-        # return render_template("results.html", results=results["results"])
+        return jsonify(results), 200
 
     except Exception as e:
-        err_msg = f"ERROR /data/animals => {e}"
+        err_msg = f"ERROR /data/animals => {str(e)}"
         print(err_msg)
-        flash(
-            f"An error occurred while fetching animal data. Please try again later.{err_msg}",
-            "danger",
+        return (
+            jsonify(
+                {
+                    "success_flag": False,
+                    "message": "An error occurred while fetching animal data.",
+                    "error": err_msg,
+                }
+            ),
+            500,
         )
 
 
-# @auth_required
+# @login_required
 @app.route("/data/prefs/<animal_type>", methods=["GET"])
 def animal_pref_data(animal_type):
     if animal_type[-1].lower() == "s":
@@ -479,17 +556,19 @@ def animal_pref_data(animal_type):
     if "CURR_USER" in session:
         user_id = session.get("CURR_USER")["id"]
     else:
-        user_id = 18  # user: 99299@99299.com
-
+        # user_id = 18  # user: 99299@99299.com
+        return jsonify(
+            {"results": [], "success_flag": False, "message": "No user logged in"}
+        )
     user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
         u_id=user_id, animal_type=species
     )
     if user_animal_prefs:
         message = "User animal preferences retrieved successfully."
-        category="success"
+        category = "success"
     else:
         message = "No animal preferences found."
-        category="error"
+        category = "error"
     flash(message=message, category=category)
     return jsonify(user_animal_prefs)
     # else:
@@ -600,11 +679,11 @@ def orgs_data():
         country = get_anon_preference(key="country", session=session, g=g)
         state = get_anon_preference(key="state", session=session, g=g)
 
-    api = PetFinderPetPyAPI
+    api = PetFinderPetPyAPI()
     orgs_search_args = {"country": country, "state": state, "sort": "distance"}
     if "org_id" in request.args:
         orgs_search_args["id"] = request.args["org_id"]
-        
+
     org_results = api.organizations(**orgs_search_args)["organizations"]
     print([(org.name, org.adoption.policy) for org in results])
     return jsonify(results)
@@ -705,6 +784,7 @@ def signup_user():
     # instantiate add user form
     form = UserAddForm()
     if form.validate_on_submit():
+        print(form.csrf_token)
         data = {field.name: field.data for field in form}
         try:
 
@@ -770,7 +850,7 @@ def carousel_form_test():
     return render_template("carousel-form.html", form=form)
 
 
-@auth_required
+@login_required
 @app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     current_user_id = session.get("CURR_USER")["id"]
@@ -882,15 +962,8 @@ def get_app_data():
     """
     # update global variables
     with app.app_context():
-        update_global_variables(session=session, g=g)
-    # get JSON api_data from session
-    # json_api_data = get_init_api_data(session=session, g=g)
-
-    # # set api data in session via another route
-    # requests.post(
-    # url=url_for("update_data_session", _external=True),
-    # data={"api_data": json_api_data, "headers": "application/json"},
-    # )
+        if session.modified == True:
+            update_global_variables(session=session, g=g)
 
 
 # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
@@ -898,7 +971,11 @@ def get_app_data():
 def inject_global_vars():
     """Injects the session and g objects into the Jinja2 template context"""
     # print('template context processor being called', session['CURR_USER'])
-    return {"session": session, "g": g, "animal_emojis": PetFinderPetPyAPI.animal_emojis}
+    return {
+        "session": session,
+        "g": g,
+        "animal_emojis": PetFinderPetPyAPI.animal_emojis,
+    }
 
 
 # Turn off all caching in Flask
