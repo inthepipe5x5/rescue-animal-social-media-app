@@ -545,7 +545,7 @@ def animal_data():
         )
 
 
-# @login_required
+@login_required
 @app.route("/data/prefs/<animal_type>", methods=["GET"])
 def animal_pref_data(animal_type):
     if animal_type[-1].lower() == "s":
@@ -664,7 +664,7 @@ def reseed_db():
 
 @app.route("/data/orgs", methods=["GET", "POST"])
 def orgs_data():
-    """TEST ROUTE TO GET ORGS DATA
+    """ROUTE TO GET ORGS DATA
 
     Args:
         type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
@@ -688,6 +688,27 @@ def orgs_data():
     print([(org.name, org.adoption.policy) for org in results])
     return jsonify(results)
 
+@app.route("/testget", methods=["GET"])
+def testget():
+    """TEST ROUTE
+
+    Returns:
+        _type_: _description_
+    """
+    if "CURR_USER" in session:
+        active_user = load_user(user_id=session.get("CURR_USER")["id"])
+    
+    api = PetFinderPetPyAPI()
+    try: 
+        params= {
+            "location": "43.6429,-79.3889"
+        }
+        request = api._get_request('animals', params=params)
+        return jsonify(request)
+    except Exception as e:
+        print(f"testget route fetch error => {e}")
+        
+        
 
 @app.route("/set_location", methods=["POST"])
 def set_location():

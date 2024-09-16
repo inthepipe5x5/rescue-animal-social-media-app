@@ -84,7 +84,7 @@ class UserLocation(db.Model):
     state = db.Column(db.String(2), nullable=False, default="ON")
     postal_code = db.Column(db.String(7))
     geolocation = db.Column(db.String(100))
-    city = db.Column(db.String(100))
+    city = db.Column(db.String(150))
 
     user = db.relationship(
         "User",
@@ -139,7 +139,48 @@ class UserLocation(db.Model):
             # Log the error
             print(f"Error in getLocStr: {str(e)}")
             raise ValueError("Unable to process location information")
+    
+    def format_geolocation(*coordinates) -> str:
+        """
+        This function formats geolocation coordinates into a standardized string format.
+        It can handle either a single string input or separate float inputs for latitude and longitude.
+        
+        Args:
+            *coordinates: Either a single string "latitude,longitude" or two float values (latitude, longitude)
 
+        Returns:
+            str: geolocation string in "latitude,-longitude" format with 6 decimal places precision
+        
+        Examples:
+            >>> format_geolocation("43.6429,79.3889")
+            '43.642900,-79.388900'
+            >>> format_geolocation(40.7128, -74.0060)
+            '40.712800,-74.006000'
+        """
+        if len(coordinates) == 1 and isinstance(coordinates[0], str):
+            # Handle string input
+            lat, lon = map(float, coordinates[0].split(','))
+        elif len(coordinates) == 2 and all(isinstance(coord, (int, float)) for coord in coordinates):
+            # Handle separate float inputs
+            lat, lon = coordinates
+        else:
+            raise ValueError("Invalid input. Provide either a string 'latitude,longitude' or two float values.")
+
+        return f"{lat:.6f},{lon:.6f}".replace(',', ',-')
+    
+    def get_location_info(self):
+        if self.geolocation:
+            return self.geolocation
+        elif self.postal_code:
+            return self.postal_code
+        elif self.city and self.country:
+            return f"{self.city}, {self.country}"
+        elif self.state and self.country:
+            return f"{self.state}, {self.country}"
+        elif self.country:
+            return self.country
+        else:
+            return "Unknown"
 
 class User(db.Model, UserMixin):
     """User in the system."""

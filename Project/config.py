@@ -162,12 +162,13 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-
+    EXPLAIN_TEMPLATE_LOADING = True
 
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
     WTF_CSRF_ENABLED = False  # disable this for testing purposes
+    EXPLAIN_TEMPLATE_LOADING = True
     CSRF_ENABLED = False
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
     SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_TEST_DATABASE_URI")

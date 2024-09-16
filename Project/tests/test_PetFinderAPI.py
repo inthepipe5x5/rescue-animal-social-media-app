@@ -42,15 +42,15 @@ class TestPetFinderPetPyAPI(unittest.TestCase):
 
         self.assertEqual(self.api.parse_photos(photos_list, 'invalid_type'), '../static/images/graphics/tracks_freepik.png')
 
-    def test_parse_location_obj(self):
+    def test_parse_address(self):
         loc_obj = {'city': 'New York', 'state': 'NY', 'country': 'USA'}
-        self.assertEqual(self.api.parse_location_obj(loc_obj), {'location': 'New York,NY', 'state': 'NY', 'country': 'US', 'city': 'New York'})
+        self.assertEqual(self.api.parse_address(loc_obj), {'location': 'New York,NY', 'state': 'NY', 'country': 'US', 'city': 'New York'})
 
         loc_obj = {'state': 'CA', 'country': 'USA'}
-        self.assertEqual(self.api.parse_location_obj(loc_obj), {'location': 'CA,US', 'state': 'CA', 'country': 'US'})
+        self.assertEqual(self.api.parse_address(loc_obj), {'location': 'CA,US', 'state': 'CA', 'country': 'US'})
 
         loc_obj = {'country': 'Canada'}
-        self.assertEqual(self.api.parse_location_obj(loc_obj), {'location': 'CA', 'country': 'CA'})
+        self.assertEqual(self.api.parse_address(loc_obj), {'location': 'CA', 'country': 'CA'})
 
     def test_parse_published_at(self):
         #example published_date from PetFinder API response

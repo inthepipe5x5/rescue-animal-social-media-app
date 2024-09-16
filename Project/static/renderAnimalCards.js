@@ -178,6 +178,7 @@ function createCardElementFromData(animal) {
 
   // Add size, age, gender, and special needs badges
   ["size", "age", "gender", "attributes"].forEach((attr) => {
+    console.log(`attr=> ${attr}`)
     if (animal[attr]) {
       const badge = document.createElement("span");
       badge.className = `badge rounded-pill bg-${
@@ -457,6 +458,7 @@ const fetchDataAndRender = (apiURL) => {
       return response.json();
     })
     .then((data) => {
+      clearSkeletonCards()
       if (data.results && data.results.length > 0) {
         flashMessage(
           `Results fetched! ${data.results.length} animals found.`,

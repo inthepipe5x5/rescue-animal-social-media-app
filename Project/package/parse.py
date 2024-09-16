@@ -9,6 +9,8 @@ import json
 import re
 from copy import deepcopy
 from collections.abc import Iterable
+from flask import url_for
+import traceback
 
 
 class ParsingError(Exception):
@@ -22,7 +24,7 @@ class ParsingError(Exception):
     def __init__(self, data, func_name):
         self.data = data
         self.data_key = (
-            data.__name__
+            data.__name__ if data.__name__ else data
         )  # key name of data being parsed within Data object
         self.func_name = func_name
         self.data_type = type(data).__name__  # Get the type of the data
@@ -45,14 +47,19 @@ class Parse:
         "pub_date": "parse_published_at",
         "date": "parse_published_at",
         "photos": "parse_photos",
-        "location": "parse_location_obj",
-        "LOCATION": "parse_location_obj",
-        "city": "parse_location_obj",
-        "CITY": "parse_location_obj",
-        "state": "parse_location_obj",
-        "STATE": "parse_location_obj",
-        "country": "parse_location_obj",
-        "COUNTRY": "parse_location_obj",
+        "primary_photo_cropped": "parse_photos",
+        "PRIMARY_PHOTO_CROPPED": "parse_photos",
+        "photo": "parse_photos",
+        "PHOTO": "parse_photos",
+        "PHOTOS": "parse_photos",
+        "location": "parse_address",
+        "LOCATION": "parse_address",
+        "city": "parse_address",
+        "CITY": "parse_address",
+        "state": "parse_address",
+        "STATE": "parse_address",
+        "country": "parse_address",
+        "COUNTRY": "parse_address",
         "description": "parse_description",
         "bio": "parse_description",
         "Description": "parse_description",
@@ -64,15 +71,15 @@ class Parse:
     parsed_keys = set()  # set of keys filtered
     success_flag = False
 
-    def __init__(self, type=None):
-        """Initialize the Parse object, taking in a dictionary and an optional type."""
+    # def __init__(self, type=None):
+    #     """Initialize the Parse object, taking in a dictionary and an optional type."""
 
-        self.type = type
-        self.parsed = None
-        self.parsed_keys = set()
-        self.success_flag = False
+    #     self.type = type
+    #     self.parsed = None
+    #     self.parsed_keys = set()
+    #     self.success_flag = False
 
-        self.parsed_types_tuples = self.get_parsed_types_types()
+    # self.parsed_types_tuples = self.get_parsed_types_types()
 
     @property
     def meta_data(self):
@@ -85,7 +92,7 @@ class Parse:
             "status": self.success_flag,
         }
 
-    def _parse_format(parse_func, data):
+    def _parse_format(self, parse_func, data):
         """
         Higher-order function that wraps a parsing function and handles errors.
 
@@ -106,11 +113,15 @@ class Parse:
             # Log the error and raise a ParsingError with details
             print(f"Error in function '{parse_func.__name__}': {e}")
             raise ParsingError(data, parse_func.__name__) from e
+        except ParsingError as pe:
+            print(f"Error in function '{parse_func.__name__}': {pe}")
+            # return original data
+            return data
 
     def parse(self, object=None):
         """Parse the input object, applying functions based on the key_function_mapping_dict."""
         if object is None:
-            object = self.original_data
+            object = {}
         elif not isinstance(object, dict):
             raise TypeError("Input must be a dictionary")
 
@@ -121,6 +132,7 @@ class Parse:
                     self, self.key_function_mapping_dict[key], None
                 )
                 if parsing_function:
+                    print(parsing_function, "PARSING =>", value)
                     parsed_object[key] = parsing_function(value)
                     self.parsed_keys.add(key)
             else:
@@ -145,14 +157,14 @@ class Parse:
         """Function to return original data object"""
         return self.original_data
 
-    def get_parsed_types_types(self):
+    def get_parsed_types_types(self, data, parsed_key_list):
         """returns a set of tuples consisting of filtered attribute key (STR) and type of value parsed"""
 
         output = set()
-        if len(self.parsed_keys) > 0:
-            for key in self.parsed_keys:
+        if len(parsed_key_list) > 0:
+            for key in parsed_key_list:
                 # add key & type of value being parsed
-                output.add((key, type(self.original_data[key])))
+                output.add((key, type(data[key])))
 
         return output
 
@@ -212,8 +224,8 @@ class Parse:
         :param description: str, the description text to parse
         :return: dict or str, parsed description
         """
-        if not description:
-            return ""
+        if not description or not isinstance(description, str):
+            return description
 
         # Try to parse as JSON first
         try:
@@ -276,7 +288,7 @@ class Parse:
             parsed_date = date_obj.strftime("%d/%m/%Y")
             return parsed_date
 
-    def parse_location_obj(self, loc_obj):
+    def parse_address(self, loc_obj):
         """Function to parse location object property in API results"
         if not loc_obj or country:
                 return None"""
@@ -323,10 +335,11 @@ class Parse:
                 }
 
     def parse_photos(self, photos_list, type):
-        """Function to parse breeds object property in API results"""
+        """Function to parse the photos property in API results."""
+        default_photo_folder_name = "static/images/graphics"
 
-        # handle invalid or empty types
-        if type.lower() not in [
+        # Handle invalid or empty types
+        if not type or type.lower() not in [
             "dog",
             "cat",
             "horse",
@@ -337,35 +350,64 @@ class Parse:
             "scales-fins-other",
         ]:
             type = "misc"
+            misc_photo_name = "tracks_freepik.png"
+            return url_for(
+                "static", filename=f"{default_photo_folder_name}/{misc_photo_name}"
+            )
 
-        # dictionary of urls for the graphics
+        # Dictionary of URLs for the graphics
         default_animal_graphic = {
-            "dog": "../static/images/graphics/dog-freepik.png",
-            "cat": "../static/images/graphics/cat-freepik.png",
-            "horse": "../static/images/graphics/horse-freepik.png",
-            "bird": "../static/images/graphics/bird-eucalyp.png",
-            "small-furry": "../static/images/graphics/small-furry-freepik.png",
-            "scales-fins-other": "../static/images/graphics/scales-smashicons.png",
-            "barnyard": "../static/images/graphics/scales-smashicons.png",
-            "rabbit": "../static/images/graphics/rabbit-freepik.png",
-            "misc": "../static/images/graphics/tracks_freepik.png",
+            "dog": "dog-freepik.png",
+            "cat": "cat-freepik.png",
+            "horse": "horse-freepik.png",
+            "bird": "bird-eucalyp.png",
+            "small-furry": "small-furry-freepik.png",
+            "scales-fins-other": "scales-smashicons.png",
+            "barnyard": "scales-smashicons.png",
+            "rabbit": "rabbit-freepik.png",
+            "misc": "tracks_freepik.png",
         }
 
+        # If no photos are available or the list is empty
         if not photos_list or len(photos_list) == 0:
-            return default_animal_graphic[
-                type.lower()
-            ]  # return default graphic if the animal has no photos
-        else:
+            default_filename = default_animal_graphic.get(
+                type.lower(), default_animal_graphic["misc"]
+            )
+            return url_for(
+                "static", filename=f"{default_photo_folder_name}/{default_filename}"
+            )
+
+        # If the photos_list is a string (a direct URL)
+        if isinstance(photos_list, str):
+            return photos_list  # Return the string directly
+
+        # Otherwise, return the first photo URL in the list
+        if isinstance(photos_list, list) and "full" in photos_list[0]:
             return photos_list[0]["full"]
+
+        # Fallback for any other case
+        return url_for(
+            "static",
+            filename=f"{default_photo_folder_name}/{default_animal_graphic['misc']}",
+        )
 
 
 class ParseAnimal(Parse):
     """
-    Parser subclass to handle parsing singular animal data object
+    Parser subclass to handle parsing a singular animal data object.
     """
 
-    # Update the parent key_function_mapping_dict with animal-specific mappings
-    key_function_mapping_dict = Parse.key_function_mapping_dict.copy().update(
+    def __init__(self, animal_data):
+        """
+        Initialize ParseAnimal with an animal data object.
+        """
+        self.data = animal_data
+        self.parsed_keys = set()
+        self.results = {}
+
+    # Update the key_function_mapping_dict with animal-specific mappings
+    key_function_mapping_dict = Parse.key_function_mapping_dict.copy()
+    key_function_mapping_dict.update(
         {
             # animal specific keys-funcs
             "breeds": "parse_breeds",
@@ -382,7 +424,6 @@ class ParseAnimal(Parse):
             "COLORS": "parse_color",
         }
     )
-    type = "animal"
 
     #############################################################################################################################################################################################
     # UTILITY FUNCTIONS
@@ -416,7 +457,8 @@ class ParseAnimal(Parse):
                 if key in data and isinstance(data[key], list):
                     if len(data[key]) == 1:  # If it's a list with one animal
                         # Recursively check the nested structure
-                        return self.check_for_nested(data[key][0])
+                        # return self.check_for_nested(data[key][0])
+                        return data[key][0]
                     elif len(data[key]) > 1:
                         raise ValueError(f"Multiple objects found in '{key}' key")
 
@@ -453,31 +495,45 @@ class ParseAnimal(Parse):
     #############################################################################################################################################################################################
     # PARSING FUNCTIONS
     #############################################################################################################################################################################################
-    def parse(self, data={}):
-        """Dynamically parses the animal data."""
-        if not data or not isinstance(data, dict):
-            raise TypeError("Animal data must be a non-empty dictionary.")
-
-        for key, value in data.items():
+    def parse(self):
+        """
+        Parse the animal data using the key_function_mapping_dict.
+        """
+        parsed_object = {}
+        # grab data_type as needed for parse_funcs that require a "type" or "species" argument
+        if isinstance(self.data, dict):
+            data_type = ""
+            if "type" in self.data:
+                data_type = self.data.get("type", None)
+            elif "species" in self.data:
+                data_type = self.data.get("species", None)
+        for key, value in self.data.items():
             func_name = self.key_function_mapping_dict.get(key.lower(), None)
             if func_name:
-                parse_func = getattr(self, func_name)
-                print(parse_func)
-                if callable(parse_func):
-                    try:
-                        # Use _parse_format to handle parsing and errors
-                        self.results[key] = super()._parse_format(parse_func, value)
-                    except ParsingError as e:
-                        # Return original key/value if a ParsingError is raised
-                        print(f"ParseAnimal.parse() error @: {key}:{value} {e}")
-                        self.results[key] = value
-                else:
-                    self.results[key] = value
-            else:
-                self.results[key] = value
+                parsing_function = getattr(self, func_name, None)
 
-    def get_results(self):
-        """Return the parsed results."""
+                if callable(parsing_function):
+                    if func_name == "parse_photos":
+                        # Handle parse_photos which requires multiple arguments
+                        # grab "type" or "species" of data
+                        parsed_object[key] = parsing_function(
+                            photos_list=value, type=data_type
+                        )
+                    elif func_name == "parse_published_at":
+                        # get parsed_data_obj
+                        parsed_date_obj = parsing_function(pub_date=value, action="any")
+                        parsed_object["published_at"] = parsed_date_obj["published_at"]
+                        parsed_object["date_delta"] = parsed_date_obj["published_at"]
+                    else:
+                        # Call other parsing functions with just the value
+                        parsed_object[key] = parsing_function(value)
+                    self.parsed_keys.add(key)
+                else:
+                    parsed_object[key] = value
+            else:
+                parsed_object[key] = value  # Keep original value if no parsing function
+
+        self.results = parsed_object
         return self.results
 
     def parse_color(self, colors_obj):
@@ -485,6 +541,8 @@ class ParseAnimal(Parse):
         print(colors_obj)
         if not colors_obj or not colors_obj["primary"]:
             return "Unknown Color"  # color is Unknown Color by default
+        if isinstance(colors_obj, str):
+            return self.clean_text(colors_obj)  # return cleaned str if already a str
 
         primary = colors_obj["primary"] or ""
         secondary = colors_obj["secondary"] or False
@@ -499,7 +557,6 @@ class ParseAnimal(Parse):
                 return f"{primary}"
         else:
             print("parse colors output", primary)
-            print("parse colors output")
             return primary
 
     def parse_breed(self, breeds_obj):
@@ -547,24 +604,117 @@ def parse_multi_animal(animal_list):
                 # Ensure animal is a dictionary before parsing
                 if not isinstance(animal, dict):
                     raise TypeError(f"Animal at index {idx} is not a dictionary")
-                
+
                 # Parse the individual animal
-                parser = ParseAnimal()
-                animal_result = parser.parse(data=animal)
+                parser = ParseAnimal(animal_data=animal)
+                animal_result = parser.parse()
                 parsed_animals.append(animal_result)
+
             except ParsingError as e:
                 # Handle ParsingError, reset original data in the animal object
                 print(f"ParsingError at index {idx}: {e}; Continuing with the rest")
                 animal[e.data_key] = e.data  # Restore the original key-value
                 parsed_animals.append(animal)
-            except Exception as e:
-                animal_name = (
-                    animal["name"] if animal["name"] else f"{animal['type']}#{idx}"
+
+            except TypeError as e:
+                # Handle TypeError specifically
+
+                print(idx, "=", animal["name"])
+                # Get the full traceback as a string
+                error_traceback = traceback.format_exc()
+
+                # Print the error message
+                print(f"TypeError occurred: {str(e)}")
+
+                # Print the full traceback
+                print("Full traceback:")
+                print(error_traceback)
+
+                # Get the most recent call last (where the error occurred)
+                tb = traceback.extract_tb(e.__traceback__)
+                filename, line_number, func_name, text = tb[-1]
+                print(
+                    f"Error occurred in file {filename}, line {line_number}, in {func_name}"
                 )
-                # Log any other unexpected exceptions and skip the current animal
+                print(f"The erroneous line of code: {text}")
+
+                print(f"TypeError at index {idx}: {e}; Skipping animal.")
+                parsed_animals.append(animal)
+
+            except KeyError as e:
+                print(idx, "=", animal["name"])
+                # Get the full traceback as a string
+                error_traceback = traceback.format_exc()
+
+                # Print the error message
+                print(f"TypeError occurred: {str(e)}")
+
+                # Print the full traceback
+                print("Full traceback:")
+                print(error_traceback)
+
+                # Get the most recent call last (where the error occurred)
+                tb = traceback.extract_tb(e.__traceback__)
+                filename, line_number, func_name, text = tb[-1]
+                print(
+                    f"Error occurred in file {filename}, line {line_number}, in {func_name}"
+                )
+                print(f"The erroneous line of code: {text}")
+
+                # Handle KeyError specifically
+                print(f"KeyError at index {idx}: Missing key {e}; Skipping animal.")
+                parsed_animals.append(animal)
+
+            except AttributeError as e:
+                print(idx, "=", animal["name"])
+                # Get the full traceback as a string
+                error_traceback = traceback.format_exc()
+
+                # Print the error message
+                print(f"TypeError occurred: {str(e)}")
+
+                # Print the full traceback
+                print("Full traceback:")
+                print(error_traceback)
+
+                # Get the most recent call last (where the error occurred)
+                tb = traceback.extract_tb(e.__traceback__)
+                filename, line_number, func_name, text = tb[-1]
+                print(
+                    f"Error occurred in file {filename}, line {line_number}, in {func_name}"
+                )
+                print(f"The erroneous line of code: {text}")
+
+                # Handle AttributeError specifically
+                print(f"AttributeError at index {idx}: {e}; Skipping animal.")
+                parsed_animals.append(animal)
+
+            except Exception as e:
+                print(idx, "=", animal["name"])
+                # Get the full traceback as a string
+                error_traceback = traceback.format_exc()
+
+                # Print the error message
+                print(f"TypeError occurred: {str(e)}")
+
+                # Print the full traceback
+                print("Full traceback:")
+                print(error_traceback)
+
+                # Get the most recent call last (where the error occurred)
+                tb = traceback.extract_tb(e.__traceback__)
+                filename, line_number, func_name, text = tb[-1]
+                print(
+                    f"Error occurred in file {filename}, line {line_number}, in {func_name}"
+                )
+                print(f"The erroneous line of code: {text}")
+
+                # Handle any other unexpected exceptions
+                animal_name = animal.get(
+                    "name", f"{animal.get('type', 'Animal')}#{idx}"
+                )
                 print(
                     f"Unexpected error parsing animal {animal_name} at index {idx}: {e}; Skipping"
                 )
                 parsed_animals.append(animal)  # Add original animal if unexpected error
-
     return parsed_animals
