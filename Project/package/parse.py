@@ -7,6 +7,8 @@ import pytz
 import pycountry
 import json
 import re
+import json
+import html
 from copy import deepcopy
 from collections.abc import Iterable
 from flask import url_for
@@ -66,6 +68,7 @@ class Parse:
         "Bio": "parse_description",
         "DESCRIPTION": "parse_description",
         "BIO": "parse_description",
+        "name": "parse_scription",
     }
     parsed = None  # parsed output
     parsed_keys = set()  # set of keys filtered
@@ -168,50 +171,6 @@ class Parse:
 
         return output
 
-    def clean_json(self, data):
-        """
-        Recursively clean JSON data
-        """
-        if isinstance(data, dict):
-            return {k: self.clean_json(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self.clean_json(item) for item in data]
-        elif isinstance(data, str):
-            return self.clean_text(data)
-        else:
-            return data
-
-    def clean_text(self, text, *cleaning_rules):
-        """
-        Clean text by removing common artifacts
-        """
-        # Remove URL encoded characters (like %39)
-        text = re.sub(r"%[0-9A-Fa-f]{2}", "", text)
-
-        # Remove slashes in weird places
-        text = re.sub(r"\[?/\'?(.+?)\'?/\]?", r"\1", text)
-
-        # Remove extra whitespace
-        text = " ".join(text.split())
-
-        # Handle adding more cleaning rules as needed
-        for formatting_func in cleaning_rules:
-            additional_formatted_text = formatting_func(text)
-            if (
-                isinstance(additional_formatted_text, str)
-                and len(additional_formatted_text.split("")) > 0
-                and additional_formatted_text != ""
-            ):
-                text = additional_formatted_text
-            else:
-                print(
-                    text,
-                    "=> could not be further formatted by cleaning func",
-                    formatting_func.__name__,
-                )
-
-        return text.strip()
-
     #############################################################################################################################################################################################
     # PARENT PARSING FUNCTIONS - Descriptions/Text block, Pub date, Photos, location
     #############################################################################################################################################################################################
@@ -234,6 +193,54 @@ class Parse:
         except json.JSONDecodeError:
             # If not JSON, process as plain text
             return self.clean_text(description)
+
+    def clean_json(self, data):
+        """
+        Recursively clean JSON data
+        """
+        if isinstance(data, dict):
+            return {k: self.clean_json(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self.clean_json(item) for item in data]
+        elif isinstance(data, str):
+            return self.clean_text(data)
+        else:
+            return data
+
+    def clean_text(self, text, *cleaning_rules):
+        """
+        Clean text by removing common artifacts, unescaping HTML, and applying other cleaning rules.
+
+        :param text: str, the text to clean
+        :param cleaning_rules: additional cleaning functions to apply
+        :return: str, the cleaned text
+        """
+        # Unescape any HTML entities (e.g., &quot;, &amp;, etc.)
+        text = html.unescape(text)
+
+        # Remove URL encoded characters (like %39)
+        text = re.sub(r"%[0-9A-Fa-f]{2}", "", text)
+
+        # Remove slashes in weird places (e.g., \'text\' becomes 'text')
+        text = re.sub(r"\[?/\'?(.+?)\'?/\]?", r"\1", text)
+
+        # Remove extra whitespace (including newline characters like \n)
+        text = " ".join(text.split())
+
+        # Apply any additional cleaning rules provided
+        for formatting_func in cleaning_rules:
+            additional_formatted_text = formatting_func(text)
+            if (
+                isinstance(additional_formatted_text, str)
+                and additional_formatted_text.strip() != ""
+            ):
+                text = additional_formatted_text
+            else:
+                print(
+                    f"{text} => could not be further formatted by cleaning func {formatting_func.__name__}"
+                )
+
+        return text.strip()
 
     def parse_published_at(self, pub_date, action="any"):
         """Parse the published_date property in animal data object returned from API

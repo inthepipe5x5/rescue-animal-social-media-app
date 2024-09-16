@@ -83,7 +83,7 @@ const getImgSrcStr = (species, imgObj) => {
     bird: `${window.location}/static/images/graphics/bird_eucalyp.png`,
     "scales-fins-other": `${window.location}/static/images/graphics/scales-smashicons.png`,
     barnyard: `${window.location}/static/images/graphics/tracks_freepik.png`,
-    misc: `${window.location}/static/images/graphics/pets.png`,
+    misc: `${window.location}/static/images/graphics/tracks_freepik`,
   };
 
   const defaultOutput = defaultAnimalImages[species] || defaultAnimalImages.misc;
@@ -132,7 +132,7 @@ const getImgSrcStr = (species, imgObj) => {
 // Function to create card elements
 function createCardElementFromData(animal) {
   const colDiv = document.createElement("div");
-  colDiv.className = "col";
+  colDiv.className = "col-lg-4 mb-4 mb-lg-0";
 
   const cardDiv = document.createElement("div");
   cardDiv.className = "card text-start h-100";
