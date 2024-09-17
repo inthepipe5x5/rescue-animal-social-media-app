@@ -422,7 +422,7 @@ def results():
     species = session["CURR_USER"]["animal_types"][0]
 
     location = (
-        user_location.getLocStr()
+        user_location.city_state_country_str()
         if user_id
         else {
             "geolocation": "43.6429,79.3889",
@@ -488,7 +488,7 @@ def animal_data():
                 db.session.query(UserLocation).filter_by(user_id=user_id).first()
             )
             location = (
-                user_location.getLocStr()
+                user_location.city_state_country_str()
                 if user_location
                 else os.environ.get("CURR_LOCATION", "43.6429,-79.3889")
             )
@@ -677,7 +677,6 @@ def reseed_db():
             "animal_prefs": test123_prefs,
         }
     )
-
 
 @app.route("/data/orgs", methods=["GET", "POST"])
 def orgs_data():

@@ -93,7 +93,7 @@ class UserLocation(db.Model):
         # remote_side="UserLocation.user_id",
     )
 
-    def getLocStr(self) -> str:
+    def city_state_country_str(self) -> str:
         """
         Instance method that grabs the city, state and country to return a string "location"
         Returns:
@@ -137,7 +137,7 @@ class UserLocation(db.Model):
                 raise ValueError("Insufficient location information provided")
         except Exception as e:
             # Log the error
-            print(f"Error in getLocStr: {str(e)}")
+            print(f"Error in city_state_country_str: {str(e)}")
             raise ValueError("Unable to process location information")
     
     def format_geolocation(*coordinates) -> str:

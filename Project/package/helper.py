@@ -227,7 +227,7 @@ def add_location_to_g(session, g):
     location = get_user_preference(key=key, session=session, g=g)
     #handle if location is an db.Model Object instance
     if isinstance(location, db.Model):
-        location = location.getLocStr()
+        location = location.city_state_country_str()
     if isinstance(location, str):
         location = location
     # update session and g
