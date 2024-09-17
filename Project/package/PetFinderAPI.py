@@ -97,7 +97,7 @@ class PetFinderPetPyAPI:
             return access_token
         else:
             raise Exception(
-                f"Error getting access token: {response.status_code} - {response.text}"
+                f"Error getting access token @ URL {url}: {response.status_code} - {response.text}"
             )
 
     def _get_request(
@@ -464,7 +464,8 @@ class PetFinderPetPyAPI:
         )
 
         # check filtering success
-        print("Filtering success:", filtered["success_flag"])
+        name_of_filtered = [animal["name"] for animal in filtered["results"]]
+        print("Filtering success:", filtered["success_flag"], name_of_filtered)
 
         # parse the filtered results
         if filtered["success_flag"] and len(filtered["results"]) > 0:
@@ -473,6 +474,7 @@ class PetFinderPetPyAPI:
             parsed_and_filtered = []
 
         return {
+            "pagination": init_animals["pagination"],
             "results": parsed_and_filtered,
             "success_flag": filtered["success_flag"] and len(parsed_and_filtered),
         }

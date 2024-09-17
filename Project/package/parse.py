@@ -175,6 +175,127 @@ class Parse:
     # PARENT PARSING FUNCTIONS - Descriptions/Text block, Pub date, Photos, location
     #############################################################################################################################################################################################
 
+    def normalize_name(self, name_str: str) -> str:
+        """
+        Helper function that takes a string of a name (which can be a series of words) and returns the string with the first letter of each word capitalized and the rest in lowercase:
+
+        example useage:
+        print(format_name("SUNNY SPARKY"))  # Output: Sunny Sparky
+        print(format_name("wonder PUP"))    # Output: Wonder Pup
+        print(format_name("jOHN dOE"))      # Output: John Doe
+        print(format_name("MARY JANE WATSON"))  # Output: Mary Jane Watson
+        """
+
+        # Split the name into words
+        words = name_str.split()
+        filler_words = [
+            "hold",
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "from",
+            "up",
+            "about",
+            "into",
+            "over",
+            "after",
+            "beneath",
+            "under",
+            "above",
+            "that",
+            "which",
+            "who",
+            "whom",
+            "whose",
+            "however",
+            "therefore",
+            "thus",
+            "hence",
+            "consequently",
+            "nevertheless",
+            "moreover",
+            "furthermore",
+            "additionally",
+            "indeed",
+            "arguably",
+            "certainly",
+            "clearly",
+            "obviously",
+            "perhaps",
+            "maybe",
+            "possibly",
+            "probably",
+            "likely",
+            "seemingly",
+            "apparently",
+            "evidently",
+            "notably",
+            "significantly",
+            "especially",
+            "particularly",
+            "specifically",
+            "generally",
+            "usually",
+            "typically",
+            "often",
+            "sometimes",
+            "occasionally",
+            "rarely",
+            "seldom",
+            "never",
+            "always",
+            "frequently",
+            "subsequently",
+            "previously",
+            "formerly",
+            "latterly",
+            "recently",
+            "currently",
+            "presently",
+            "immediately",
+            "instantly",
+            "directly",
+            "indirectly",
+            "ultimately",
+            "eventually",
+            "finally",
+            "lastly",
+            "in conclusion",
+            "to summarize",
+            "in summary",
+            "altogether",
+            "overall",
+            "generally speaking",
+            "broadly speaking",
+            "in essence",
+            "in effect",
+            "as a result",
+            "consequently",
+            "as such",
+            "accordingly",
+            "hence",
+        ]
+
+        # Capitalize the first letter of each word and make the rest lowercase
+        formatted_words = [
+            word.capitalize() if word not in filler_words else word.lower()
+            for word in words
+        ]
+
+        # Join the words back together
+        return " ".join(formatted_words)
+
     def parse_description(self, description):
         """
         Parse large blocks of text descriptions efficiently.
@@ -343,7 +464,7 @@ class Parse:
 
     def parse_photos(self, photos_list, type):
         """Function to parse the photos property in API results."""
-        default_photo_folder_name = "static/images/graphics"
+        default_photo_folder_name = "images/graphics"
 
         # Handle invalid or empty types
         if not type or type.lower() not in [
@@ -359,7 +480,9 @@ class Parse:
             type = "misc"
             misc_photo_name = "tracks_freepik.png"
             return url_for(
-                "static", filename=f"{default_photo_folder_name}/{misc_photo_name}"
+                "static",
+                filename=f"{default_photo_folder_name}/{misc_photo_name}",
+                _external=True,
             )
 
         # Dictionary of URLs for the graphics
@@ -381,7 +504,9 @@ class Parse:
                 type.lower(), default_animal_graphic["misc"]
             )
             return url_for(
-                "static", filename=f"{default_photo_folder_name}/{default_filename}"
+                "static",
+                filename=f"{default_photo_folder_name}/{default_filename}",
+                _external=True,
             )
 
         # If the photos_list is a string (a direct URL)
@@ -396,6 +521,7 @@ class Parse:
         return url_for(
             "static",
             filename=f"{default_photo_folder_name}/{default_animal_graphic['misc']}",
+            _external=True,
         )
 
 
@@ -507,49 +633,123 @@ class ParseAnimal(Parse):
         Parse the animal data using the key_function_mapping_dict.
         """
         parsed_object = {}
-        # grab data_type as needed for parse_funcs that require a "type" or "species" argument
         if isinstance(self.data, dict):
-            data_type = ""
-            if "type" in self.data:
-                data_type = self.data.get("type", None)
-            elif "species" in self.data:
-                data_type = self.data.get("species", None)
-        for key, value in self.data.items():
-            func_name = self.key_function_mapping_dict.get(key.lower(), None)
-            if func_name:
-                parsing_function = getattr(self, func_name, None)
-
-                if callable(parsing_function):
-                    if func_name == "parse_photos":
-                        # Handle parse_photos which requires multiple arguments
+            for key, value in self.data.items():
+                if key.lower() in ("name", "names"):
+                    parsed_object[key] = self.clean_text(value, self.normalize_name)
+                elif key.lower() in ("breed", "breeds"):
+                    # parse breeds and set object
+                    parsed_object[key] = (
+                        self.parse_breed(value) if isinstance(value, dict) else value
+                    )
+                    self.parsed_keys.add(key)
+                # parse animal photos
+                elif key.lower() in ("photo", "photos", "media"):
+                    # Handle parse_photos which requires multiple arguments
+                    parsed_object[key] = self.parse_photos(
+                        photos_list=value,
                         # grab "type" or "species" of data
-                        parsed_object[key] = parsing_function(
-                            photos_list=value, type=data_type
+                        type=self.data.get("type", self.data.get("species", "misc")),
+                    )
+                    self.parsed_keys.add(key)
+                # parse animlal address
+                elif key.lower() in (
+                    "location",
+                    "locations",
+                    "city",
+                    "address",
+                    "state",
+                    "country",
+                    "locale",
+                ):
+                    parsed_object[key] = (
+                        self.parse_address(value)
+                        if isinstance(value, dict)
+                        else (
+                            self.clean_text(value, self.normalize_name)
+                            if isinstance(value, str)
+                            else "Unknown Location"
                         )
-                    elif func_name == "parse_published_at":
-                        # get parsed_data_obj
-                        parsed_date_obj = parsing_function(pub_date=value, action="any")
-                        parsed_object["published_at"] = parsed_date_obj["published_at"]
-                        parsed_object["date_delta"] = parsed_date_obj["published_at"]
-                    else:
-                        # Call other parsing functions with just the value
-                        parsed_object[key] = parsing_function(value)
+                    )
+                    self.parsed_keys.add(key)
+
+                elif key.lower() in ("bio", "description", "biography", "story"):
+                    parsed_object[key] = self.parse_description(value)
+                    self.parsed_keys.add(key)
+
+                elif key.lower() in (
+                    "color",
+                    "colors",
+                    "colour",
+                    "colours",
+                    "coat",
+                    "coats",
+                    "coat color",
+                ):
+                    print(f"color key={key}:{value}")
+                    parsed_object[key] = self.parse_color(value)
+                    self.parsed_keys.add(key)
+                elif key.lower() in (
+                    "published_at",
+                    "published",
+                    "date",
+                    "publish-date",
+                    "pub_date",
+                    "date",
+                ):
+                    parsed_date_obj = self.parse_published_at(
+                        pub_date=value, action="any"
+                    )
+                    parsed_object["published_at"] = parsed_date_obj["published_at"]
+                    parsed_object["date_delta"] = parsed_date_obj["published_at"]
                     self.parsed_keys.add(key)
                 else:
                     parsed_object[key] = value
-            else:
-                parsed_object[key] = value  # Keep original value if no parsing function
-
-        self.results = parsed_object
+                    self.parsed_keys.add(key)
         return self.results
+
+        # grab data_type as needed for parse_funcs that require a "type" or "species" argument
+        # if isinstance(self.data, dict):
+        #     data_type = ""
+        #     if "type" in self.data:
+        #         data_type = self.data.get("type", None)
+        #     elif "species" in self.data:
+        #         data_type = self.data.get("species", None)
+        # for key, value in self.data.items():
+        #     func_name = self.key_function_mapping_dict.get(key.lower(), None)
+        #     if func_name:
+        #         parsing_function = getattr(self, func_name, None)
+
+        #         if callable(parsing_function):
+        #             if func_name == "parse_photos":
+        #                 # Handle parse_photos which requires multiple arguments
+        #                 # grab "type" or "species" of data
+        #                 parsed_object[key] = parsing_function(
+        #                     photos_list=value, type=data_type
+        #                 )
+        #             elif func_name == "parse_published_at":
+        #                 # get parsed_data_obj
+        #                 parsed_date_obj = parsing_function(pub_date=value, action="any")
+        #                 parsed_object["published_at"] = parsed_date_obj["published_at"]
+        #                 parsed_object["date_delta"] = parsed_date_obj["published_at"]
+        #             else:
+        #                 # Call other parsing functions with just the value
+        #                 parsed_object[key] = parsing_function(value)
+        #             self.parsed_keys.add(key)
+        #         else:
+        #             parsed_object[key] = value
+        #     else:
+        #         parsed_object[key] = value  # Keep original value if no parsing function
+
+        # self.results = parsed_object
+        # return self.results
 
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
-        print(colors_obj)
-        if not colors_obj or not colors_obj["primary"]:
+        if not colors_obj or not len(colors_obj.values()) == 0:
             return "Unknown Color"  # color is Unknown Color by default
         if isinstance(colors_obj, str):
-            return self.clean_text(colors_obj)  # return cleaned str if already a str
+            return self.normalize_name(colors_obj)  # return cleaned str if already a str
 
         primary = colors_obj["primary"] or ""
         secondary = colors_obj["secondary"] or False
@@ -603,6 +803,7 @@ def parse_multi_animal(animal_list):
     Returns original object if any error occurs during parsing.
     """
     parsed_animals = []
+    parsed_id = set()
 
     # Ensure the input is a non-empty iterable
     if animal_list and isinstance(animal_list, Iterable) and len(animal_list) > 0:
@@ -615,13 +816,17 @@ def parse_multi_animal(animal_list):
                 # Parse the individual animal
                 parser = ParseAnimal(animal_data=animal)
                 animal_result = parser.parse()
-                parsed_animals.append(animal_result)
+                if "name" not in parsed_id:
+                    parsed_id.add(animal_result["name"])
+                    parsed_animals.append(animal_result)
 
             except ParsingError as e:
                 # Handle ParsingError, reset original data in the animal object
                 print(f"ParsingError at index {idx}: {e}; Continuing with the rest")
                 animal[e.data_key] = e.data  # Restore the original key-value
-                parsed_animals.append(animal)
+                parsed_id.add(animal["name"])
+                if animal["name"] in parsed_id:
+                    parsed_animals.append(animal)
 
             except TypeError as e:
                 # Handle TypeError specifically
@@ -646,7 +851,9 @@ def parse_multi_animal(animal_list):
                 print(f"The erroneous line of code: {text}")
 
                 print(f"TypeError at index {idx}: {e}; Skipping animal.")
-                parsed_animals.append(animal)
+                parsed_id.add(animal["name"])
+                if animal["name"] in parsed_id:
+                    parsed_animals.append(animal)
 
             except KeyError as e:
                 print(idx, "=", animal["name"])
@@ -670,7 +877,9 @@ def parse_multi_animal(animal_list):
 
                 # Handle KeyError specifically
                 print(f"KeyError at index {idx}: Missing key {e}; Skipping animal.")
-                parsed_animals.append(animal)
+                parsed_id.add(animal["name"])
+                if animal["name"] in parsed_id:
+                    parsed_animals.append(animal)
 
             except AttributeError as e:
                 print(idx, "=", animal["name"])
@@ -694,7 +903,9 @@ def parse_multi_animal(animal_list):
 
                 # Handle AttributeError specifically
                 print(f"AttributeError at index {idx}: {e}; Skipping animal.")
-                parsed_animals.append(animal)
+                parsed_id.add(animal["name"])
+                if animal["name"] in parsed_id:
+                    parsed_animals.append(animal)
 
             except Exception as e:
                 print(idx, "=", animal["name"])
@@ -723,5 +934,10 @@ def parse_multi_animal(animal_list):
                 print(
                     f"Unexpected error parsing animal {animal_name} at index {idx}: {e}; Skipping"
                 )
-                parsed_animals.append(animal)  # Add original animal if unexpected error
+                parsed_id.add(animal["name"])
+                if animal["name"] in parsed_id:
+                    parsed_animals.append(
+                        animal
+                    )  # Add original animal if unexpected error
+    print(parsed_id)
     return parsed_animals

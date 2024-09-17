@@ -85,8 +85,8 @@ const getImgSrcStr = (species, imgObj) => {
     barnyard: `${window.location}/static/images/graphics/tracks_freepik.png`,
     misc: `${window.location}/static/images/graphics/tracks_freepik`,
   };
-
-  const defaultOutput = defaultAnimalImages[species] || defaultAnimalImages.misc;
+  const defaultOutput =
+    defaultAnimalImages[species] || defaultAnimalImages.misc;
 
   const isValidUrl = (url) => {
     try {
@@ -98,8 +98,9 @@ const getImgSrcStr = (species, imgObj) => {
   };
 
   const findValidImageUrl = (obj) => {
-    if (typeof obj === 'string') {
-      return isValidUrl(obj) ? obj : null;
+    if (typeof obj === "string") {
+      // return isValidUrl(obj) ? obj : defaultOutput;
+      return obj ? obj : defaultOutput;
     }
     if (Array.isArray(obj)) {
       for (const item of obj) {
@@ -107,7 +108,7 @@ const getImgSrcStr = (species, imgObj) => {
         if (result) return result;
       }
     }
-    if (typeof obj === 'object' && obj !== null) {
+    if (typeof obj === "object" && obj !== null) {
       const sizeKeys = ["full", "large", "xxl", "medium", "small"];
       for (const key of sizeKeys) {
         if (obj[key]) {
@@ -130,13 +131,15 @@ const getImgSrcStr = (species, imgObj) => {
 };
 
 // Function to create card elements
-function createCardElementFromData(animal) {
+// Arrow function to create card elements
+const createCardElementFromData = (animal) => {
   const colDiv = document.createElement("div");
   colDiv.className = "col-lg-4 mb-4 mb-lg-0";
 
   const cardDiv = document.createElement("div");
   cardDiv.className = "card text-start h-100";
 
+  // Add animal image if available
   if (animal.photos && animal.photos.length > 0) {
     const img = document.createElement("img");
     img.src = getImgSrcStr(animal?.type, animal.photos);
@@ -171,17 +174,16 @@ function createCardElementFromData(animal) {
     breedBadge.textContent = animal.breeds.unknown
       ? "Unknown Breed"
       : animal.breeds.mixed
-      ? `${animal.breeds.primary}/${animal.breeds.secondary}`
+      ? `${animal.breeds.primary}/${animal.breeds.secondary || ""}`
       : animal.breeds.primary;
     cardText.appendChild(breedBadge);
   }
 
   // Add size, age, gender, and special needs badges
-  ["size", "age", "gender", "attributes"].forEach((attr) => {
-    console.log(`attr=> ${attr}`)
+  ["size", "age", "gender"].forEach((attr) => {
     if (animal[attr]) {
       const badge = document.createElement("span");
-      badge.className = `badge rounded-pill bg-${
+      badge.className = `animal-attribute badge rounded-pill bg-${
         attr === "size"
           ? "info"
           : attr === "age"
@@ -193,20 +195,35 @@ function createCardElementFromData(animal) {
           : "danger"
       }`;
       badge.textContent = animal[attr];
-      if (attr === "gender")
-        badge.textContent +=
-          animal.gender === "Female"
-            ? "💅✨"
-            : animal.gender === "Male"
-            ? "🤠"
-            : "👩🏼‍🤝‍🧑🏼";
-      if (attr === "attributes" && animal.attributes.special_needs)
-        badge.textContent = "♿";
+      if (attr === "gender") {
+        badge.textContent += animal.gender === "Female" ? "💅✨" : "🤠";
+      }
       cardText.appendChild(badge);
     }
   });
 
-  cardBody.appendChild(cardText);
+    // Add attributes as badges
+    if (animal.attributes) {
+      const attributesMap = {
+        spayed_neutered: "Spayed/Neutered",
+        house_trained: "House Trained",
+        declawed: "Declawed",
+        special_needs: "Special Needs",
+        shots_current: "Shots Current",
+      };
+
+      Object.keys(attributesMap).forEach((key) => {
+        if (animal.attributes[key] === true) {
+          const badge = document.createElement("span");
+          badge.className = "badge rounded-pill bg-success";
+          badge.textContent = attributesMap[key];
+          if (key === "special_needs") {
+            badge.textContent = "♿ Special Needs";
+          }
+          cardText.appendChild(badge);
+        }
+      });
+    }
 
   // Add location
   const locationDiv = document.createElement("div");
@@ -252,11 +269,12 @@ function createCardElementFromData(animal) {
     cardBody.appendChild(alertDiv);
   }
 
+  cardBody.appendChild(cardText);
   cardDiv.appendChild(cardBody);
   colDiv.appendChild(cardDiv);
 
   return colDiv;
-}
+};
 
 // UI UTIL FUNCTIONS //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -356,6 +374,8 @@ const renderCards = (animals = []) => {
   // Check if there are animals to render
   if (animals.length > 0) {
     animals.forEach((animal) => {
+      //REMOVE LATER
+      console.debug(animal?.name, animal?.photos)
       const cardElement = createCardElementFromData(animal);
       rowDiv.appendChild(cardElement);
     });
@@ -453,17 +473,18 @@ const fetchDataAndRender = (apiURL) => {
   fetch(apiURL)
     .then((response) => {
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} @ URL => ${apiURL}`);
       }
       return response.json();
     })
     .then((data) => {
-      clearSkeletonCards()
+      clearSkeletonCards();
       if (data.results && data.results.length > 0) {
         flashMessage(
           `Results fetched! ${data.results.length} animals found.`,
           true
         );
+        console.log(Object.keys(data), "=> received api data keys")
         renderCards(data.results);
 
         // Update totalResultsCount and currentPage

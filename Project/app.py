@@ -387,10 +387,10 @@ def delete_user():
 ##############################################################################
 IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
-
-@app.route("/static/images/graphics/<path:filename>")
-def serve_image(filename):
-    return send_from_directory(IMAGE_FOLDER, filename)
+#FIX LATER
+# @app.route("/static/images/graphics/<path:filename>")
+# def serve_image(filename):
+#     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
 
 @app.route("/results", methods=["GET", "POST"])
