@@ -556,6 +556,7 @@ p.card-bio {
   background-color: #f6f7f8;
   border-radius: 4px;
   margin-bottom: 20px;
+  
 }
 
 .skeleton-img {
@@ -593,3 +594,11 @@ p.card-bio {
   background-size: 800px 104px;
   animation: shimmer 1.5s infinite linear;
 }
+
+/* ================================ Hidden Forms */
+
+form.hidden {
+  display: none;
+}
+
+/* ================================ Animal Cards */

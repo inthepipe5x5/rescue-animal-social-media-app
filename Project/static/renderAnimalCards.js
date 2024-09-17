@@ -333,7 +333,7 @@ function updateRenderedDiff() {
 
 // UI UTIL FUNCTIONS //////////////////////////////////////////////////////////////////////////////////////////
 
-const generateSkeletonCards = (skeletonCount = 9) => {
+const generateSkeletonCards = (skeletonCount = 10) => {
   const resultsContainerID = "animal-results-cards-container";
   const resultsContainer = document.getElementById(resultsContainerID);
   // Create skeleton cards
@@ -517,7 +517,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   fetchDataAndRender(apiURLString);
 });
 
-window.addEventListener("resize", () => {
-  updateRenderedDiff();
-  console.log("breakpoints adjusted");
-});
+//FIX LATER
+// window.addEventListener("resize", () => {
+//   updateRenderedDiff();
+//   console.log("breakpoints adjusted");
+// });
