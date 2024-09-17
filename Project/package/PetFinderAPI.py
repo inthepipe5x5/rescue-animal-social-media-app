@@ -7,7 +7,7 @@ from flask import json
 from ratelimit import limits, RateLimitException
 from petpy import Petfinder
 import requests
-from .parse import parse_multi_animal
+from package.parse import parse_multi_animal
 
 # from ..models import User, UserAnimalPreferences  # , #UserPreferences
 

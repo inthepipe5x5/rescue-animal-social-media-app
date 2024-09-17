@@ -15,7 +15,7 @@ from wtforms.validators import DataRequired, Email, Length, ValidationError  # t
 from wtforms_alchemy import model_form_factory  # type: ignore
 import pycountry  # type: ignore
 
-from .models import (
+from models import (
     db,
     User,
     # UserAnimalBehaviorPreferences,

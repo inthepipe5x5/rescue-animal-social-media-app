@@ -15,25 +15,22 @@ from flask.sessions import (
     SessionInterface,
     SessionMixin,
     NullSession,
-    session_json_serializer,
 )
-import json
 from flask_login import LoginManager, login_required, login_user, logout_user
 
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from dotenv import load_dotenv  # type: ignore
 import os
-import requests
 from functools import wraps
 from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
-from .models import (
+from models import (
     db,
     User,
     UserLocation,
     UserAnimalPreferences,
 )
-from .forms import (
+from forms import (
     UserAddForm,
     LoginForm,
     UserEditForm,
@@ -44,7 +41,7 @@ from .forms import (
     HiddenForm,
     HiddenLocationForm,
 )
-from .package.helper import (
+from package.helper import (
     data_bp,
     get_anon_preference,
     get_user_preference,
@@ -55,8 +52,8 @@ from .package.helper import (
     add_location_to_g,
     add_animal_types_to_g,
 )
-from .package.PetFinderAPI import PetFinderPetPyAPI
-from .config import config, Config
+from package.PetFinderAPI import PetFinderPetPyAPI
+from config import config, Config
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
@@ -387,7 +384,7 @@ def delete_user():
 ##############################################################################
 IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
-#FIX LATER
+# FIX LATER
 # @app.route("/static/images/graphics/<path:filename>")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
@@ -688,6 +685,7 @@ def orgs_data():
     print([(org.name, org.adoption.policy) for org in results])
     return jsonify(results)
 
+
 @app.route("/testget", methods=["GET"])
 def testget():
     """TEST ROUTE
@@ -697,18 +695,15 @@ def testget():
     """
     if "CURR_USER" in session:
         active_user = load_user(user_id=session.get("CURR_USER")["id"])
-    
+
     api = PetFinderPetPyAPI()
-    try: 
-        params= {
-            "location": "43.6429,-79.3889"
-        }
-        request = api._get_request('animals', params=params)
+    try:
+        params = {"location": "43.6429,-79.3889"}
+        request = api._get_request("animals", params=params)
         return jsonify(request)
     except Exception as e:
         print(f"testget route fetch error => {e}")
-        
-        
+
 
 @app.route("/set_location", methods=["POST"])
 def set_location():
@@ -1024,8 +1019,14 @@ if __name__ == "__main__":
     # db.create_all()
 
     # run app
-    app.run(
-        use_reloader=True,
-        host=os.environ.get("HOST", "localhost"),
-        port=os.environ.get("PORT", 5000),
-    )
+    if flask_env == "production":
+        app.run(
+            host=os.environ.get("HOST", "localhost"),
+            port=os.environ.get("PORT", 8000),
+        )
+    else:
+        app.run(
+            use_reloader=True,
+            host=os.environ.get("HOST", "localhost"),
+            port=os.environ.get("PORT", 5000),
+        )

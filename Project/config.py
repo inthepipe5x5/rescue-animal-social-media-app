@@ -4,7 +4,7 @@ import logging
 from flask_wtf.csrf import CSRFProtect
 from logging.config import dictConfig
 from dotenv import load_dotenv
-from .models import db, connect_db
+from models import db, connect_db
 from flask_migrate import Migrate
 from sqlalchemy.engine.url import URL
 
