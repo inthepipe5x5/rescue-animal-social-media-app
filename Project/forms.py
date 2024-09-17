@@ -275,7 +275,7 @@ class UserLocationForm(StateCountryForm):
     class Meta:
         model = UserLocation
         # exclude country & state fields to utilize StateCountryForm instead
-        exclude = ["country", "state"]
+        exclude = ["country", "state", "geolocation"]
 
 
 class UserTravelForm(ModelForm):

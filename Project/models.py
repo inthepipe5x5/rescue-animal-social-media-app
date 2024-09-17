@@ -6,7 +6,7 @@ import json
 from flask import abort
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, Index, UniqueConstraint
+from sqlalchemy import func, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert
 from sqlalchemy.sql import func
 from flask_login import UserMixin
@@ -543,6 +543,10 @@ class UserTravelPreferences(db.Model):
         db.Boolean
     )  # transport rescue animals, supplies, be the carpool driver
 
+    # Add check constraints
+    __table_args__ = (
+        CheckConstraint('distance_filter_preference >= 0 AND distance_filter_preference <= 1000', name='check_distance_filter_range'),
+    )
 
 class UserResources(db.Model):
     """Table to store user resources and capacity to volunteer or care for an animal"""

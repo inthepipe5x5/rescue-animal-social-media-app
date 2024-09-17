@@ -29,6 +29,7 @@ from models import (
     User,
     UserLocation,
     UserAnimalPreferences,
+    UserTravelPreferences
 )
 from forms import (
     UserAddForm,
@@ -40,6 +41,7 @@ from forms import (
     SpecificAnimalPreferencesForm,
     HiddenForm,
     HiddenLocationForm,
+    UserTravelForm,
 )
 from package.helper import (
     data_bp,
@@ -270,13 +272,31 @@ def list_users():
     return render_template("users/index.html", users=users)
 
 
-@app.route("/users/<int:user_id>")
-def users_show(user_id):
-    """Show user profile."""
 
+@app.route('/users/<int:user_id>')
+def show_user(user_id):
     user = User.query.get_or_404(user_id)
+    user_location_form = UserLocationForm(obj=user.location)
+    user_travel_form = UserTravelForm(obj=user.travel_preferences)
+    return render_template('users/show.html', user=user, user_location_form=user_location_form, user_travel_form=user_travel_form)
 
-    return render_template("users/show.html", user=user)
+@app.route('/users/preferences/location', methods=['POST'])
+def update_location():
+    form = UserLocationForm()
+    if form.validate_on_submit():
+        # Update user location here
+        # ...
+        flash('Location updated successfully!')
+    return redirect(url_for('show_user', user_id=current_user.id))
+
+@app.route('/users/preferences/travel', methods=['POST'])
+def update_travel_preferences():
+    form = UserTravelForm()
+    if form.validate_on_submit():
+        # Update user travel preferences here
+        # ...
+        flash('Travel preferences updated successfully!')
+    return redirect(url_for('show_user', user_id=current_user.id))
 
 
 # @app.route("/users/<int:user_id>/following")
@@ -685,26 +705,6 @@ def orgs_data():
     print([(org.name, org.adoption.policy) for org in results])
     return jsonify(results)
 
-
-@app.route("/testget", methods=["GET"])
-def testget():
-    """TEST ROUTE
-
-    Returns:
-        _type_: _description_
-    """
-    if "CURR_USER" in session:
-        active_user = load_user(user_id=session.get("CURR_USER")["id"])
-
-    api = PetFinderPetPyAPI()
-    try:
-        params = {"location": "43.6429,-79.3889"}
-        request = api._get_request("animals", params=params)
-        return jsonify(request)
-    except Exception as e:
-        print(f"testget route fetch error => {e}")
-
-
 @app.route("/set_location", methods=["POST"])
 def set_location():
     """Route to set location for search results
@@ -722,6 +722,7 @@ def set_location():
         # check if country, state is provided in request body
         country = request.values.get("country", None)
         state = request.values.get("state", None)
+        postal_code = request.values.get("postal_code", None)
         geolocation = request.values.get("geolocation", None)
 
         location = ",".join(country, state)
