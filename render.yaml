@@ -3,7 +3,7 @@ services:
     name: rescue-animal-social-media-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn Project.app:app
+    startCommand: gunicorn --config wsgi.py Project.app:app
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
