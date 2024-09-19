@@ -16,7 +16,13 @@ from flask.sessions import (
     SessionMixin,
     NullSession,
 )
-from flask_login import LoginManager, login_required, login_user, logout_user
+from flask_login import (
+    LoginManager,
+    login_required,
+    login_user,
+    logout_user,
+    current_user,
+)
 
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from dotenv import load_dotenv  # type: ignore
@@ -24,13 +30,7 @@ import os
 from functools import wraps
 from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
-from models import (
-    db,
-    User,
-    UserLocation,
-    UserAnimalPreferences,
-    UserTravelPreferences
-)
+from models import db, User, UserLocation, UserAnimalPreferences, UserTravelPreferences
 from forms import (
     UserAddForm,
     LoginForm,
@@ -99,7 +99,7 @@ def init_session():
 #         return session
 
 #     def save_session(self, app, session, response):
-#         # Implement your session saving logic here
+#         # Implement session saving logic here
 #         pass
 
 #     def reset_session(self, app, session):
@@ -157,19 +157,19 @@ login_manager.login_view = "login"
 ##############################################################################
 # User signup/login/logout
 
+# REMOVE LATER AS I'M USING THE SAME FUNCTION FROM FLASK-LOGIN INSTEAD
+# def login_required(route_func):
+#     @wraps(route_func)
+#     def protected_route(*args, **kwargs):
+#         if CURR_USER_KEY not in session:
+#             # flash error
+#             flash("Unauthorized", "danger")
+#             # not authenticated, redirect to login and then requested url once authenticated
+#             return redirect(url_for("login"), next=request.url)
+#         # else the user is authenticated and should be allowed to proceed to the protected route
+#         return route_func(*args, **kwargs)
 
-def login_required(route_func):
-    @wraps(route_func)
-    def protected_route(*args, **kwargs):
-        if CURR_USER_KEY not in session:
-            # flash error
-            flash("Unauthorized", "danger")
-            # not authenticated, redirect to login and then requested url once authenticated
-            return redirect(url_for("login"), next=request.url)
-        # else the user is authenticated and should be allowed to proceed to the protected route
-        return route_func(*args, **kwargs)
-
-    return protected_route
+#     return protected_route
 
 
 # user load function to load user session based on user_id
@@ -272,43 +272,50 @@ def list_users():
     return render_template("users/index.html", users=users)
 
 
-
-@app.route('/users/<int:user_id>')
+@app.route("/users/<int:user_id>")
 def show_user(user_id):
     user = User.query.get_or_404(user_id)
     user_location_form = UserLocationForm(obj=user.location)
     user_travel_form = UserTravelForm(obj=user.travel_preferences)
-    return render_template('users/show.html', user=user, user_location_form=user_location_form, user_travel_form=user_travel_form)
+    return render_template(
+        "users/show.html",
+        user=user,
+        user_location_form=user_location_form,
+        user_travel_form=user_travel_form,
+    )
 
-@app.route('/users/preferences/location', methods=['POST'])
+
+@app.route("/users/preferences/location", methods=["POST"])
 def update_location():
     form = UserLocationForm()
     if form.validate_on_submit():
+        # FINISH LATER
         # Update user location here
         # ...
-        flash('Location updated successfully!')
-    return redirect(url_for('show_user', user_id=current_user.id))
+        flash("Location updated successfully!")
+    return redirect(url_for("show_user", user_id=current_user.id))
 
-@app.route('/users/preferences/travel', methods=['POST'])
+
+@app.route("/users/preferences/travel", methods=["POST"])
 def update_travel_preferences():
     form = UserTravelForm()
     if form.validate_on_submit():
-        # Update user travel preferences here
+        # Update user travel preferences here #FINISH LATER
         # ...
-        flash('Travel preferences updated successfully!')
-    return redirect(url_for('show_user', user_id=current_user.id))
+        flash("Travel preferences updated successfully!")
+    return redirect(url_for("show_user", user_id=current_user.id))
 
 
-# @app.route("/users/<int:user_id>/following")
-# def show_following(user_id):
-#     """Show list of people this user is following."""
+# @app.route("/users/<int:user_id>/favorites")
+# def show_favorites(user_id):
+#     """Show list of people this user is favorites."""
 
 #     if "CURR_USER" not in session:
 #         flash("Access unauthorized.", "danger")
 #         return redirect("/")
 
 #     user = User.query.get_or_404(user_id)
-#     return render_template("users/following.html", user=user)
+#     return render_template("users/favorites.html", user=user)
 
 
 # @app.route("/users/<int:user_id>/followers")
@@ -323,19 +330,45 @@ def update_travel_preferences():
 #     return render_template("users/followers.html", user=user)
 
 
-# @app.route("/users/follow/<int:follow_id>", methods=["POST"])
-# def add_follow(follow_id):
-#     """Add a follow for the currently-logged-in user."""
+@app.route("/users/favorite/<int:favorite_id>", methods=["POST"])
+@login_required
+def user_favorite(favorite_id):
+    """Add or toggle a favorite for the currently-logged-in user."""
 
-#     if "CURR_USER" not in session:
-#         flash("Access unauthorized.", "danger")
-#         return redirect("/")
+    is_animal = request.args.get("is_animal", "true").lower() == "true"
+    action = request.args.get("action", "toggle").lower()
 
-#     followed_user = User.query.get_or_404(follow_id)
-#     g.user.following.append(followed_user)
-#     db.session.commit()
+    user = (
+        current_user
+        if current_user.is_authenticated
+        else session.get("CURR_USER", None)
+    )
+    if not user:
+        flash("Access unauthorized.", "danger")
+        return redirect(url_for("login"))
 
-#     return redirect(f"/users/{g.user.id}/following")
+    try:
+        if action == "add":
+            user.add_favorite(favorite_id=favorite_id, is_animal=is_animal)
+            message = f"Added {'Animal' if is_animal else 'Rescue Org'} #{favorite_id} to favorites"
+        elif action == "toggle":
+            result = user.toggle_favorite(favorite_id=favorite_id, is_animal=is_animal)
+            message = f"{'Added' if result else 'Removed'} {'Animal' if is_animal else 'Rescue Org'} #{favorite_id} {'to' if result else 'from'} favorites"
+        else:
+            return jsonify({"error": "Invalid action"}), 400
+
+        flash(message)
+        return jsonify(
+            {
+                "favorite_id": favorite_id,
+                "action": action,
+                "result": result if action == "toggle" else True,
+            }
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 # @app.route("/users/stop-following/<int:follow_id>", methods=["POST"])
@@ -678,6 +711,7 @@ def reseed_db():
         }
     )
 
+
 @app.route("/data/orgs", methods=["GET", "POST"])
 def orgs_data():
     """ROUTE TO GET ORGS DATA
@@ -703,6 +737,7 @@ def orgs_data():
     org_results = api.organizations(**orgs_search_args)["organizations"]
     print([(org.name, org.adoption.policy) for org in results])
     return jsonify(results)
+
 
 @app.route("/set_location", methods=["POST"])
 def set_location():

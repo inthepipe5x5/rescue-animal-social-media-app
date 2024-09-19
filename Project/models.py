@@ -10,26 +10,98 @@ from sqlalchemy import func, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert
 from sqlalchemy.sql import func
 from flask_login import UserMixin
+from sqlalchemy.exc import IntegrityError
 
 bcrypt = Bcrypt()
 db = SQLAlchemy()
 
-# class Follows(db.Model):
-#     """Connection of a follower <-> followed_followed_org."""
 
-#     __tablename__ = "follows"
+class UserFavorites(db.Model):
+    """Table to store user favorites"""
 
-#     rescue_org_being_followed_id = db.Column(
-#         db.Integer,
-#         db.ForeignKey("rescueOrg.id", ondelete="cascade"),
-#         primary_key=True,
-#     )
+    __tablename__ = "user_favorites"
 
-#     user_following_id = db.Column(
-#         db.Integer,
-#         db.ForeignKey("users.id", ondelete="cascade"),
-#         primary_key=True,
-#     )
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="cascade"),
+        nullable=False,
+        primary_key=True,
+    )
+    favorite_id = db.Column(
+        db.Integer,
+        nullable=False,
+        primary_key=True,
+    )
+
+    accessed_counter = db.Column(db.Integer, default=0)
+    is_animal = db.Column("is_animal", db.Boolean, default=True)
+
+    @classmethod
+    def get_favorites(cls, user_id):
+        """
+        Read function -> Get all favorites of a given user_id
+        """
+        if not user_id:
+            raise ValueError(
+                f"No user_id passed into UserFavorites.get_favorites(), got {user_id} instead"
+            )
+        favorites = (
+            cls.query.filter_by(user_id=user_id).with_entities(cls.favorite_id).all()
+        )
+        if not favorites:
+            return set()  # Return an empty set instead of raising an exception
+        return {fav.favorite_id for fav in favorites}
+
+    @classmethod
+    def add_favorite(cls, user_id, favorite_id, is_animal=True):
+        """
+        Create function -> Add a new favorite for a given user_id
+        """
+        favorite = cls(user_id=user_id, favorite_id=favorite_id, is_animal=is_animal)
+        try:
+            db.session.add(favorite)
+            db.session.commit()
+            print(f"Added favorite {favorite_id} to user {user_id}")
+        except IntegrityError as e:
+            db.session.rollback()
+            print(f"Favorite already exists in db: {e}")
+
+    @classmethod
+    def toggle_favorite(cls, user_id, favorite_id):
+        """
+        Update function -> Toggle a favorite for a given user_id
+        """
+        favorite = cls.query.filter_by(user_id=user_id, favorite_id=favorite_id).first()
+        if favorite:
+            db.session.delete(favorite)
+            print(f"Removed favorite {favorite_id} for user {user_id}")
+        else:
+            favorite = cls(user_id=user_id, favorite_id=favorite_id)
+            db.session.add(favorite)
+            print(f"Added favorite {favorite_id} for user {user_id}")
+        db.session.commit()
+
+    def unfavorite(self):
+        """
+        Delete function -> Remove this favorite
+        """
+        db.session.delete(self)
+        db.session.commit()
+        print(f"Removed favorite {self.favorite_id} for user {self.user_id}")
+        return self.favorite_id
+
+    @classmethod
+    def remove_favorite(cls, user_id, favorite_id):
+        """
+        Delete function -> Remove a specific favorite for a given user_id
+        """
+        favorite = cls.query.filter_by(user_id=user_id, favorite_id=favorite_id).first()
+        if favorite:
+            db.session.delete(favorite)
+            db.session.commit()
+            print(f"Removed favorite {favorite_id} for user {user_id}")
+        else:
+            print(f"Favorite {favorite_id} not found for user {user_id}")
 
 
 class RescueOrganization(db.Model):
@@ -139,18 +211,18 @@ class UserLocation(db.Model):
             # Log the error
             print(f"Error in city_state_country_str: {str(e)}")
             raise ValueError("Unable to process location information")
-    
+
     def format_geolocation(*coordinates) -> str:
         """
         This function formats geolocation coordinates into a standardized string format.
         It can handle either a single string input or separate float inputs for latitude and longitude.
-        
+
         Args:
             *coordinates: Either a single string "latitude,longitude" or two float values (latitude, longitude)
 
         Returns:
             str: geolocation string in "latitude,-longitude" format with 6 decimal places precision
-        
+
         Examples:
             >>> format_geolocation("43.6429,79.3889")
             '43.642900,-79.388900'
@@ -159,15 +231,19 @@ class UserLocation(db.Model):
         """
         if len(coordinates) == 1 and isinstance(coordinates[0], str):
             # Handle string input
-            lat, lon = map(float, coordinates[0].split(','))
-        elif len(coordinates) == 2 and all(isinstance(coord, (int, float)) for coord in coordinates):
+            lat, lon = map(float, coordinates[0].split(","))
+        elif len(coordinates) == 2 and all(
+            isinstance(coord, (int, float)) for coord in coordinates
+        ):
             # Handle separate float inputs
             lat, lon = coordinates
         else:
-            raise ValueError("Invalid input. Provide either a string 'latitude,longitude' or two float values.")
+            raise ValueError(
+                "Invalid input. Provide either a string 'latitude,longitude' or two float values."
+            )
 
-        return f"{lat:.6f},{lon:.6f}".replace(',', ',-')
-    
+        return f"{lat:.6f},{lon:.6f}".replace(",", ",-")
+
     def get_location_info(self):
         if self.geolocation:
             return self.geolocation
@@ -181,6 +257,7 @@ class UserLocation(db.Model):
             return self.country
         else:
             return "Unknown"
+
 
 class User(db.Model, UserMixin):
     """User in the system."""
@@ -236,6 +313,9 @@ class User(db.Model, UserMixin):
     )  # Must be one of 6 potential values: "dog", "cat", "rabbit", "small-furry", "horse", "bird", "scales-fins-other", or "barnyard". Default='dog'
 
     registration_date = db.Column(db.DateTime, server_default=func.now())
+    # to store IDs of animals followed by
+
+    favorites = db.relationship("UserFavorite", backref="user", lazy="dynamic")
 
     user_animal_preferences = db.relationship(
         "UserAnimalPreferences",
@@ -251,8 +331,88 @@ class User(db.Model, UserMixin):
         "MatchedRescueOrganization", back_populates="user"
     )
 
-    # followed_orgs = db.relationship("FollowedOrg", back_populates="user")
-    # user_reviews = db.relationship("UserReviews", back_populates="user")
+    favorites = db.relationship("UserFavorites", backref="user", lazy="dynamic")
+
+    def get_all_favorites(self):
+        """Get all favorites for this user"""
+        favorites = (
+            UserFavorites.query.filter_by(user_id=self.id)
+            .with_entities(UserFavorites.favorite_id)
+            .all()
+        )
+        return {fav.favorite_id for fav in favorites}
+
+    def get_favorite(self, favorite_id):
+        """Get a specific favorite for this user and increment its counter"""
+        favorite = UserFavorites.query.filter_by(
+            user_id=self.id, favorite_id=favorite_id
+        ).first()
+        if favorite:
+            favorite.accessed_counter += 1
+            db.session.commit()
+            print(
+                f"Retrieved and updated counter for favorite {favorite_id} of user {self.id}"
+            )
+            return favorite
+        else:
+            print(f"Favorite {favorite_id} not found for user {self.id}")
+            return None
+
+    def add_favorite(self, favorite_id, is_animal=True):
+        """Add a new favorite for this user"""
+        favorite = UserFavorites(
+            user_id=self.id, favorite_id=favorite_id, is_animal=is_animal
+        )
+        try:
+            db.session.add(favorite)
+            db.session.commit()
+            print(f"Added favorite {favorite_id} for user {self.id}")
+        except IntegrityError:
+            db.session.rollback()
+            print(f"Favorite {favorite_id} already exists for user {self.id}")
+
+    def remove_favorite(self, favorite_id):
+        """Remove a specific favorite for this user"""
+        favorite = UserFavorites.query.filter_by(
+            user_id=self.id, favorite_id=favorite_id
+        ).first()
+        if favorite:
+            db.session.delete(favorite)
+            db.session.commit()
+            print(f"Removed favorite {favorite_id} for user {self.id}")
+        else:
+            print(f"Favorite {favorite_id} not found for user {self.id}")
+
+    def toggle_favorite(self, favorite_id, is_animal):
+        """Toggle a favorite for this user"""
+        favorite = (
+            db.session.query(UserFavorites)
+            .filter(user_id=self.id)
+            .and_(favorite_id=favorite_id)
+            .and_(is_animal=is_animal)
+            .first()
+        )
+        if favorite:
+            db.session.delete(favorite)
+            print(f"Removed favorite {favorite_id} for user {self.id}")
+        else:
+            favorite = UserFavorites(user_id=self.id, favorite_id=favorite_id)
+            db.session.add(favorite)
+            print(f"Added favorite {favorite_id} for user {self.id}")
+        db.session.commit()
+
+    def update_favorite_counter(self, favorite_id):
+        """Increment the accessed_counter for a specific favorite"""
+        favorite = UserFavorites.query.filter_by(
+            user_id=self.id, favorite_id=favorite_id
+        ).first()
+        if favorite:
+            favorite.accessed_counter += 1
+            db.session.commit()
+            print(f"Updated counter for favorite {favorite_id} of user {self.id}")
+        else:
+            print(f"Favorite {favorite_id} not found for user {self.id}")
+
     def serialize(self):
         obj = {
             "username": self.username,
@@ -545,8 +705,12 @@ class UserTravelPreferences(db.Model):
 
     # Add check constraints
     __table_args__ = (
-        CheckConstraint('distance_filter_preference >= 0 AND distance_filter_preference <= 1000', name='check_distance_filter_range'),
+        CheckConstraint(
+            "distance_filter_preference >= 0 AND distance_filter_preference <= 1000",
+            name="check_distance_filter_range",
+        ),
     )
+
 
 class UserResources(db.Model):
     """Table to store user resources and capacity to volunteer or care for an animal"""
