@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from dateutil import parser
-import pycountry
+import time
 import pandas as pd
 from flask import json
 from ratelimit import limits, RateLimitException
@@ -18,8 +18,6 @@ class PetFinderPetPyAPI:
     """
     API class with methods to store access PetFinder API and help functions to map user preference data to API search parameters
     """
-
-    _petpy_api_instance = None
 
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
@@ -71,8 +69,11 @@ class PetFinderPetPyAPI:
         "personality",
         "age",
     ]
+    _petpy_api_instance = None
 
-    # def __init__(self):
+    def __init__(self):
+        self.access_token = None
+        self.token_expiration = None
 
     @classmethod
     def petpy_api(cls):
@@ -83,6 +84,21 @@ class PetFinderPetPyAPI:
         return cls._petpy_api_instance
 
     def _get_access_token(self):
+        """Instance method to request a new access token from Petfinder API
+
+        Raises:
+            Exception: "Error getting access token @ URL {url}: {response.status_code} - {response.text}"
+
+        Returns:
+            access_token: PetFinder API access token
+        """
+        current_time = int(time.time())
+
+        # Check if instance has a valid token
+        if self.access_token and current_time < self.token_expiration:
+            return self.access_token
+
+        # If not, request a new token
         payload = {
             "grant_type": "client_credentials",
             "client_id": os.environ.get("API_KEY"),
@@ -93,8 +109,9 @@ class PetFinderPetPyAPI:
 
         if response.status_code == 200:
             token_info = response.json()
-            access_token = token_info["access_token"]
-            return access_token
+            self.access_token = token_info["access_token"]
+            self.token_expiration = current_time + token_info["expires_in"]
+            return self.access_token
         else:
             raise Exception(
                 f"Error getting access token @ URL {url}: {response.status_code} - {response.text}"
@@ -156,12 +173,15 @@ class PetFinderPetPyAPI:
 
         Args:
             init_params_copy (_type_): copy of init search params
-            prefs_obj (_type_): _description_
+            prefs_obj (dict): _description_
 
         Returns:
             search_params: search parameters mapped to
         """
-        if not prefs_obj:
+        #if pref_objs is falsy, return empty object
+        if not bool(prefs_obj):
+            return {}
+        else:
             # prefs that only have true/false/None possibilities
             boolean_prefs = {
                 bool_key: False
@@ -227,6 +247,8 @@ class PetFinderPetPyAPI:
         dict: A dictionary of lambda functions to be used as filter conditions.
         """
         filter_conditions = {}
+        if not bool(preferences):
+            return filter_conditions
 
         def create_list_condition(filter_key, filter_value):
             """
@@ -337,7 +359,11 @@ class PetFinderPetPyAPI:
 
         return filter_conditions
 
-    def filter_results_list(self, filter_conditions, results_list, pagination):
+    def filter_results_list(
+        self,
+        filter_conditions,
+        results_list,
+    ):
         """function to filter lists of results
 
         Pass in lambda filter expressions as filters KWARG
@@ -390,10 +416,28 @@ class PetFinderPetPyAPI:
 
             filtered = self.filter_results_list(animals, prefs)
         """
+        # handle if filter_conditions is falsy
+        if not bool(results_list):
+            # immediately return results_list
+            return {
+                "results": [],
+                "success_flag": False,  # False since no result output
+                "unfiltered": True,  # True since no filtering was done
+                "bad_keys": bad_keys,
+            }
         # initialize variables to be returned at end
         output = results_list
         bad_keys = []
         temp_output = []
+        # handle if filter_conditions is falsy but results_list is truthy
+        if not bool(filter_conditions) and bool(results_list):
+            # immediately return results_list
+            return {
+                "results": output,
+                "success_flag": True,  # True since technically there are no filters to "fail"
+                "unfiltered": True,  # True since no filtering was done
+                "bad_keys": bad_keys,
+            }
 
         for key, condition in filter_conditions.items():
             for idx in range(len(output)):
@@ -426,7 +470,6 @@ class PetFinderPetPyAPI:
             "success_flag": flag,
             "unfiltered": unfiltered,
             "bad_keys": bad_keys,
-            "pagination": pagination,
         }
 
     def get_mapped_animals_by_type(
@@ -436,7 +479,7 @@ class PetFinderPetPyAPI:
         params = self.preprocess_preferences(
             init_params_copy=init_params.copy(), prefs_obj=user_preferences_dict
         )
-
+        print("api params =>", params)
         # grab initial animal results with pre-processed mapped search params
         init_animals = self._get_request(
             request_url="https://api.petfinder.com/v2/animals", params=params
@@ -464,7 +507,11 @@ class PetFinderPetPyAPI:
         )
 
         # check filtering success
-        name_of_filtered = [animal["name"] for animal in filtered["results"]]
+        name_of_filtered = (
+            [animal["name"] for animal in filtered["results"]]
+            if len(filtered["results"]) > 0
+            else []
+        )
         print("Filtering success:", filtered["success_flag"], name_of_filtered)
 
         # parse the filtered results

@@ -531,7 +531,7 @@ def animal_data():
                 u_id=user_id, animal_type=species
             )
             user_prefs = (
-                user_prefs_query["results"] if user_prefs_query["success_flag"] else {}
+                user_prefs_query["results"] if (user_prefs_query["success_flag"] and len(user_prefs_query["results"]) > 0) else {}
             )
 
         else:
@@ -551,7 +551,7 @@ def animal_data():
             location_str=(
                 location
                 if location
-                else os.environ.get("CURR_LOCATION", "Toronto, Canada")
+                else os.environ.get("CURR_LOCATION", "ON,CA")
             ),
             user_preferences_dict=user_prefs,
         )

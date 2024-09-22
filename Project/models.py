@@ -190,7 +190,8 @@ class UserLocation(db.Model):
                         if (len(state) == 2)
                         else pycountry.subdivisions.search_fuzzy(state)[0].code
                     )
-                    return f"{city},{state},{country}"
+                    # return f"{city},{state},{country}" #REMOVE LATER - it's producing "Toronto,ON,CA"
+                    return f"{state},{country}"
                 elif state:
                     return f"{state},{country}"
                 else:
@@ -540,7 +541,7 @@ class UserAnimalPreferences(db.Model):
                 "success_flag": False,
                 "statusCode": 404,
                 "message": "No results found",
-                "results": [],
+                "results": {},
             }
         else:
             out = {"user_id": u_id, "species": animal_type}
