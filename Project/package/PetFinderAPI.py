@@ -178,7 +178,7 @@ class PetFinderPetPyAPI:
         Returns:
             search_params: search parameters mapped to
         """
-        #if pref_objs is falsy, return empty object
+        # if pref_objs is falsy, return empty object
         if not bool(prefs_obj):
             return {}
         else:
@@ -503,7 +503,6 @@ class PetFinderPetPyAPI:
         filtered = self.filter_results_list(
             filter_conditions=filter_conditions,
             results_list=init_animals["results"],
-            pagination=init_animals["pagination"],
         )
 
         # check filtering success
