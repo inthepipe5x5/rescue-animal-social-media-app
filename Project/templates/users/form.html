@@ -3,9 +3,15 @@ block content %}
 
 <div class="row justify-content-md-center">
   <div class="col-md-7 col-lg-5">
-    <h3 class="join-message">Narrow Down your Search</h3>
+    <h3 class="content-message">
+      {{ form_title if form_title else "Narrow Down your Search"}}
+    </h3>
     <hr />
-    <form method="POST" id="{{form.__name__}}" action="{{ url_for(request.endpoint) }}">
+    <form
+      method="POST"
+      id="{{form.__name__}}"
+      action="{{ url_for(request.endpoint) }}"
+    >
       {{ form.hidden_tag() }} {% for field in form if field.widget.input_type !=
       'hidden' %} {% if field.widget.input_type == 'select' %}
       <div class="form-group">
@@ -35,6 +41,31 @@ block content %}
         <div class="invalid-feedback">{{ error }}</div>
         {% endfor %}
       </div>
+      {% elif field.type == 'IntegerRangeField' %}
+      <div class="form-group">
+        {{ field.label(class="form-label") }}
+        <label for="{{ field.name }}-input">
+          {% if field.name == 'distance_filter_preference' %}Within{% endif %}
+          <span id="{{ field.name }}-value"
+            >{{ field.default if field.default else 0 }}</span
+          >
+          {% if field.name == 'distance_filter_preference' %}Miles{% endif %}
+        </label>
+        <div class="form-range">
+          {{ field(class="form-range-input", id=field.name + "-input") }}
+        </div>
+        {% for error in field.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <script>
+        document
+          .getElementById("{{ field.name }}-input")
+          .addEventListener("input", function () {
+            document.getElementById("{{ field.name }}-value").innerText =
+              this.value;
+          });
+      </script>
       {% else %}
       <div class="form-group">
         {{ field.label(class="form-label") }} {{ field(class="form-control") }}
@@ -43,53 +74,20 @@ block content %}
         {% endfor %}
       </div>
       {% endif %} {% endfor %}
-
+      <hr />
       <a
         class="btn btn-primary btn-lg btn-block"
         href="{{ next if next else '/' }}"
       >
-        {% if next %} Continue {% else %} Submit {% endif %}
+        {% if next %}Continue{% else %}Submit{% endif %}
       </a>
     </form>
-    <!-- Closed the form tag here -->
   </div>
 </div>
-<hr />
-<div class="divider"></div>
-<!--divider div-->
-<!--
-<div class="col-md-10 mx-auto col-lg-5">
-  <form class="p-4 p-md-5 border rounded-3 bg-light">
-    <div class="form-floating mb-3">
-      <input
-        type="email"
-        class="form-control"
-        id="floatingInput"
-        placeholder="name@example.com"
-      />
-      <label for="floatingInput">Email address</label>
-    </div>
-    <div class="form-floating mb-3">
-      <input
-        type="password"
-        class="form-control"
-        id="NewUserPasswordInput"
-        placeholder="Password"
-      />
-      <label for="NewUserPasswordInput">Password</label>
-    </div>
-    <div class="checkbox mb-3">
-      <label> <input type="checkbox" value="remember-me" /> Remember me </label>
-    </div>
-    <button class="w-100 btn btn-lg btn-primary" type="submit">Sign up</button>
-    <hr class="my-4" />
-    <small class="text-muted"
-      >By clicking Sign up, you agree to the terms of use.</small
-    >
-  </form>
-</div>
--->
-<div class="divider"></div>
-<!--divider div-->
 
-{% endblock %}
+{% endblock %} {% block scripts %} {{ super() }}
+<!-- Include scripts from parent template if any -->
+
+{% for script in page_scripts %}
+<script src="{{ script }}"></script>
+{% endfor %} {% endblock %}

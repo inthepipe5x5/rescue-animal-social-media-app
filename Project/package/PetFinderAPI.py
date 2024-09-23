@@ -473,9 +473,14 @@ class PetFinderPetPyAPI:
         }
 
     def get_mapped_animals_by_type(
-        self, species, location_str, user_preferences_dict, page=1
+        self, species, location_str, distance=100, user_preferences_dict={}, page=1
     ):
-        init_params = {"type": species, "page": page, "location": location_str}
+        init_params = {
+            "type": species,
+            "page": page,
+            "location": location_str,
+            "distance": distance,
+        }
         params = self.preprocess_preferences(
             init_params_copy=init_params.copy(), prefs_obj=user_preferences_dict
         )
@@ -484,6 +489,7 @@ class PetFinderPetPyAPI:
         init_animals = self._get_request(
             request_url="https://api.petfinder.com/v2/animals", params=params
         )
+        # REMOVE LATER
         print("API results len = ", len(init_animals["results"]))
 
         # if initial results are empty, try again with default search params
@@ -491,6 +497,8 @@ class PetFinderPetPyAPI:
             init_animals = self._get_request(
                 request_url="https://api.petfinder.com/v2/animals", params=init_params
             )
+
+            # REMOVE LATER
             print(
                 "Refetched API results len = ",
                 len(init_animals["results"]),

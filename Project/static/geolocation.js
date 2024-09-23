@@ -1,44 +1,69 @@
-//front-end logic to grab user geolocation
-//run on page load
-const postLocationData = async (endpoint, params) => {
-  const { state, postal_code, country, geolocation } = params || null;
 
-  const API_URL = "localhost/" + endpoint;
-  try {
-    const response = await fetch(API_URL, {
-      body: JSON.stringify({
-        location: {
-          state,
-          country,
-          postal_code,
-          geolocation,
+  const createFlashMessage = (message, success = false) => {
+    const errorContainer = document.getElementById("flash_message_container");
+    const messageDiv = document.createElement("div");
+
+    messageDiv.textContent = message;
+    messageDiv.style.position = "fixed";
+    messageDiv.style.top = "20px";
+    messageDiv.style.right = "20px";
+    messageDiv.style.padding = "10px";
+    messageDiv.style.backgroundColor = success ? "green" : "red";
+    messageDiv.style.color = "white";
+    messageDiv.style.borderRadius = "5px";
+    messageDiv.style.zIndex = "1000";
+    messageDiv.style.opacity = "0";
+    messageDiv.style.transition = "opacity 0.5s";
+
+    errorContainer.appendChild(messageDiv);
+
+    // Show message
+    setTimeout(() => {
+      messageDiv.style.opacity = "1";
+    }, 100);
+
+    // Hide after 3 seconds
+    setTimeout(() => {
+      messageDiv.style.opacity = "0";
+      setTimeout(() => messageDiv.remove(), 500);
+    }, 5000);
+  };
+
+  const getUserLocation = async () => {
+    if (!navigator.geolocation) {
+      throw new Error("Geolocation not supported.");
+    }
+
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          resolve(`${latitude},${longitude}`);
         },
-      }),
+        error => {
+          createFlashMessage("Error retrieving location: " + error.message, false);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
+        }
+      );
     });
+  };
 
-    return response;
-  } catch (error) {
-    console.error(`Error posting location data to API => ${error}`);
-  }
-};
-const getUserLocation = async () => {
-  if (!("geolocation" in navigator)) {
-    throw new Error("Geolocation is not supported by this browser.");
-  }
+  document.addEventListener("DOMContentLoaded", async () => {
+    const geolocationInput = document.getElementById("geolocation-input");
 
-  try {
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0,
-      });
-    });
+    try {
+      const location = await getUserLocation();
+      if (location) {
+        geolocationInput.value = location;
+        createFlashMessage("Geolocation set successfully!", true);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  });
 
-    const { latitude, longitude } = position.coords;
-    return `${latitude},${longitude}`;
-  } catch (error) {
-    console.error("Error getting user location:", error);
-    throw error;
-  }
-};

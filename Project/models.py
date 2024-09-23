@@ -216,10 +216,10 @@ class UserLocation(db.Model):
     def format_geolocation(*coordinates) -> str:
         """
         This function formats geolocation coordinates into a standardized string format.
-        It can handle either a single string input or separate float inputs for latitude and longitude.
+        It can handle a single string input, separate float inputs, or separate string inputs for latitude and longitude.
 
         Args:
-            *coordinates: Either a single string "latitude,longitude" or two float values (latitude, longitude)
+            *coordinates: Either a single string "latitude,longitude" or two values (latitude, longitude) as floats or strings
 
         Returns:
             str: geolocation string in "latitude,-longitude" format with 6 decimal places precision
@@ -229,29 +229,34 @@ class UserLocation(db.Model):
             '43.642900,-79.388900'
             >>> format_geolocation(40.7128, -74.0060)
             '40.712800,-74.006000'
+            >>> format_geolocation("40.7128", "-74.0060")
+            '40.712800,-74.006000'
         """
         if len(coordinates) == 1 and isinstance(coordinates[0], str):
-            # Handle string input
+            # Handle single string input
             lat, lon = map(float, coordinates[0].split(","))
-        elif len(coordinates) == 2 and all(
-            isinstance(coord, (int, float)) for coord in coordinates
-        ):
-            # Handle separate float inputs
-            lat, lon = coordinates
+        elif len(coordinates) == 2:
+            # Handle separate inputs (float or string)
+            try:
+                lat, lon = map(float, coordinates)
+            except ValueError:
+                raise ValueError(
+                    "Invalid input. Latitude and longitude must be convertible to float."
+                )
         else:
             raise ValueError(
-                "Invalid input. Provide either a string 'latitude,longitude' or two float values."
+                "Invalid input. Provide either a string 'latitude,longitude' or two values (float or string)."
             )
 
-        return f"{lat:.6f},{lon:.6f}".replace(",", ",-")
+        return f"{lat:.6f},{lon:.6f}"
 
     def get_location_info(self):
         if self.geolocation:
             return self.geolocation
         elif self.postal_code:
             return self.postal_code
-        elif self.city and self.country:
-            return f"{self.city}, {self.country}"
+        elif self.city and self.state:
+            return f"{self.city}, {self.state}"
         elif self.state and self.country:
             return f"{self.state}, {self.country}"
         elif self.country:
@@ -330,6 +335,11 @@ class User(db.Model, UserMixin):
     )
     matched_rescue_orgs = db.relationship(
         "MatchedRescueOrganization", back_populates="user"
+    )
+
+    travel_preference = db.relationship(
+        "UserTravelPreferences",
+        back_populates="user",
     )
 
     favorites = db.relationship("UserFavorites", backref="user", lazy="dynamic")
@@ -425,11 +435,6 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}, {self.bio}, {self.location}>"
-
-    # def is_following(self, specific_org):
-    #     """Is this user following any rescue agencies?"""
-
-    #     return specific_org in self.followed_orgs
 
     @classmethod
     def signup(
@@ -693,7 +698,7 @@ class UserTravelPreferences(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     # user_preferences_id = db.Column(db.Integer, db.ForeignKey("user_preferences.id"))
 
-    distance_filter_preference = db.Column(db.Integer)
+    distance_filter_preference = db.Column(db.Integer, default=100)
 
     willing_to_fly_by_airplane = db.Column(
         db.Boolean
@@ -704,13 +709,34 @@ class UserTravelPreferences(db.Model):
         db.Boolean
     )  # transport rescue animals, supplies, be the carpool driver
 
+    user = db.relationship("User", back_populates="travel_preference")
     # Add check constraints
     __table_args__ = (
         CheckConstraint(
-            "distance_filter_preference >= 0 AND distance_filter_preference <= 1000",
+            "distance_filter_preference >= 0 AND distance_filter_preference <= 500",
             name="check_distance_filter_range",
         ),
     )
+
+    def _get_distance_filter_param(self, user_id=None) -> int:
+        """
+        Utility function that takes in a user id and returns distance_filter_preference (int)
+        If no distance_filter_preference found or falsy user_id passed in, default distance_filter_preference of 100 will be returned
+        Args:
+            user_id (INT, optional): user id to match in search. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if not bool(user_id) or int(user_id):
+            # default
+            return 100
+        distance_pref = (
+            db.session.query(UserTravelPreferences).filter(user_id == user_id).first()
+        )
+        # If no distance_filter_preference found or falsy user_id passed in, default distance_filter_preference of 100 will be returned
+
+        return distance_pref if bool(distance_pref) else 100
 
 
 class UserResources(db.Model):

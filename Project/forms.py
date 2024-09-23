@@ -7,19 +7,18 @@ from wtforms import (  # type: ignore # type: ignore
     BooleanField,
     SelectField,
     HiddenField,
+    IntegerRangeField,
 )
 from petpy import Petfinder
 import os
 
-from wtforms.validators import DataRequired, Email, Length, ValidationError  # type: ignore
+from wtforms.validators import DataRequired, Email, Length, ValidationError, Regexp, EqualTo  # type: ignore
 from wtforms_alchemy import model_form_factory  # type: ignore
 import pycountry  # type: ignore
 
 from models import (
     db,
     User,
-    # UserAnimalBehaviorPreferences,
-    # UserAnimalAppearancePreferences,
     UserLocation,
     UserTravelPreferences,
 )
@@ -105,6 +104,23 @@ class StateCountryForm(ModelForm):
         default="ON",
         # filters=uppercase_2_chars #always ensure the output data is 2 upper case str
     )
+    
+    #FIX LATER
+    # us_states = [
+    #     (state.code[3:].upper(), state.name)
+    #     for state in pycountry.subdivisions.get(country_code="US")
+    # ]
+    # canada_states = [
+    #     (state.code[3:].upper(), state.name)
+    #     for state in pycountry.subdivisions.get(country_code="CA")
+    # ]
+    # state = SelectField(
+    #     "State/Province - eg. 'ON'",
+    #     validators=[Length(min=2, max=2), DataRequired(), ValidState()],
+    #     default="ON",
+    #     choices=[us_states.extend(canada_states)],
+    #     # filters=uppercase_2_chars #always ensure the output data is 2 upper case str
+    # )
 
 
 class UserExperiencesForm(StateCountryForm):
@@ -163,10 +179,26 @@ class UserAddForm(UserExperiencesForm):
     )
 
     email = StringField("Email", validators=[Email()])
+    password = PasswordField(
+        "Password",
+        validators=[
+            DataRequired(),
+            Length(min=6),
+            EqualTo("confirm_password", message="Passwords must match"),
+        ],
+    )
+    confirm_password = PasswordField(
+        "Confirm Password", validators=[DataRequired(), Length(min=6)]
+    )
 
     class Meta:
         model = User
-        exclude = ["rescue_action_type", "registration_date", "animal_types"]
+        exclude = [
+            "rescue_action_type",
+            "registration_date",
+            "animal_types",
+            "password",
+        ]
 
     # customize individual animal type preferences
 
@@ -182,16 +214,15 @@ class GlobalPreferencesForm(FlaskForm):
         # animal types
         animal_dict = UserExperiencesForm.animal_type_emojis
         for value, label in animal_dict:
-            self[value] = BooleanField(label, default=False)
+            self[value] = BooleanField(f"Set {label} Filters", default=False)
 
     travel = BooleanField(
         "Would you like to customize your travel preferences?", default=False
     )
     # user info
     residence = BooleanField("Would you like to describe your living situation?")
+    
     resources = BooleanField("Would you like to describe your resources?")
-    residence = BooleanField("Would you like to describe your living situation?")
-    residence = BooleanField("Would you like to describe your living situation?")
 
 
 class AnonExperiencesForm(UserExperiencesForm):
@@ -218,7 +249,17 @@ class UserEditForm(ModelForm):
 
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired(), Email()])
-    password = PasswordField("Password", validators=[Length(min=6)])
+    password = PasswordField(
+        "Password",
+        validators=[
+            DataRequired(),
+            Length(min=6),
+            EqualTo("confirm_password", message="Passwords must match"),
+        ],
+    )
+    confirm_password = PasswordField(
+        "Confirm Password", validators=[DataRequired(), Length(min=6)]
+    )
     image_url = TextAreaField("(Optional) Image URL")
     # Rescue Action Type
     rescue_action_type = SelectMultipleField(
@@ -232,7 +273,6 @@ class UserEditForm(ModelForm):
         coerce=str,
         default=["volunteer", "foster", "adopter", "donation"],
     )
-
     # Define a dictionary mapping string values (eg. to be stored in db or used in API calls) to emoji labels
     animal_type_emojis = {
         "dog": "🐶 Dog",
@@ -257,11 +297,6 @@ class UserEditForm(ModelForm):
         validators=[DataRequired()],
     )
 
-    state = StringField(
-        "State/Province - eg. 'NY'",
-        validators=[Length(min=2, max=2), ValidState()],
-        # filters=[uppercase_2_chars]
-    )
     bio = TextAreaField(
         "(Optional) Tell us about what makes you interested in animal rescue?"
     )
@@ -272,23 +307,74 @@ class UserLocationForm(StateCountryForm):
     Form for adding user location information
     """
 
+    geolocation = HiddenField("Geolocation")
+
     class Meta:
         model = UserLocation
         # exclude country & state fields to utilize StateCountryForm instead
         exclude = ["country", "state", "geolocation"]
 
+    def __init__(self, *args, **kwargs):
+        super(UserLocationForm, self).__init__(*args, **kwargs)
+
+        # Change the labels of UserLocation columns to be more "user friendly"
+        self.postal_code.label.text = "Postal code"
+        self.city.label.text = "City/Township of residence"
+
+        # Add validators
+        self.postal_code.validators.extend(
+            [
+                DataRequired(message="Postal code is required"),
+                Length(
+                    min=5,
+                    max=10,
+                    message="Postal code must be between 5 and 10 characters long",
+                ),
+                Regexp(r"^\d{5}(-\d{4})?$", message="Invalid postal code format"),
+            ]
+        )
+        self.city.validators.append(
+            Length(
+                min=2,
+                max=50,
+                message="City name must be between 2 and 50 characters long",
+            )
+        )
+
 
 class UserTravelForm(ModelForm):
     """Optional form for adding user travel preferences"""
 
+    distance_filter_preference = IntegerRangeField(
+        "Select a value (in miles) to select the maximum search radius for matching results",
+        default=100,
+        render_kw={"min": 0, "max": 500, "step": 10},
+    )
+
     class Meta:
         model = UserTravelPreferences
+        exclude = ["distance_filter_preference"]
 
+    def __init__(self, *args, **kwargs):
+        super(UserTravelForm, self).__init__(*args, **kwargs)
+        
+        for name, field in self._fields.items():
+            if field.label is None:
+                # If no label is explicitly set, use the field name but replace underscores with spaces and capitalize each word
+                label_text = " ".join(
+                    word.capitalize() for word in name.replace("_", " ").split()
+                )
+            else:
+                # Use the existing label if it's set
+                label_text = field.label.text
 
+            field.label.text = label_text
+            
 class HiddenForm(FlaskForm):
     """Hidden form to submit CSRF token and any additional data"""
 
     csrf_token = HiddenField()
+
 
 class HiddenLocationForm(UserLocationForm):
     """Hidden form to submit CSRF token and location data to be used in API data queries"""
@@ -297,7 +383,8 @@ class HiddenLocationForm(UserLocationForm):
 
     def __init__(self, *args, **kwargs):
         super(HiddenLocationForm, self).__init__(*args, **kwargs)
-            
+
+
 class SpecificAnimalPreferencesForm(FlaskForm):
     """To capture user preferences for specific animal species. To be used as optional filters on animals by behavior and appearance."""
 
@@ -306,7 +393,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     shots_current = BooleanField("Immunizations are up to date", default=False)
     special_needs = BooleanField("Special Needs", default=False)
     spayed_neutered = BooleanField("Spayed/Neutered", default=False)
-    #Environmental/Interaction Preferences 
+    # Environmental/Interaction Preferences
     house_trained = BooleanField("House Trained", default=False)
     child_friendly = BooleanField("Friendly to children?", default=False)
     dogs_friendly = BooleanField("Friendly to dogs", default=False)
@@ -389,7 +476,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         ],
         default=["any"],
     )
-    
+
     def __init__(self, animal_type, *args, **kwargs):
         super(SpecificAnimalPreferencesForm, self).__init__(*args, **kwargs)
         self.animal_type = animal_type
@@ -400,7 +487,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         # Fetch dynamic choices
         breed_choices = api.breeds(animal_type)["breeds"][animal_type]
         animals = api.animal_types(animal_type)
-        coat_choices = animals["type"]["coats"] 
+        coat_choices = animals["type"]["coats"]
         coat_color_choices = animals["type"]["colors"]
 
         # Set dynamic choices
@@ -416,9 +503,7 @@ class SpecificAnimalPreferencesForm(FlaskForm):
             for name in coat_color_choices:
                 self.colors.choices.append((name, name.capitalize()))
 
-
         # # # # Process data from obj after setting choices to populate defaults
         # if "obj" in kwargs and "formdata" not in kwargs:
         #     obj = kwargs["obj"]
         #     self.process(obj=obj)
-    

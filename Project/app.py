@@ -56,6 +56,7 @@ from package.helper import (
 )
 from package.PetFinderAPI import PetFinderPetPyAPI
 from config import config, Config
+import pycountry
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
@@ -178,6 +179,23 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+def active_authenticated_user():
+    """
+    Util function to return True if `current_user` object from Flask-Login is truthy for both attributes:
+        -current_user.is_active == True
+        -current_user.is_authenticated == True
+    """
+    if (
+        current_user
+        and current_user.is_authenticated == True
+        and current_user.is_active == True
+        and bool(current_user.id)
+    ):
+        return True
+    else:
+        return False
+
+
 def do_login(user):
     """Log in user."""
     # add user.id to session
@@ -276,7 +294,7 @@ def list_users():
 def show_user(user_id):
     user = User.query.get_or_404(user_id)
     user_location_form = UserLocationForm(obj=user.location)
-    user_travel_form = UserTravelForm(obj=user.travel_preferences)
+    user_travel_form = UserTravelForm(obj=user.travel_preference)
     return render_template(
         "users/show.html",
         user=user,
@@ -285,25 +303,104 @@ def show_user(user_id):
     )
 
 
-@app.route("/users/preferences/location", methods=["POST"])
-def update_location():
-    form = UserLocationForm()
+# @login_required
+# @app.route("/users/pets", methods=["GET, POST"])
+
+
+@login_required
+@app.route("/users/location", methods=["GET", "POST"])
+def form_user_location():
+    if current_user.is_active and current_user.location:
+        form = UserLocationForm(obj=current_user.location)
+    # return blank form since no previous location data is populated
+    else:
+        form = UserLocationForm()
+    if not current_user.location.geolocation:
+        flash(
+            "Please enable geolocation in the browser to help us return accurate results relative to your location",
+            "warning",
+        )
     if form.validate_on_submit():
-        # FINISH LATER
-        # Update user location here
-        # ...
-        flash("Location updated successfully!")
-    return redirect(url_for("show_user", user_id=current_user.id))
+        user_id = current_user.id
+        # format geolocation data
+        print("GEOLOCATION", form.geolocation.data)
+        if bool(form.geolocation.data):
+            coordinates = form.geolocation.data
+            form.geolocation.data = UserLocation.format_geolocation(*coordinates)
+        previous_location = (
+            current_user.location
+            if current_user.location
+            else UserLocation(user_id=user_id)
+        )
+        # update location model class with form data
+        new_location = form.populate_obj(previous_location)
+        # link to current_user
+        current_user.location = new_location
+
+        # save changes to db
+        db.session.add(new_location)
+        db.session.commit()
+        flash("Location updated successfully!", "success")
+
+        return redirect(url_for("show_user", user_id=current_user.id))
+
+    return render_template(
+        "/users/form.html",
+        form=form,
+        form_title="Where are you located?",
+        page_scripts=[
+            url_for("static", filename="geolocation.js"),
+            url_for("static", filename="setStateCountryInput.js"),
+        ],
+    )
 
 
-@app.route("/users/preferences/travel", methods=["POST"])
+@login_required
+@app.route("/users/travel", methods=["GET", "POST"])
 def update_travel_preferences():
+    if current_user.is_active and current_user.location:
+        prev_travel_preferences = db.session.query(UserTravelPreferences).filter_by(
+            user_id=current_user.id
+        )
+        form = UserTravelForm(obj=prev_travel_preferences)
+    elif not current_user.location:
+        redirect(url_for("form_user_location"))
+        flash("Please set your location details first", "warning")
+    else:
+        form = UserTravelForm()
     form = UserTravelForm()
     if form.validate_on_submit():
-        # Update user travel preferences here #FINISH LATER
-        # ...
-        flash("Travel preferences updated successfully!")
-    return redirect(url_for("show_user", user_id=current_user.id))
+        user_id = current_user.id
+        travel_preferences = (
+            prev_travel_preferences
+            if prev_travel_preferences
+            else UserTravelPreferences(user_id=user_id)
+        )
+        # update travel_preference model class with form data
+        new_travel_preference = form.populate_obj(travel_preferences)
+        # link to current_user
+        current_user.travel_preference = new_travel_preference
+
+        # save changes to db
+        db.session.add(new_travel_preference)
+        db.session.commit()
+
+        success_msg = (
+            "Travel preferences updated successfully!"
+            if travel_preferences
+            else "Travel preferences saved successfully!"
+        )
+        flash(success_msg)
+
+        return redirect(url_for("show_user", user_id=current_user.id))
+
+    # render form template
+    return render_template(
+        "/users/form.html",
+        form=form,
+        form_title="How far should we look?",
+        page_scripts=[url_for("static", filename="setTravelPreference.js")],
+    )
 
 
 # @app.route("/users/<int:user_id>/favorites")
@@ -445,20 +542,20 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
 @app.route("/results", methods=["GET", "POST"])
 def results():
-    user_id = session["CURR_USER"]["id"] or None
+    user_id = current_user.id if active_authenticated_user() else None
     if user_id:
-        user = db.session.query(User).filter(User.id == session[CURR_USER_KEY]).first()
-        species = user.animal_types[0]
+        user = load_user(user_id=user_id)
         user_location = (
-            db.session.query(UserLocation).filter(user_id == user_id).first()
+            user.location
+            if user.location
+            else db.session.query(UserLocation).filter(user_id == user_id).first()
         )
-    species = session["CURR_USER"]["animal_types"][0]
 
     location = (
         user_location.city_state_country_str()
-        if user_id
+        if (user_id and user_location)
         else {
-            "geolocation": "43.6429,79.3889",
+            "geolocation": "43.6429,-79.3889",
             "state": "ON",
             "country": "CA",
             "postal_code": "m5j0b3",
@@ -469,6 +566,64 @@ def results():
     form = HiddenLocationForm(obj=location)
 
     return render_template("animalResults.html", form=form)
+
+
+@app.route("/data/<country>/state", methods=["GET"])
+def get_state(country):
+    """
+    Data route to return list of states/provinces/subdivisions based on the country.
+
+    Args:
+        country (str): The name or alpha-2 code of the country.
+
+    Returns:
+        flask.Response: A JSON response containing the list of subdivisions and a message.
+    """
+    if not country:
+        return jsonify({"results": [], "message": "Invalid country: empty input"})
+
+    try:
+        if len(country) == 2 and country.isalpha():
+            # If it's a 2-letter code, try to find the country by its alpha-2 code
+            found_country = pycountry.countries.get(alpha_2=country.upper())
+        else:
+            # Otherwise, search by name
+            found_country = pycountry.countries.search_fuzzy(country)[0]
+    except LookupError:
+        return jsonify({"results": [], "message": f"No country found: {country}"})
+
+    # Get all subdivisions for the found country
+    subdivisions = list(pycountry.subdivisions.get(country_code=found_country.alpha_2))
+
+    # Format the results
+    # slice sub.code with [3::] to return 'NS'instead of 'CA-NS'
+    formatted_subdivisions = [
+        {
+            "name": sub.name,
+            "code": sub.code[3::].upper(),
+            "type": sub.type,
+            "parent_code": sub.parent_code,
+        }
+        for sub in subdivisions
+    ]
+
+    subdivision_msg = (
+        f"No subdivisions found for {found_country.name}"
+        if not subdivisions
+        else f"{len(subdivisions)} subdivision(s) found for {found_country.name}"
+    )
+
+    return jsonify(
+        {
+            "results": formatted_subdivisions,
+            "message": subdivision_msg,
+            "country": {
+                "name": found_country.name,
+                "alpha_2": found_country.alpha_2,
+                "alpha_3": found_country.alpha_3,
+            },
+        }
+    )
 
 
 @app.route("/data/animals", methods=["GET", "POST"])
@@ -554,6 +709,9 @@ def animal_data():
                 else os.environ.get("CURR_LOCATION", "ON,CA")
             ),
             user_preferences_dict=user_prefs,
+            distance=UserTravelPreferences._get_distance_filter_param(
+                user_id=current_user.id
+            ),
         )
 
         # Log results for debugging
@@ -765,7 +923,7 @@ def set_location():
     session["CURR_LOCATION"] = location
 
     success_msg = f"App.py: Current CURR_LOCATION set to: {session['CURR_LOCATION']}"
-    add_location_to_g()
+    add_location_to_g(session=session, g=g)
 
     return jsonify({"message": success_msg})
 
