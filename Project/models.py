@@ -222,15 +222,15 @@ class UserLocation(db.Model):
             *coordinates: Either a single string "latitude,longitude" or two values (latitude, longitude) as floats or strings
 
         Returns:
-            str: geolocation string in "latitude,-longitude" format with 6 decimal places precision
+            str: geolocation string in "latitude,longitude" format with 6 decimal places precision
 
         Examples:
             >>> format_geolocation("43.6429,79.3889")
-            '43.642900,-79.388900'
+            '43.642900,79.388900'
             >>> format_geolocation(40.7128, -74.0060)
             '40.712800,-74.006000'
-            >>> format_geolocation("40.7128", "-74.0060")
-            '40.712800,-74.006000'
+            >>> format_geolocation("-33.8688", "151.2093")
+            '-33.868800,151.209300'
         """
         if len(coordinates) == 1 and isinstance(coordinates[0], str):
             # Handle single string input
@@ -262,7 +262,7 @@ class UserLocation(db.Model):
         elif self.country:
             return self.country
         else:
-            return "Unknown"
+            return "Unknown Location"
 
 
 class User(db.Model, UserMixin):
@@ -718,7 +718,8 @@ class UserTravelPreferences(db.Model):
         ),
     )
 
-    def _get_distance_filter_param(self, user_id=None) -> int:
+    @classmethod
+    def _get_distance_filter_param(cls, user_id=None) -> int:
         """
         Utility function that takes in a user id and returns distance_filter_preference (int)
         If no distance_filter_preference found or falsy user_id passed in, default distance_filter_preference of 100 will be returned
@@ -731,9 +732,7 @@ class UserTravelPreferences(db.Model):
         if not bool(user_id) or int(user_id):
             # default
             return 100
-        distance_pref = (
-            db.session.query(UserTravelPreferences).filter(user_id == user_id).first()
-        )
+        distance_pref = db.session.query(cls).filter(user_id == user_id).first()
         # If no distance_filter_preference found or falsy user_id passed in, default distance_filter_preference of 100 will be returned
 
         return distance_pref if bool(distance_pref) else 100

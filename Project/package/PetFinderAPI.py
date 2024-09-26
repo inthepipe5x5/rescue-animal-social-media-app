@@ -167,75 +167,6 @@ class PetFinderPetPyAPI:
                 "success_flag": False,
             }
 
-    def preprocess_preferences(self, init_params_copy, prefs_obj):
-        """helper function to preprocess user prefs_obj and reduce if they include any values in excluded_values (ie. "any"/False)
-        use this to create search params mapped to PetPy animals function parameter requirements
-
-        Args:
-            init_params_copy (_type_): copy of init search params
-            prefs_obj (dict): _description_
-
-        Returns:
-            search_params: search parameters mapped to
-        """
-        # if pref_objs is falsy, return empty object
-        if not bool(prefs_obj):
-            return {}
-        else:
-            # prefs that only have true/false/None possibilities
-            boolean_prefs = {
-                bool_key: False
-                for bool_key in self.environment_keys.extend(self.attribute_keys)
-            }
-            # prefs that only have 'any' or a list possibilities
-            any_prefs = {pref_key: ["any"] for pref_key in self.dynamic_keys}
-            prefs_obj = boolean_prefs.update(any_prefs)
-
-        excluded_values = [
-            "any",
-            "Any",
-            "ANY",
-            "/Any/",
-            "/any/",
-            "false",
-            False,
-            None,
-        ]
-
-        # dynamically handle gender
-        gender_pref = prefs_obj.get("gender", ["any"])
-        if len(gender_pref) == 0 or "any" in gender_pref or "unknown" in gender_pref:
-            gender_pref = ["male", "female"]
-
-        # dynamically handle coats
-        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
-        coats_pref = prefs_obj.get("coat", default_coats)
-        coats_pref = (
-            default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
-        )
-
-        mapped_search_params = init_params_copy.copy()
-        for key, value in prefs_obj.items():
-            if isinstance(value, (str, bool)):
-                if value not in excluded_values:
-                    init_params_copy[key] = value
-            elif isinstance(value, list):
-                filtered_list = [item for item in value if item not in excluded_values]
-                if filtered_list:
-                    init_params_copy[key] = filtered_list
-            elif isinstance(value, dict):
-                filtered_dict = {
-                    k: v for k, v in value.items() if v not in excluded_values
-                }
-                if filtered_dict:
-                    init_params_copy[key] = filtered_dict
-
-        search_params = (
-            mapped_search_params if mapped_search_params else init_params_copy
-        )
-        print(search_params, "being passed as params to /animals API call")
-        return search_params
-
     def create_filter_conditions(self, preferences):
         """
         Create filter conditions based on a nested object of boolean or list values.
@@ -358,6 +289,72 @@ class PetFinderPetPyAPI:
                 filter_conditions[key] = condition
 
         return filter_conditions
+
+    def preprocess_preferences(self, init_params_copy, prefs_obj):
+        """helper function to preprocess user prefs_obj and reduce if they include any values in excluded_values (ie. "any"/False)
+        use this to create search params mapped to PetPy animals function parameter requirements
+
+        Args:
+            init_params_copy (_type_): copy of init search params
+            prefs_obj (dict): user preferences
+
+        Returns:
+            dict: search parameters
+        """
+        # if prefs_obj is falsy, return empty object
+        if not prefs_obj:
+            return {}
+
+        # prefs that only have true/false/None possibilities
+        boolean_prefs = {
+            bool_key: False for bool_key in self.environment_keys + self.attribute_keys
+        }
+
+        # prefs that only have 'any' or a list possibilities
+        any_prefs = {pref_key: ["any"] for pref_key in self.dynamic_keys}
+
+        # Update prefs_obj with boolean and any prefs
+        prefs_obj.update(boolean_prefs)
+        prefs_obj.update(any_prefs)
+
+        excluded_values = ["any", "Any", "ANY", "/Any/", "/any/", "false", False, None]
+
+        # dynamically handle gender
+        gender_pref = prefs_obj.get("gender", ["any"])
+        if len(gender_pref) == 0 or "any" in gender_pref or "unknown" in gender_pref:
+            gender_pref = ["male", "female"]
+
+        # dynamically handle coats
+        default_coats = ("short", "medium", "long", "wire", "hairless", "curly")
+        coats_pref = prefs_obj.get("coat", default_coats)
+        coats_pref = (
+            default_coats if len(coats_pref) == 0 or "any" in coats_pref else coats_pref
+        )
+
+        # Initialize search params
+        mapped_search_params = init_params_copy.copy()
+
+        # Filter prefs_obj
+        for key, value in prefs_obj.items():
+            if isinstance(value, (str, bool)):
+                if value not in excluded_values:
+                    mapped_search_params[key] = value
+            elif isinstance(value, list):
+                filtered_list = [item for item in value if item not in excluded_values]
+                if filtered_list:
+                    mapped_search_params[key] = filtered_list
+            elif isinstance(value, dict):
+                filtered_dict = {
+                    k: v for k, v in value.items() if v not in excluded_values
+                }
+                if filtered_dict:
+                    mapped_search_params[key] = filtered_dict
+
+        search_params = (
+            mapped_search_params if mapped_search_params else init_params_copy
+        )
+        print(search_params, "being passed as params to /animals API call")
+        return search_params
 
     def filter_results_list(
         self,

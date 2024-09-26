@@ -135,7 +135,7 @@ class Parse:
                     self, self.key_function_mapping_dict[key], None
                 )
                 if parsing_function:
-                    print(parsing_function, "PARSING =>", value)
+                    print(parsing_function, f"PARSING => {key}:", value)
                     parsed_object[key] = parsing_function(value)
                     self.parsed_keys.add(key)
             else:
@@ -499,7 +499,7 @@ class Parse:
         }
 
         # If no photos are available or the list is empty
-        if not photos_list or len(photos_list) == 0:
+        if not photos_list:
             default_filename = default_animal_graphic.get(
                 type.lower(), default_animal_graphic["misc"]
             )
@@ -682,12 +682,17 @@ class ParseAnimal(Parse):
                     "colors",
                     "colour",
                     "colours",
-                    "coat",
-                    "coats",
                     "coat color",
                 ):
                     print(f"color key={key}:{value}")
                     parsed_object[key] = self.parse_color(value)
+                    self.parsed_keys.add(key)
+                elif key.lower() in (
+                    "coat",
+                    "coats",
+                ):
+                    print(f"coat key={key}:{value}")
+                    parsed_object[key] = value if value else "Mystery Coat"
                     self.parsed_keys.add(key)
                 elif key.lower() in (
                     "published_at",
@@ -706,6 +711,10 @@ class ParseAnimal(Parse):
                 else:
                     parsed_object[key] = value
                     self.parsed_keys.add(key)
+
+        print(
+            self.data.get("name", "unknown animal"), "keys parsed =", self.parsed_keys
+        )
         return self.results
 
         # grab data_type as needed for parse_funcs that require a "type" or "species" argument
@@ -746,10 +755,12 @@ class ParseAnimal(Parse):
 
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
-        if not colors_obj or not len(colors_obj.values()) == 0:
+        if not colors_obj:
             return "Unknown Color"  # color is Unknown Color by default
         if isinstance(colors_obj, str):
-            return self.normalize_name(colors_obj)  # return cleaned str if already a str
+            return self.normalize_name(
+                colors_obj
+            )  # return cleaned str if already a str
 
         primary = colors_obj["primary"] or ""
         secondary = colors_obj["secondary"] or False
@@ -811,13 +822,15 @@ def parse_multi_animal(animal_list):
             try:
                 # Ensure animal is a dictionary before parsing
                 if not isinstance(animal, dict):
-                    raise TypeError(f"Animal at index {idx} is not a dictionary")
+                    raise TypeError(
+                        f"Animal at index {idx} is not a dictionary. Animal = {animal}"
+                    )
 
                 # Parse the individual animal
                 parser = ParseAnimal(animal_data=animal)
                 animal_result = parser.parse()
                 if "name" not in parsed_id:
-                    parsed_id.add(animal_result["name"])
+                    parsed_id.add(animal_result.get("name"))
                     parsed_animals.append(animal_result)
 
             except ParsingError as e:
@@ -903,8 +916,8 @@ def parse_multi_animal(animal_list):
 
                 # Handle AttributeError specifically
                 print(f"AttributeError at index {idx}: {e}; Skipping animal.")
-                parsed_id.add(animal["name"])
-                if animal["name"] in parsed_id:
+                parsed_id.add(animal.get("name"))
+                if animal.get("name") in parsed_id:
                     parsed_animals.append(animal)
 
             except Exception as e:

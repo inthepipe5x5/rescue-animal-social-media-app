@@ -44,7 +44,7 @@ const postHiddenForm = async () => {
   try {
     const hiddenForm = document.getElementById("hidden_form");
     if (hiddenForm) {
-      const geolocationInput = document.getElementById("geolocation-input");
+      const geolocationInput = document.getElementById("geolocation");
       if (!geolocationInput || geolocationInput.value === "") {
         const geolocation = await askUserLocation();
         console.log("Geolocation fetched:", geolocation);

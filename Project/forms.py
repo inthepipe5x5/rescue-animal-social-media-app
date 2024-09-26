@@ -48,13 +48,14 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-def uppercase_2_chars(form, field):
+def uppercase_2_chars(value):
     """
     Helper form filter function to always output 2 upper case str characters
     Intended to be used for state input fields
     """
-    if field.data:
-        field.data = field.data.upper()[:2]
+    if value:
+        value = value.upper()[:2]
+    return value
 
 
 class ValidState(object):
@@ -98,29 +99,30 @@ class StateCountryForm(ModelForm):
         validators=[DataRequired()],  # ensure no empty values
     )
 
-    state = StringField(
-        "State/Province - eg. 'ON'",
-        validators=[Length(min=2, max=2), DataRequired(), ValidState()],
-        default="ON",
-        # filters=uppercase_2_chars #always ensure the output data is 2 upper case str
-    )
-    
-    #FIX LATER
-    # us_states = [
-    #     (state.code[3:].upper(), state.name)
-    #     for state in pycountry.subdivisions.get(country_code="US")
-    # ]
-    # canada_states = [
-    #     (state.code[3:].upper(), state.name)
-    #     for state in pycountry.subdivisions.get(country_code="CA")
-    # ]
-    # state = SelectField(
+    # state = StringField(
     #     "State/Province - eg. 'ON'",
     #     validators=[Length(min=2, max=2), DataRequired(), ValidState()],
     #     default="ON",
-    #     choices=[us_states.extend(canada_states)],
     #     # filters=uppercase_2_chars #always ensure the output data is 2 upper case str
     # )
+
+    # FIX LATER
+    us_states = [
+        (state.code[3:].upper(), state.name)
+        for state in pycountry.subdivisions.get(country_code="US")
+    ]
+    canada_states = [
+        (state.code[3:].upper(), state.name)
+        for state in pycountry.subdivisions.get(country_code="CA")
+    ]
+    state = SelectField(
+        "State/Province - eg. 'ON'",
+        validators=[Length(min=2, max=2), DataRequired(), ValidState()],
+        default="ON",
+        choices=us_states + canada_states,
+        # always ensure the output data is 2 upper case str
+        filters=[uppercase_2_chars],
+    )
 
 
 class UserExperiencesForm(StateCountryForm):
@@ -221,7 +223,7 @@ class GlobalPreferencesForm(FlaskForm):
     )
     # user info
     residence = BooleanField("Would you like to describe your living situation?")
-    
+
     resources = BooleanField("Would you like to describe your resources?")
 
 
@@ -302,12 +304,38 @@ class UserEditForm(ModelForm):
     )
 
 
+class ValidGeolocation:
+    """Custom validator for geolocation"""
+
+    def __init__(self, message=None):
+        self.message = message or "Invalid geolocation coordinates"
+
+    def __call__(self, form, field):
+        try:
+            if not field.data:
+                return ''
+            else:
+                latitude, longitude = map(float, field.data.split(","))
+                if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+                    raise ValidationError(self.message)
+        except ValueError:
+            raise ValidationError(
+                "Geolocation must be in the format 'latitude,longitude'"
+            )
+
+
 class UserLocationForm(StateCountryForm):
     """
     Form for adding user location information
     """
 
-    geolocation = HiddenField("Geolocation")
+    geolocation = HiddenField(
+        "Geolocation",
+        validators=[
+            # DataRequired(message="Geolocation is required"),
+            ValidGeolocation(),
+        ],
+    )
 
     class Meta:
         model = UserLocation
@@ -322,17 +350,17 @@ class UserLocationForm(StateCountryForm):
         self.city.label.text = "City/Township of residence"
 
         # Add validators
-        self.postal_code.validators.extend(
-            [
-                DataRequired(message="Postal code is required"),
-                Length(
-                    min=5,
-                    max=10,
-                    message="Postal code must be between 5 and 10 characters long",
-                ),
-                Regexp(r"^\d{5}(-\d{4})?$", message="Invalid postal code format"),
-            ]
-        )
+        # self.postal_code.validators.extend(
+        #     [
+        #         DataRequired(message="Postal code is required"),
+        #         Length(
+        #             min=5,
+        #             max=10,
+        #             message="Postal code must be between 5 and 10 characters long",
+        #         ),
+        #         Regexp(r"^\d{5}(-\d{4})?$", message="Invalid postal code format"),
+        #     ]
+        # )
         self.city.validators.append(
             Length(
                 min=2,
@@ -357,7 +385,7 @@ class UserTravelForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(UserTravelForm, self).__init__(*args, **kwargs)
-        
+
         for name, field in self._fields.items():
             if field.label is None:
                 # If no label is explicitly set, use the field name but replace underscores with spaces and capitalize each word
@@ -369,7 +397,8 @@ class UserTravelForm(ModelForm):
                 label_text = field.label.text
 
             field.label.text = label_text
-            
+
+
 class HiddenForm(FlaskForm):
     """Hidden form to submit CSRF token and any additional data"""
 

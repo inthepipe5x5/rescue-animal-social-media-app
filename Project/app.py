@@ -303,98 +303,89 @@ def show_user(user_id):
     )
 
 
-# @login_required
-# @app.route("/users/pets", methods=["GET, POST"])
-
-
 @login_required
 @app.route("/users/location", methods=["GET", "POST"])
 def form_user_location():
-    if current_user.is_active and current_user.location:
-        form = UserLocationForm(obj=current_user.location)
-    # return blank form since no previous location data is populated
-    else:
-        form = UserLocationForm()
-    if not current_user.location.geolocation:
+    app.logger.info(f"Request method: {request.method}, Current user.location: {current_user.location if current_user.location else 'No Saved Location'}")
+    try:
+        if active_authenticated_user() and current_user.location:
+            form = UserLocationForm(obj=current_user.location)
+        else:
+            form = UserLocationForm()
+
+        if form.validate_on_submit():
+            if current_user.location:
+                location = current_user.location
+                form.populate_obj(location)
+                app.logger.info("Updating existing location")
+            else:
+                location = UserLocation(user_id=current_user.id)
+                form.populate_obj(location)
+                app.logger.info("Creating new location")
+
+            if form.geolocation.data:
+                coordinates = form.geolocation.data
+                location.geolocation = UserLocation.format_geolocation(coordinates)
+                app.logger.info(f"Setting geolocation: {location.geolocation}")
+
+            location.city = location.city.lower() if location.city else None
+
+            db.session.add(location)
+            db.session.commit()
+
+            app.logger.info(f"Location saved: {form.data}")
+            flash("Location updated successfully!", "success")
+            return redirect(url_for("show_user", user_id=current_user.id))
+
+        # flash(
+        #     "Please enable geolocation in the browser to help us return more accurate results relative to your location",
+        #     "warning",
+        # )
+        return render_template(
+            "/users/form.html",
+            form=form,
+            form_title="Where are you located?",
+            page_scripts=[
+                url_for("static", filename="geolocation.js"),
+                url_for("static", filename="setStateCountryInput.js"),
+            ],
+        )
+    except Exception as e:
+        app.logger.error(f"Error in form_user_location: {str(e)}")
+        db.session.rollback()
         flash(
-            "Please enable geolocation in the browser to help us return accurate results relative to your location",
-            "warning",
+            "An error occurred while updating your location. Please try again.", "error"
         )
-    if form.validate_on_submit():
-        user_id = current_user.id
-        # format geolocation data
-        print("GEOLOCATION", form.geolocation.data)
-        if bool(form.geolocation.data):
-            coordinates = form.geolocation.data
-            form.geolocation.data = UserLocation.format_geolocation(*coordinates)
-        previous_location = (
-            current_user.location
-            if current_user.location
-            else UserLocation(user_id=user_id)
-        )
-        # update location model class with form data
-        new_location = form.populate_obj(previous_location)
-        # link to current_user
-        current_user.location = new_location
-
-        # save changes to db
-        db.session.add(new_location)
-        db.session.commit()
-        flash("Location updated successfully!", "success")
-
-        return redirect(url_for("show_user", user_id=current_user.id))
-
-    return render_template(
-        "/users/form.html",
-        form=form,
-        form_title="Where are you located?",
-        page_scripts=[
-            url_for("static", filename="geolocation.js"),
-            url_for("static", filename="setStateCountryInput.js"),
-        ],
-    )
+        # return redirect(url_for("show_user", user_id=current_user.id))
 
 
 @login_required
 @app.route("/users/travel", methods=["GET", "POST"])
 def update_travel_preferences():
-    if current_user.is_active and current_user.location:
-        prev_travel_preferences = db.session.query(UserTravelPreferences).filter_by(
-            user_id=current_user.id
-        )
-        form = UserTravelForm(obj=prev_travel_preferences)
-    elif not current_user.location:
-        redirect(url_for("form_user_location"))
+    travel_preferences = UserTravelPreferences.query.filter_by(
+        user_id=current_user.id
+    ).first()
+
+    if not current_user.location:
         flash("Please set your location details first", "warning")
+        return redirect(url_for("form_user_location"))
+
+    if travel_preferences:
+        form = UserTravelForm(obj=travel_preferences)
     else:
         form = UserTravelForm()
-    form = UserTravelForm()
-    if form.validate_on_submit():
-        user_id = current_user.id
-        travel_preferences = (
-            prev_travel_preferences
-            if prev_travel_preferences
-            else UserTravelPreferences(user_id=user_id)
-        )
-        # update travel_preference model class with form data
-        new_travel_preference = form.populate_obj(travel_preferences)
-        # link to current_user
-        current_user.travel_preference = new_travel_preference
 
-        # save changes to db
-        db.session.add(new_travel_preference)
+    if form.validate_on_submit():
+        if not travel_preferences:
+            travel_preferences = UserTravelPreferences(user_id=current_user.id)
+
+        form.populate_obj(travel_preferences)
+        db.session.add(travel_preferences)
         db.session.commit()
 
-        success_msg = (
-            "Travel preferences updated successfully!"
-            if travel_preferences
-            else "Travel preferences saved successfully!"
-        )
-        flash(success_msg)
-
+        flash("Travel preferences updated successfully!", "success")
         return redirect(url_for("show_user", user_id=current_user.id))
 
-    # render form template
     return render_template(
         "/users/form.html",
         form=form,
@@ -534,14 +525,15 @@ def delete_user():
 ##############################################################################
 IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
-# FIX LATER
+
+# # FIX LATER
 # @app.route("/static/images/graphics/<path:filename>")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
 
-@app.route("/results", methods=["GET", "POST"])
-def results():
+@app.route("/discover/animals", methods=["GET", "POST"])
+def discover_animals():
     user_id = current_user.id if active_authenticated_user() else None
     if user_id:
         user = load_user(user_id=user_id)
@@ -554,7 +546,7 @@ def results():
     location = (
         user_location.city_state_country_str()
         if (user_id and user_location)
-        else {
+        else {  # CHANGE LATER
             "geolocation": "43.6429,-79.3889",
             "state": "ON",
             "country": "CA",
@@ -660,17 +652,6 @@ def animal_data():
                 if user.animal_types
                 else default_session_keys.get("animal_types")
             )
-            if not species:
-                return (
-                    jsonify(
-                        {
-                            "success_flag": False,
-                            "message": "No animal types set for the user.",
-                        }
-                    ),
-                    400,
-                )
-
             # Fetch user location
             user_location = (
                 db.session.query(UserLocation).filter_by(user_id=user_id).first()
@@ -686,7 +667,12 @@ def animal_data():
                 u_id=user_id, animal_type=species
             )
             user_prefs = (
-                user_prefs_query["results"] if (user_prefs_query["success_flag"] and len(user_prefs_query["results"]) > 0) else {}
+                user_prefs_query["results"]
+                if (
+                    user_prefs_query["success_flag"]
+                    and len(user_prefs_query["results"]) > 0
+                )
+                else {}
             )
 
         else:
@@ -704,9 +690,7 @@ def animal_data():
         results = api.get_mapped_animals_by_type(
             species=species,
             location_str=(
-                location
-                if location
-                else os.environ.get("CURR_LOCATION", "ON,CA")
+                location if location else os.environ.get("CURR_LOCATION", "ON,CA")
             ),
             user_preferences_dict=user_prefs,
             distance=UserTravelPreferences._get_distance_filter_param(
@@ -720,7 +704,7 @@ def animal_data():
         )
 
         # Check if the results are valid
-        if not results["success_flag"] or len(results["results"]) == 0:
+        if not results["success_flag"] or not results["results"]:
             return (
                 jsonify(
                     {
@@ -1050,13 +1034,6 @@ def signup_preferences():
         )  # pass in a current user
 
     return render_template("users/form.html", form=u_pref_form, next=False)
-
-
-@app.route("/carousel", methods=["GET", "POST"])
-def carousel_form_test():
-    form = UserAddForm()
-
-    return render_template("carousel-form.html", form=form)
 
 
 @login_required

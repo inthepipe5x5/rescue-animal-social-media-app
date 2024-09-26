@@ -7,13 +7,9 @@ block content %}
       {{ form_title if form_title else "Narrow Down your Search"}}
     </h3>
     <hr />
-    <form
-      method="POST"
-      id="{{form.__name__}}"
-      action="{{ url_for(request.endpoint) }}"
-    >
-      {{ form.hidden_tag() }} {% for field in form if field.widget.input_type !=
-      'hidden' %} {% if field.widget.input_type == 'select' %}
+    <form method="POST" id="main_form" action="{{ url_for(request.endpoint) }}">
+      {{ form.hidden_tag() }} {% for field in form if field.name != 'csrf_token'
+      %} {% if field.widget.input_type == 'select' %}
       <div class="form-group">
         {{ field.label(class="form-label") }}
         <div class="btn-group btn-group-toggle" data-toggle="buttons">
@@ -31,6 +27,15 @@ block content %}
         <div class="invalid-feedback">{{ error }}</div>
         {% endfor %}
       </div>
+      {% elif field.name == 'geolocation' %}
+      <!--
+      <button
+        class="btn btn-light btn-lg btn-block"
+        id="get-geolocation-button"
+        type="button"
+      >
+        Get My Location
+      </button> -->
       {% elif field.type == 'BooleanField' %}
       <div class="form-group">
         <div class="form-check form-switch">
@@ -47,7 +52,7 @@ block content %}
         <label for="{{ field.name }}-input">
           {% if field.name == 'distance_filter_preference' %}Within{% endif %}
           <span id="{{ field.name }}-value"
-            >{{ field.default if field.default else 0 }}</span
+            >{{ field.data if field.data else field.default }}</span
           >
           {% if field.name == 'distance_filter_preference' %}Miles{% endif %}
         </label>
@@ -75,18 +80,14 @@ block content %}
       </div>
       {% endif %} {% endfor %}
       <hr />
-      <a
-        class="btn btn-primary btn-lg btn-block"
-        href="{{ next if next else '/' }}"
-      >
+      <button type="submit" class="btn btn-primary btn-lg btn-block">
         {% if next %}Continue{% else %}Submit{% endif %}
-      </a>
+      </button>
     </form>
   </div>
 </div>
 
 {% endblock %} {% block scripts %} {{ super() }}
-<!-- Include scripts from parent template if any -->
 
 {% for script in page_scripts %}
 <script src="{{ script }}"></script>
