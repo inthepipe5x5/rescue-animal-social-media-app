@@ -44,6 +44,7 @@ class Parse:
     """Takes in a python dictionary and parses values"""
 
     key_function_mapping_dict = {
+        "status_changed_at": "parse_published_at",
         "published_date": "parse_published_at",
         "published_at": "parse_published_at",
         "pub_date": "parse_published_at",
@@ -432,7 +433,7 @@ class Parse:
                 else pycountry.countries.search_fuzzy(country)[0].alpha_2
             )
         if not loc_obj or not country:
-            return ""
+            return "Unknown Location"
         elif city:  # if city, state, country
             # clean city, state, country strings
 
@@ -632,27 +633,26 @@ class ParseAnimal(Parse):
         """
         Parse the animal data using the key_function_mapping_dict.
         """
-        parsed_object = {}
         if isinstance(self.data, dict):
             for key, value in self.data.items():
                 if key.lower() in ("name", "names"):
-                    parsed_object[key] = self.clean_text(value, self.normalize_name)
+                    self.results[key] = self.clean_text(value, self.normalize_name)
                 elif key.lower() in ("breed", "breeds"):
                     # parse breeds and set object
-                    parsed_object[key] = (
+                    self.results[key] = (
                         self.parse_breed(value) if isinstance(value, dict) else value
                     )
                     self.parsed_keys.add(key)
                 # parse animal photos
                 elif key.lower() in ("photo", "photos", "media"):
                     # Handle parse_photos which requires multiple arguments
-                    parsed_object[key] = self.parse_photos(
+                    self.results[key] = self.parse_photos(
                         photos_list=value,
                         # grab "type" or "species" of data
                         type=self.data.get("type", self.data.get("species", "misc")),
                     )
                     self.parsed_keys.add(key)
-                # parse animlal address
+                # parse animal address
                 elif key.lower() in (
                     "location",
                     "locations",
@@ -661,20 +661,33 @@ class ParseAnimal(Parse):
                     "state",
                     "country",
                     "locale",
+                    "contact",
                 ):
-                    parsed_object[key] = (
-                        self.parse_address(value)
-                        if isinstance(value, dict)
-                        else (
-                            self.clean_text(value, self.normalize_name)
-                            if isinstance(value, str)
-                            else "Unknown Location"
+                    #handle if key = "contact" and the address DICT is nested within 
+                    if key == "contact":
+                        self.results[key] = (
+                            self.parse_address(value.get("address"))
+                            if isinstance(value, dict)
+                            else (
+                                self.clean_text(value, self.normalize_name)
+                                if isinstance(value, str)
+                                else "Unknown Location"
+                            )
                         )
-                    )
+                    else:
+                        self.results[key] = (
+                            self.parse_address(value)
+                            if isinstance(value, dict)
+                            else (
+                                self.clean_text(value, self.normalize_name)
+                                if isinstance(value, str)
+                                else "Unknown Location"
+                            )
+                        )
                     self.parsed_keys.add(key)
 
                 elif key.lower() in ("bio", "description", "biography", "story"):
-                    parsed_object[key] = self.parse_description(value)
+                    self.results[key] = self.parse_description(value)
                     self.parsed_keys.add(key)
 
                 elif key.lower() in (
@@ -685,14 +698,14 @@ class ParseAnimal(Parse):
                     "coat color",
                 ):
                     print(f"color key={key}:{value}")
-                    parsed_object[key] = self.parse_color(value)
+                    self.results[key] = self.parse_color(value)
                     self.parsed_keys.add(key)
                 elif key.lower() in (
                     "coat",
                     "coats",
                 ):
                     print(f"coat key={key}:{value}")
-                    parsed_object[key] = value if value else "Mystery Coat"
+                    self.results[key] = value if value else "Mystery Coat"
                     self.parsed_keys.add(key)
                 elif key.lower() in (
                     "published_at",
@@ -705,53 +718,17 @@ class ParseAnimal(Parse):
                     parsed_date_obj = self.parse_published_at(
                         pub_date=value, action="any"
                     )
-                    parsed_object["published_at"] = parsed_date_obj["published_at"]
-                    parsed_object["date_delta"] = parsed_date_obj["published_at"]
+                    self.results["published_at"] = parsed_date_obj["published_at"]
+                    self.results["date_delta"] = parsed_date_obj["date_delta"]
                     self.parsed_keys.add(key)
                 else:
-                    parsed_object[key] = value
+                    self.results[key] = value
                     self.parsed_keys.add(key)
 
         print(
             self.data.get("name", "unknown animal"), "keys parsed =", self.parsed_keys
         )
         return self.results
-
-        # grab data_type as needed for parse_funcs that require a "type" or "species" argument
-        # if isinstance(self.data, dict):
-        #     data_type = ""
-        #     if "type" in self.data:
-        #         data_type = self.data.get("type", None)
-        #     elif "species" in self.data:
-        #         data_type = self.data.get("species", None)
-        # for key, value in self.data.items():
-        #     func_name = self.key_function_mapping_dict.get(key.lower(), None)
-        #     if func_name:
-        #         parsing_function = getattr(self, func_name, None)
-
-        #         if callable(parsing_function):
-        #             if func_name == "parse_photos":
-        #                 # Handle parse_photos which requires multiple arguments
-        #                 # grab "type" or "species" of data
-        #                 parsed_object[key] = parsing_function(
-        #                     photos_list=value, type=data_type
-        #                 )
-        #             elif func_name == "parse_published_at":
-        #                 # get parsed_data_obj
-        #                 parsed_date_obj = parsing_function(pub_date=value, action="any")
-        #                 parsed_object["published_at"] = parsed_date_obj["published_at"]
-        #                 parsed_object["date_delta"] = parsed_date_obj["published_at"]
-        #             else:
-        #                 # Call other parsing functions with just the value
-        #                 parsed_object[key] = parsing_function(value)
-        #             self.parsed_keys.add(key)
-        #         else:
-        #             parsed_object[key] = value
-        #     else:
-        #         parsed_object[key] = value  # Keep original value if no parsing function
-
-        # self.results = parsed_object
-        # return self.results
 
     def parse_color(self, colors_obj):
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
@@ -762,7 +739,7 @@ class ParseAnimal(Parse):
                 colors_obj
             )  # return cleaned str if already a str
 
-        primary = colors_obj["primary"] or ""
+        primary = colors_obj["primary"] or "Unknown Color"
         secondary = colors_obj["secondary"] or False
         tertiary = colors_obj["tertiary"] or False
 
@@ -775,7 +752,7 @@ class ParseAnimal(Parse):
                 return f"{primary}"
         else:
             print("parse colors output", primary)
-            return primary
+            return primary if primary and primary not in ["", "_", "__", None] else "Unknown Color"
 
     def parse_breed(self, breeds_obj):
         """Function to parse breeds object property in a single Animal result from PetFinder API results"""

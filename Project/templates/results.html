@@ -1,4 +1,6 @@
-{% extends "base.html" %} {% block results %}
+{% extends "base.html" %} 
+{% from "macros.html" import render_animal_card, render_pagination %}
+{% block results %}
 <div class="container">
   <div class="row text-center">
     <div class="col">

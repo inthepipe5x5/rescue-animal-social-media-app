@@ -28,7 +28,7 @@ class UserFavorites(db.Model):
         primary_key=True,
     )
     favorite_id = db.Column(
-        db.Integer,
+        db.Text,  # API results contain strings
         nullable=False,
         primary_key=True,
     )
@@ -45,12 +45,35 @@ class UserFavorites(db.Model):
             raise ValueError(
                 f"No user_id passed into UserFavorites.get_favorites(), got {user_id} instead"
             )
+        # Query the database for favorites tied to the user_id and retrieve favorite IDs.
         favorites = (
             cls.query.filter_by(user_id=user_id).with_entities(cls.favorite_id).all()
         )
+
         if not favorites:
-            return set()  # Return an empty set instead of raising an exception
-        return {fav.favorite_id for fav in favorites}
+            return []  # Return an empty list instead of raising an exception
+        # turn favorites into a set to remove duplicates and then return a list
+        return list({fav.favorite_id for fav in favorites})
+
+    @classmethod
+    def get_animal_favorites(cls, user_id):
+        """
+        Read function -> Get all favorites of a given user_id
+        """
+        if not user_id:
+            raise ValueError(
+                f"No user_id passed into UserFavorites.get_favorites(), got id:'{user_id}' instead"
+            )
+        # Query the database for animal favorites where is_animal is True.
+        favorites = (
+            db.session.query(UserFavorites)
+            .filter(UserFavorites.user_id == user_id, UserFavorites.is_animal == True)
+            .all()
+        )
+        if not favorites:
+            return []  # Return an empty list instead of raising an exception
+        # turn favorites into a set to remove duplicates and then return a list
+        return list({fav.favorite_id for fav in favorites})
 
     @classmethod
     def add_favorite(cls, user_id, favorite_id, is_animal=True):
@@ -251,6 +274,15 @@ class UserLocation(db.Model):
         return f"{lat:.6f},{lon:.6f}"
 
     def get_location_info(self):
+        """
+        The `get_location_info` function returns location information based on available geolocation, postal
+        code, city, state, and country data.
+        :return: The `get_location_info` method returns information about the location based on the
+        available attributes in the object. It first checks if the `geolocation` attribute is available and
+        returns it if it exists. If not, it checks for `postal_code`, `city` and `state`, `state` and
+        `country`, `country` in that order, and returns the appropriate location information based on the
+        """
+
         if self.geolocation:
             return self.geolocation
         elif self.postal_code:
@@ -582,7 +614,12 @@ class UserAnimalPreferences(db.Model):
                 .filter(UserAnimalPreferences.species == func.any(user.animal_types))
                 .all()
             )
-            return results
+            print(results)
+            # Group preferences by animal_type
+            return {
+                type: [result for result in results if result.species == type]
+                for type in user.animal_types
+            }
         return None  # In case user is not found, though get_or_404 should handle this
 
     @classmethod
@@ -729,13 +766,17 @@ class UserTravelPreferences(db.Model):
         Returns:
             _type_: _description_
         """
-        if not bool(user_id) or int(user_id):
+        if not user_id:
             # default
             return 100
-        distance_pref = db.session.query(cls).filter(user_id == user_id).first()
+        # distance_pref = db.session.query(cls).filter(user_id == user_id).first()
+        distance_pref = cls.query.filter_by(user_id=user_id).first()
         # If no distance_filter_preference found or falsy user_id passed in, default distance_filter_preference of 100 will be returned
-
-        return distance_pref if bool(distance_pref) else 100
+        return (
+            distance_pref.distance_filter_preference
+            if distance_pref and distance_pref.distance_filter_preference
+            else 100
+        )
 
 
 class UserResources(db.Model):

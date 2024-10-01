@@ -24,82 +24,8 @@
   </head>
 
   <body class="{% block body_class %}{% endblock %}">
-    <nav class="navbar navbar-expand">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <a href="/" class="navbar-brand">
-            <!--
-          <img src="../static/images/ff-logo.svg" alt="logo">
-        -->
-            <img
-              class="d-inline-block align-top"
-              src="../static/favicon.ico"
-              alt="logo"
-            />Far Fetched
-          </a>
-        </div>
-        <ul class="nav navbar-nav navbar-right">
-          {% if session['CURR_LOCATION'] %}
-          <li class="nav-item">
-            <a href="{{ url_for('set_global') }}"
-              >{{ session['CURR_LOCATION'] }}📍</a
-            >
-          </li>
-          {% else %}
-          <li class="nav-item">
-            <a href="{{ url_for('set_global') }}"> ON, CA📍</a>
-          </li>
-          {% endif %}
-          <div class="vr"></div>
-          <!-- vertical divider div -->
-          {% if session["animal_types"] %} {% for type in
-          session["animal_types"] %}
-          <li class="nav-item">
-            <a href="{{ url_for('set_global') }}">
-              {% if type == 'dog' %}🐶{% elif type == 'cat' %}🐱{% elif type ==
-              'small-furry' %}🐹{% elif type == 'birds' %}🐦{% elif type ==
-              'horse' %}🐴{% elif type == 'scales-fins-other' %}🦎{% elif type
-              == 'barnyard' %}🐮{% endif %}
-            </a>
-          </li>
-          {% endfor %} {% else %}
-          <li class="nav-item"><a href="{{ url_for('set_global') }}">🐶</a></li>
-          {% endif %}
-          <div class="vr"></div>
-          <!-- vertical divider div -->
+    {% include 'header.html' %}
 
-          {% if request.endpoint %}
-          <li>
-            <form class="navbar-form navbar-right" action="/users">
-              <input
-                name="q"
-                class="form-control"
-                placeholder="Fetch some animals!"
-                id="search"
-              />
-              <button class="btn btn-default">
-                <span class="fa fa-search"></span>
-              </button>
-            </form>
-          </li>
-          {% endif %} {% if not session.CURR_USER %}
-          <li><a href="/signup">Sign up</a></li>
-          <li><a href="/login">Log in</a></li>
-          {% else %}
-          <li>
-            <a href="/users/{{ session.CURR_USER.id }}">
-              <img
-                src="{{ session.CURR_USER.image_url }}"
-                alt="{{ session.CURR_USER.username }}"
-              />
-            </a>
-          </li>
-          <!--<li><a href="/messages/new">New Message</a></li>-->
-          <li><a href="/logout">Log out</a></li>
-          {% endif %}
-        </ul>
-      </div>
-    </nav>
     <div class="container" id="flash_message_container">
       {% for category, message in get_flashed_messages(with_categories=True) %}
       <div class="alert alert-{{ category }}">{{ message }}</div>
@@ -107,13 +33,12 @@
       <div class="row">{% block content %} {% endblock %}</div>
       <div class="row">{% block results %} {% endblock %}</div>
     </div>
+
     {% block scripts %}
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <!--script to update UI-->
-    <!--<script src='../static/home-ui.js'></script>-->
     {% endblock %}
   </body>
 </html>

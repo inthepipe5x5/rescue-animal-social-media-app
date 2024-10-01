@@ -10,6 +10,7 @@ from flask import (  # type: ignore
     jsonify,
     Blueprint,
     send_from_directory,
+    abort,
 )
 from flask.sessions import (
     SessionInterface,
@@ -27,10 +28,19 @@ from flask_login import (
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from dotenv import load_dotenv  # type: ignore
 import os
-from functools import wraps
+
+# from functools import wraps #TODO: to protect certain API routes
 from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
-from models import db, User, UserLocation, UserAnimalPreferences, UserTravelPreferences
+
+from models import (
+    db,
+    User,
+    UserLocation,
+    UserAnimalPreferences,
+    UserTravelPreferences,
+    UserFavorites,
+)
 from forms import (
     UserAddForm,
     LoginForm,
@@ -64,10 +74,18 @@ CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 load_dotenv()
 
 default_session_keys = {
-    "location": os.environ.get("CURR_LOCATION", "43.6429,79.3889"),
-    "state": os.environ.get("state", "ON"),
-    "country": os.environ.get("country", "CA"),
-    "animal_types": os.environ.get("animal_types", ["dog"]),
+    "CURR_LOCATION": os.environ.get("CURR_LOCATION", "43.6429,79.3889"),
+    "ANIMAL_TYPES": os.environ.get("ANIMAL_TYPES", ["dog"]),
+    "CURRENT_DISCOVER_ANIMAL_PAGE": 1,
+    "CURRENT_DISCOVER_ORG_PAGE": 1,
+    "DEFAULT_LOCATION": {
+        "geolocation": "43.6429,-79.3889",
+        "state": "ON",
+        "country": "CA",
+        "postal_code": "m5j0b3",
+        "city": "Toronto",
+    },
+    "DISTANCE_PREF": 100,
 }
 
 
@@ -85,6 +103,7 @@ def init_session():
 #         """Initialize the session with default values"""
 #         for key, value in self.default_session_keys.items():
 #             self.setdefault(key, value)
+# session.new = True
 #         self.modified = True
 
 #     def reset_session(self):
@@ -100,7 +119,7 @@ def init_session():
 #         return session
 
 #     def save_session(self, app, session, response):
-#         # Implement session saving logic here
+#         # TODO: Implement session saving logic here
 #         pass
 
 #     def reset_session(self, app, session):
@@ -154,11 +173,13 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+# api instance
+api = PetFinderPetPyAPI()
 
 ##############################################################################
 # User signup/login/logout
 
-# REMOVE LATER AS I'M USING THE SAME FUNCTION FROM FLASK-LOGIN INSTEAD
+# TODO: REMOVE LATER AS I'M USING THE SAME FUNCTION FROM FLASK-LOGIN INSTEAD
 # def login_required(route_func):
 #     @wraps(route_func)
 #     def protected_route(*args, **kwargs):
@@ -171,6 +192,18 @@ login_manager.login_view = "login"
 #         return route_func(*args, **kwargs)
 
 #     return protected_route
+
+
+# def require_api_key(f):
+#     @wraps(f)
+#     def decorated_function(*args, **kwargs):
+#         api_key = request.headers.get("X-API-Key")
+#         if api_key and api_key == os.environ.get("SECRET_KEY"):
+#             return f(*args, **kwargs)
+#         else:
+#             abort(401)  # Unauthorized
+
+#     return decorated_function
 
 
 # user load function to load user session based on user_id
@@ -206,6 +239,8 @@ def do_login(user):
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
     update_global_variables(session, g)
+    session.update("CURR_LOCATION", user.location.city_state_country_str())
+    session.update("ANIMAL_TYPES", user.animal_types)
     app.logger.info(
         f"do_login({user.username}) successful. Session[CURR_USER]=",
         session["CURR_USER"],
@@ -306,7 +341,9 @@ def show_user(user_id):
 @login_required
 @app.route("/users/location", methods=["GET", "POST"])
 def form_user_location():
-    app.logger.info(f"Request method: {request.method}, Current user.location: {current_user.location if current_user.location else 'No Saved Location'}")
+    app.logger.info(
+        f"Request method: {request.method}, Current user.location: {current_user.location if current_user.location else 'No Saved Location'}"
+    )
     try:
         if active_authenticated_user() and current_user.location:
             form = UserLocationForm(obj=current_user.location)
@@ -337,10 +374,6 @@ def form_user_location():
             flash("Location updated successfully!", "success")
             return redirect(url_for("show_user", user_id=current_user.id))
 
-        # flash(
-        #     "Please enable geolocation in the browser to help us return more accurate results relative to your location",
-        #     "warning",
-        # )
         return render_template(
             "/users/form.html",
             form=form,
@@ -378,11 +411,19 @@ def update_travel_preferences():
     if form.validate_on_submit():
         if not travel_preferences:
             travel_preferences = UserTravelPreferences(user_id=current_user.id)
-
+        # update the sqlalchemy object
         form.populate_obj(travel_preferences)
+
+        # save to db
         db.session.add(travel_preferences)
         db.session.commit()
 
+        # update distance_pref stored in session
+        session.modified = True
+        new_distance_pref = form.data.get("distance_filter_preference", 100)
+        session["DISTANCE_PREF"] = new_distance_pref
+
+        # flash message to user for feedback
         flash("Travel preferences updated successfully!", "success")
         return redirect(url_for("show_user", user_id=current_user.id))
 
@@ -459,21 +500,6 @@ def user_favorite(favorite_id):
         return jsonify({"error": str(e)}), 500
 
 
-# @app.route("/users/stop-following/<int:follow_id>", methods=["POST"])
-# def stop_following(follow_id):
-#     """Have currently-logged-in-user stop following this user."""
-
-#     if "CURR_USER" not in session:
-#         flash("Access unauthorized.", "danger")
-#         return redirect("/")
-
-#     followed_user = User.query.get(follow_id)
-#     g.user.following.remove(followed_user)
-#     db.session.commit()
-
-#     return redirect(f"/users/{g.user.id}/following")
-
-
 @app.route("/users/profile", methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
@@ -510,7 +536,7 @@ def profile():
 def delete_user():
     """Delete user."""
 
-    if "CURR_USER" not in session:
+    if not active_authenticated_user() or "CURR_USER" not in session:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
@@ -518,7 +544,7 @@ def delete_user():
 
     db.session.delete(session["CURR_USER"])
     db.session.commit()
-
+    flash("Deleted current user successfully", "success")
     return redirect("/signup")
 
 
@@ -526,38 +552,296 @@ def delete_user():
 IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
 
-# # FIX LATER
+# TODO # FIX LATER
 # @app.route("/static/images/graphics/<path:filename>")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
 
-@app.route("/discover/animals", methods=["GET", "POST"])
-def discover_animals():
-    user_id = current_user.id if active_authenticated_user() else None
-    if user_id:
-        user = load_user(user_id=user_id)
-        user_location = (
-            user.location
-            if user.location
-            else db.session.query(UserLocation).filter(user_id == user_id).first()
+def create_init_params(type="animal"):
+    """
+    Dynamically creates and returns a dictionary of initialization parameters for
+    API calls based on the user's authentication state, preferences, and location.
+
+    Args:
+        type (str): The type of object to fetch ('animal' or 'org'). Default is 'animal'.
+
+    Returns:
+        dict: A dictionary of API query parameters including type, page, location, distance, and limit.
+    """
+
+    # Helper function to get the location or default location
+    def get_location(user_location=None):
+        """
+        Retrieves location from user data or session or defaults to a preset location.
+        Args:
+            user_location (UserLocation): Location object related to the current user.
+        Returns:
+            str: A geolocation string or postal code based on the user's or default location.
+        """
+        return (
+            user_location.get_location_info()
+            if user_location
+            else session.get("CURR_LOCATION", "43.6429,-79.3889")
         )
 
-    location = (
-        user_location.city_state_country_str()
-        if (user_id and user_location)
-        else {  # CHANGE LATER
-            "geolocation": "43.6429,-79.3889",
-            "state": "ON",
-            "country": "CA",
-            "postal_code": "m5j0b3",
-            "city": "Toronto",
+    # Helper function to retrieve species preferences or default to 'dog'
+    def get_species_preferences(user=None):
+        """
+        Fetches the user's species preferences, or defaults to 'dog' if no user or no preferences are present.
+        Args:
+            user (User): Current user object.
+        Returns:
+            list: List of species.
+        """
+        return (
+            list(user.animal_types)
+            if user and user.animal_types
+            else list(session.get("ANIMAL_TYPES", "dog"))
+        )
+
+    # Helper function to retrieve PetFinder API status query param based on rescue actions
+    def get_rescue_action_mapped_to_animal_status():
+        """
+        Fetches the appropriate PetFinder API status query parameter based on the user's rescue action type.
+
+        Args:
+            user (User): Current user object with a 'rescue_action_type' attribute.
+
+        Returns:
+            str: Status query parameter value for the PetFinder API.
+        """
+        # Default status to return when user is interested in adoption or fostering
+        default_animal_status = "adoptable,found"
+
+        # Check if user and user.rescue_action_type exist, and retrieve the list
+        if active_authenticated_user() and current_user.rescue_action_type:
+            rescue_actions = set(current_user.rescue_action_type)
+
+            # If the current_user only wants to volunteer and/or donate, return None (no status needed)
+            if rescue_actions.issubset({"volunteering", "donation"}):
+                return None
+
+            # Otherwise, return the default status (-adopted, adoptable, found)
+            return default_animal_status
+
+        # If no current_user or no rescue_action_type is provided, return the default status
+        return default_animal_status
+
+    # Common session values or default ones
+    current_page_count = (
+        session.get("CURRENT_DISCOVER_ANIMAL_PAGE", 1)
+        if type.lower() in ["animal", "animals"]
+        else session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
+    )
+    distance_pref = session.get("DISTANCE_PREF", default_session_keys["DISTANCE_PREF"])
+
+    # If the user is authenticated and active
+    if active_authenticated_user():
+        user = load_user(user_id=current_user.id)
+        user_location = (
+            user.location
+            if user
+            else db.session.query(UserLocation)
+            .filter_by(user_id=current_user.id)
+            .first()
+        )
+
+        # Get user-specific data or defaults
+        species = get_species_preferences(user)
+        location_str = get_location(user_location)
+        distance_pref = (
+            UserTravelPreferences._get_distance_filter_param(user_id=current_user.id)
+            or distance_pref
+        )
+        status = get_rescue_action_mapped_to_animal_status()
+    else:
+        # Non-authenticated user, default settings
+        species = default_session_keys.get("ANIMAL_TYPES", "dog")
+        location_str = os.environ.get("CURR_LOCATION", "43.6429,-79.3889")
+        distance_pref = 100
+
+    # Set limit based on species length (more species = more results per page)
+    species_len = len(species) or 1
+    limit = (15 if 0 < species_len < 8 else 10) * species_len
+
+    # create status param => "adoptable, adopted, found" PetFinderAPI Accepts multiple values (default: adoptable)
+    # Return parameters for animal search
+    if type.lower() in ("animal", "animals"):
+        output_params = {
+            "type": species,
+            "page": current_page_count,
+            "location": location_str,
+            "distance": distance_pref,
+            "limit": limit,
+            "sort": "distance",  # Sort results by distance
         }
+        # add status query param only if truthy (ie. user wants to adopt)
+        if status:
+            output_params["status"] = status
+
+        return output_params
+
+    # Return parameters for organization search
+    elif type.lower() in ("org", "orgs", "organization", "organizations"):
+        output_params = {
+            "type": species,
+            "page": current_page_count,
+            "location": location_str,
+            "state": str(
+                user_location.state
+                if user_location
+                else default_session_keys.get("state", "ON")
+            ),  # Fallback state to ON
+            "country": str(
+                user_location.country
+                if user_location
+                else default_session_keys.get("country", "CA")
+            ),  # Fallback country to CA
+            "distance": distance_pref,
+            "limit": limit,
+            "sort": "distance",  # Sort results by distance
+        }
+
+        return output_params
+
+
+# Helper function to retrieve user preferences for animals
+def get_user_animal_preferences(user_id=None, species_list=["dog"]):
+    """
+    Fetches user preferences for each species or returns an empty dictionary.
+    Args:
+        user_id (int): ID of the current user.
+        species_list (list): List of species to query preferences for.
+    Returns:
+        dict: Dictionary of user preferences keyed by species type.
+    """
+    if not user_id:
+        if active_authenticated_user():
+            user_id = current_user.id
+        else:
+            return None
+
+    user_prefs_query = UserAnimalPreferences.get_all_user_animal_preferences(
+        u_id=user_id
+    )
+    return (
+        {species: user_prefs_query for species in species_list}
+        if user_prefs_query
+        else None
     )
 
-    form = HiddenLocationForm(obj=location)
 
-    return render_template("animalResults.html", form=form)
+# helper function to combine location & animal_preference_filters
+def create_user_preference_filters():
+    filters = {}
+
+    if not active_authenticated_user():
+        # filter by default location only
+        location_pref = {
+            key: value
+            for key, value in default_session_keys["DEFAULT_LOCATION"].items()
+            if key in ["state", "country"]
+        }
+        # return only location prefs as filter functions
+        return api.create_filter_conditions(preferences=location_pref)
+
+    # handle real user
+    else:
+        user_prefs = get_user_animal_preferences(
+            user_id=current_user.id, species_list=current_user.animal_types
+        )
+        user_location = (
+            db.session.query(UserLocation)
+            .filter(UserLocation.user_id == current_user.id)
+            .first()
+        )
+        # Create location filters
+        location_filters = api.create_filter_conditions(
+            preferences={
+                "state": user_location.state,
+                "country": user_location.country,
+            }
+        )
+        if user_prefs:
+            # Loop through animal types and combine animal & location filters
+            for animal_type, preferences in user_prefs.items():
+                # Create animal preference filters
+                animal_filter = api.create_filter_conditions(preferences=preferences)
+
+                # Combine animal and location filters without nesting under the same key
+                filters[animal_type] = {
+                    **animal_filter,  # Animal filters for the specific type
+                    **location_filters,  # Location filters (state, country)
+                }
+        else:
+            filters = location_filters
+
+        return filters
+
+
+@app.route("/discover/animals", methods=["GET"])
+def discover_animals():
+    # grab current page_count in session
+    current_page_count = session.get("CURRENT_DISCOVER_ANIMAL_PAGE", 1)
+    # direct to current page count
+    return redirect(url_for("discover_animals_page", page=current_page_count))
+
+
+# @app.route("/discover/animals/<int:page>", methods=["GET"])
+# def discover_animals_page(page=1):
+#     # handle invalid page attempts & or if the user hasn't visited page 1 yet
+#     if not "TOTAL_PAGE_COUNT" in session or page > session.get("TOTAL_PAGE_COUNT", 2):
+#         flash("Sorry, we haven't found that many friends to adopt yet!")
+#         # redirect to page 1
+#         redirect(url_for("discover_animals_page", page=1))
+
+#     # Grab user info
+#     user_id = current_user.id if active_authenticated_user() else None
+#     if user_id:
+#         user = load_user(user_id=user_id)
+#         user_location = (
+#             user.location
+#             if user.location
+#             else db.session.query(UserLocation).filter_by(user_id=user_id).first()
+#         )
+
+#     # Fallback location if not logged in or no location set
+#     location = (
+#         user_location.get_location_info()
+#         if user_id and user_location
+#         else default_session_keys["DEFAULT_LOCATION"]
+#     )
+
+#     # Create a form with the user's location
+#     form = HiddenLocationForm(obj=location)
+
+#     # Fetch paginated results using the generator
+#     api = PetFinderPetPyAPI()
+#     paginated_result_gen = paginated_results(
+#         api.get_mapped_animals_by_type,
+#         species=user.animal_types if user_id else "dog",
+#     )
+
+#     # Get the first result (or the one corresponding to the current page)
+#     try:
+#         result = next(paginated_result_gen)
+#     except StopIteration:
+#         return render_template("animalResults.html", form=form, results=[], page=page)
+
+#     # Update current page count in the session
+#     session["CURRENT_DISCOVER_ANIMAL_PAGE"] = page
+
+#     # Update total page count in the session
+#     # TODO: determine if result object contains pagination or total_pages
+#     session["TOTAL_DISCOVER_ANIMAL_PAGE"] = int(
+#         result["pagination"]["total_pages"]
+#     ) or int(result["total_pages"])
+
+#     # Render the result in the template
+#     return render_template(
+#         "animalResults.html", form=form, results=result["results"], page=page
+#     )
 
 
 @app.route("/data/<country>/state", methods=["GET"])
@@ -620,106 +904,56 @@ def get_state(country):
 
 @app.route("/data/animals", methods=["GET", "POST"])
 def animal_data():
-    """DATA ROUTE FOR FRONTEND TO GET PETPY API ANIMALS DATA
-
-    Args:
-        type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
-
-    Returns:
-        JSON: JSON data with animal results or error message
-    """
+    """DATA ROUTE FOR FRONTEND TO GET PETPY API ANIMALS DATA"""
+    user = load_user(current_user.id) if active_authenticated_user() else None
     try:
-        # Fetch current user from session
-        user_id = session.get("CURR_USER", {}).get("id")
-        user = load_user(user_id=user_id)
-        if user_id:
-            # Fetch user from database
+        # Create PetFinder API query params based on user settings saved in session
+        init_params = create_init_params(type="animals")
 
-            if not user:
-                return (
-                    jsonify(
-                        {
-                            "success_flag": False,
-                            "message": "User not found in database.",
-                        }
-                    ),
-                    404,
-                )
+        # grab animal prefs => will return None if no user
+        animal_prefs = get_user_animal_preferences(user_id=user.id) or {}
 
-            # Get user species preferences or fallback to default
-            species = (
-                user.animal_types[0]
-                if user.animal_types
-                else default_session_keys.get("animal_types")
-            )
-            # Fetch user location
-            user_location = (
-                db.session.query(UserLocation).filter_by(user_id=user_id).first()
-            )
-            location = (
-                user_location.city_state_country_str()
-                if user_location
-                else os.environ.get("CURR_LOCATION", "43.6429,-79.3889")
-            )
-
-            # Fetch user preferences for animal type
-            user_prefs_query = UserAnimalPreferences.get_user_animal_pref_obj(
-                u_id=user_id, animal_type=species
-            )
-            user_prefs = (
-                user_prefs_query["results"]
-                if (
-                    user_prefs_query["success_flag"]
-                    and len(user_prefs_query["results"]) > 0
-                )
-                else {}
-            )
-
-        else:
-            # Default species and location if no user is logged in
-            species = default_session_keys.get(
-                "animal_types", "dog"
-            )  # Default to "dog" if not set
-            location = os.environ.get(
-                "CURR_LOCATION", "43.6429,-79.3889"
-            )  # Default to a Toronto location
-            user_prefs = {}  # No preferences when no user is found
-
-        # Call PetFinder API with preferences and location
-        api = PetFinderPetPyAPI()
-        results = api.get_mapped_animals_by_type(
-            species=species,
-            location_str=(
-                location if location else os.environ.get("CURR_LOCATION", "ON,CA")
-            ),
-            user_preferences_dict=user_prefs,
-            distance=UserTravelPreferences._get_distance_filter_param(
-                user_id=current_user.id
-            ),
+        # grab user favorites if user
+        favorites = (
+            UserFavorites.get_animal_favorites(user_id=user.id)
+            if active_authenticated_user()
+            else []
         )
 
-        # Log results for debugging
-        print(
-            f"Results flag = {len(results['results']) > 0 }, results length: {len(results['results'])}"
+        # Fetch and yield paginated results
+        results = api.get_mapped_animals_by_type(
+            init_params=init_params,
+            favorites=favorites,
+            user_preferences_dict=animal_prefs,
+            filter_prefs=create_user_preference_filters(),
         )
 
         # Check if the results are valid
-        if not results["success_flag"] or not results["results"]:
+        if (
+            not results
+            or not isinstance(results, dict)
+            or not results["success_flag"]
+            or not results["results"]
+        ):
             return (
                 jsonify(
                     {
                         "success_flag": False,
-                        "message": f"Your search preferences are too strict; try adjusting your search filters. {', '.join(results.get('bad_keys', []))}",
-                        "results": [],
+                        "message": "No results found.",
+                        "results": results["results"] if results else [],
+                        "bad_keys": results["bad_keys"] if results else [],
+                        "unfiltered": not any(
+                            [len(results["results"]) > 0, results["success_flag"]]
+                        )
+                        or results.get(
+                            "unfiltered", False
+                        ),  # Ensure `unfiltered` key exists
                     }
                 ),
                 200,
             )
 
-        # Include user preferences in results if available
-        if user_prefs:
-            results["user_prefs"] = user_prefs
-
+        # Return the first batch of results
         return jsonify(results), 200
 
     except Exception as e:
@@ -836,6 +1070,7 @@ def reseed_db():
     # create location
     test123_location = UserLocation(**test_user_location)
     db.session.add(test123_location)
+    test123.location = test123_location
     db.session.commit()
     app.logger.info(f"created location: test123_location {test123_location}")
 
@@ -877,8 +1112,8 @@ def orgs_data():
         orgs_search_args["id"] = request.args["org_id"]
 
     org_results = api.organizations(**orgs_search_args)["organizations"]
-    print([(org.name, org.adoption.policy) for org in results])
-    return jsonify(results)
+    print([(org.name, org.adoption.policy) for org in org_results])
+    return jsonify(org_results)
 
 
 @app.route("/set_location", methods=["POST"])
@@ -1007,13 +1242,25 @@ def signup_user():
 
         do_login(user)
 
-        # Redirect to user home
-        return redirect(url_for("homepage"))
+        # Redirect to location form for additional information
+        flash(
+            "Please consider enabling geolocation in the browser to help us return more accurate results relative to your location",
+            "warning",
+        )
+        return redirect(url_for("form_user_location"))
 
     else:
 
         db.session.rollback()
-        return render_template("users/signup.html", form=form, next=True)
+        return render_template(
+            "users/signup.html",
+            form=form,
+            page_scripts=[
+                url_for("static", filename="geolocation.js"),
+                url_for("static", filename="setStateCountryInput.js"),
+            ],
+            next=True,
+        )
 
 
 @app.route("/signup/preferences", methods=["GET", "POST"])
@@ -1087,9 +1334,12 @@ def animal_preferences(animal_type):
                 form_data_obj=form.data,
             )
             print(new_prefs)
+            # reset current_animal_page count to 1
+            session.pop("CURRENT_DISCOVER_ANIMAL_PAGE", 1)
+
             flash(f"Successfully updated {animal_type} preferences.", "success")
-            # return redirect(url_for("users_show", user_id=current_user_id))
-            return redirect(url_for("animal_pref_data", animal_type=animal_type))
+            # return redirect(url_for("animal_pref_data", animal_type=animal_type))
+            return redirect(url_for("users_show", user_id=current_user_id))
         except Exception as e:
             app.logger.error(f"Error updating preferences: {e}")
             db.session.rollback()

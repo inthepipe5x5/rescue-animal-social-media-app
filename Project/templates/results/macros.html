@@ -1,0 +1,111 @@
+{% macro render_animal_card(animal, date_delta) %}
+  <div class="col">
+    <div class="card text-start h-100">
+      {% if animal.photos | length > 0 %}
+        <img src="{{ animal.photos[0].full }}" class="card-img-top" alt="{{ animal.name }}-photo" />
+      {% endif %}
+      <div class="card-body">
+        <h4 id="result-name" class="card-title">{{ animal.name }}</h4>
+        <div id="{{ animal.name }}-type-size-age" class="card-text">
+          {% if animal.type %}
+            {% if animal.type|lower in animal_emojis %}
+              {{ animal_emojis[animal.type|upper] }}
+            {% else %}
+              ❓
+            {% endif %}
+          {% endif %}
+          {% if animal.breeds %}
+            {% if not animal.breeds.unknown and animal.breeds.mixed %}
+              <span class="badge rounded-pill bg-primary">{{ animal.breeds.primary }}/{{ animal.breeds.secondary }}</span>
+            {% else %}
+              <span class="badge rounded-pill bg-primary">{{ animal.breeds.primary }}</span>
+            {% endif %}
+          {% else %}
+            <span class="badge rounded-pill bg-secondary">Unknown Breed</span>
+          {% endif %}
+          {% if animal.size %}
+            <span class="badge rounded-pill bg-info">{{ animal.size }}</span>
+          {% endif %}
+          {% if animal.age %}
+            <span class="badge rounded-pill bg-warning">{{ animal.age }}</span>
+          {% endif %}
+          {% if animal.gender %}
+            {% if animal.gender == "Female" %}
+              <span class="badge rounded-pill bg-light text-dark">{{ animal.gender }}💅✨</span>
+            {% elif animal.gender == "Male" %}
+              <span class="badge rounded-pill bg-primary text-dark">{{ animal.gender }}🤠</span>
+            {% else %}
+              <span class="badge rounded-pill bg-light text-dark">{{ animal.gender}}👩🏼‍🤝‍🧑🏼</span>
+            {% endif %}
+          {% endif %}
+          {% if animal.attributes.special_needs %}
+            <span class="badge rounded-pill bg-danger">♿</span>
+          {% endif %}
+        </div>
+        <div class="{{ animal.name }}-location mt-2">
+          <i class="fa fa-map-marker-alt text-danger"></i>
+          <span>{{ animal.contact.address.city }}, {{ animal.contact.address.state }}, {{ animal.contact.address.country }}</span>
+        </div>
+        <hr />
+        {% if animal.description %}
+          <p>{{ animal.description }}</p>
+        {% endif %}
+        {% for tag in animal.tags %}
+          <span class="badge rounded-pill bg-success">{{ tag }}</span>
+        {% endfor %}
+        <button type="button" class="btn btn-primary date_delta">
+          Days Waiting: <span class="badge badge-light">{{date_delta}}</span>
+          <span class="sr-only">Days waiting to be adopted</span>
+        </button>
+        {% if animal.status == "adoptable" %}
+          <div class="alert alert-success mt-2 justify-content-center" role="alert">
+            <a href="{{ animal.url }}" class="btn btn-info">Adopt me!</a>
+            <a href="{{ animal.url }}" class="btn btn-info">Follow</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro render_pagination(current_page, total_pages, base_url=request.location) %}
+<nav aria-label="Page navigation">
+  <ul class="pagination justify-content-center">
+    {% set current_page = current_page|int %}
+    {% set total_pages = total_pages|int %}
+    
+    {# Edge case: Make sure total_pages is always greater than or equal to 1 #}
+    {% if total_pages < 1 %}
+      {% set total_pages = 1 %}
+    {% endif %}
+
+    {# Previous button - Disable if on the first page or if total_pages is inaccurate #}
+    <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+      <a class="page-link" href="{{ base_url }}/{{ current_page - 1 if current_page > 1 else 1 }}" {% if current_page == 1 %}tabindex="-1"{% endif %}>Previous</a>
+    </li>
+
+    {# Previous page link if applicable #}
+    {% if current_page > 1 %}
+      <li class="page-item"><a class="page-link" href="{{ base_url }}/{{ current_page - 1 }}">{{ current_page - 1 }}</a></li>
+    {% endif %}
+
+    {# Current page #}
+    <li class="page-item active"><a class="page-link" href="{{ base_url }}/{{ current_page }}">{{ current_page }}</a></li>
+
+    {# Next page link if applicable #}
+    {% if current_page < total_pages %}
+      <li class="page-item"><a class="page-link" href="{{ base_url }}/{{ current_page + 1 }}">{{ current_page + 1 }}</a></li>
+    {% endif %}
+
+    {# Next button - Disable if on the last page or total_pages is incorrect #}
+    <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+      <a class="page-link" href="{{ base_url }}/{{ current_page + 1 if current_page < total_pages else total_pages }}">Next</a>
+    </li>
+  </ul>
+
+  {# Inform user if total_pages or data might be inaccurate due to dynamic data changes #}
+  {% if total_pages == 1 %}
+    <p class="text-muted">Note: Page counts might change due to dynamic updates.</p>
+  {% endif %}
+</nav>
+{% endmacro %}

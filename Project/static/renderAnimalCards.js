@@ -291,12 +291,8 @@ const animal_emojis = {
 
 const clearContainer = (containerId = "animal-results-cards-container") => {
   const container = document.getElementById(containerId);
-  if (container && container.hasChildNodes()) {
+  if (container) {
     container.innerHTML = ""; // Clear all child elements
-    while (container.childElementCount > 0) {
-      let lastChild = container.lastElementChild;
-      container.removeChild(lastChild);
-    }
   } else {
     console.error(`Container with ID "${containerId}" not found.`);
   }
