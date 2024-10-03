@@ -41,7 +41,16 @@ class PetFinderPetPyAPI:
         "return_df": False,
         # "custom": False
     }
-
+    animal_types = [
+        "dog",
+        "cat",
+        "rabbit",
+        "small-furry",
+        "horse",
+        "bird",
+        "scales-fins-other",
+        "barnyard",
+    ]
     animal_emojis = {
         "dog": "🐶",
         "cat": "🐱",
@@ -172,9 +181,9 @@ class PetFinderPetPyAPI:
             response.raise_for_status()
             result = response.json()
             status_code = response.status_code
-            
+
             result["status_code"] = status_code
-            result['results']  = result.get(endpoint, [])
+            result["results"] = result.get(endpoint, [])
             del result[endpoint]
             return result
             # output = {
@@ -704,7 +713,7 @@ class PetFinderPetPyAPI:
         )
         try:
             page_data = next(pagination)
-            print("generated API results=", page_data)
+            print("generated API results=", page_data["pagination"])
         except StopIteration:
             # Handle case where the requested page doesn't exist
             # Handle case where no results are found
