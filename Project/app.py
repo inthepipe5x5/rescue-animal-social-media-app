@@ -74,7 +74,7 @@ CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 load_dotenv()
 
 default_session_keys = {
-    "CURR_LOCATION": os.environ.get("CURR_LOCATION", "43.6429,79.3889"),
+    "CURR_LOCATION": os.environ.get("CURR_LOCATION", "43.6429,-79.3889"),
     "ANIMAL_TYPES": os.environ.get("ANIMAL_TYPES", ["dog"]),
     "CURRENT_DISCOVER_ANIMAL_PAGE": 1,
     "CURRENT_DISCOVER_ORG_PAGE": 1,
@@ -87,45 +87,6 @@ default_session_keys = {
     },
     "DISTANCE_PREF": 100,
 }
-
-
-def init_session():
-    """Initialize the session with default values"""
-    for key, value in default_session_keys.items():
-        session.setdefault(key, value)
-    session.new = True
-    session.modified = True
-
-
-# class CustomSession(dict, SessionMixin):
-
-#     def init_session(self):
-#         """Initialize the session with default values"""
-#         for key, value in self.default_session_keys.items():
-#             self.setdefault(key, value)
-# session.new = True
-#         self.modified = True
-
-#     def reset_session(self):
-#         """Reset the session to default values"""
-#         self.clear()
-#         self.init_session()
-
-# class CustomSessionInterface(SessionInterface):
-#     def open_session(self, app, request):
-#         session = CustomSession()
-#         session.init_session()
-#         app.logger.info(f"Session initialized - {session}")
-#         return session
-
-#     def save_session(self, app, session, response):
-#         # TODO: Implement session saving logic here
-#         pass
-
-#     def reset_session(self, app, session):
-#         session.reset_session()
-#         app.logger.info(f"Session reset to default - {session}")
-
 
 def create_app():
     # create Flask app
@@ -175,6 +136,55 @@ login_manager.login_view = "login"
 
 # api instance
 api = PetFinderPetPyAPI()
+
+
+
+##############################################################################
+#SESSION FUNCTIONS
+
+# class CustomSession(dict, SessionMixin):
+#     """Custom Session Interface to handle session management by expanding beyond the basic dictionary functionality of Flask Session
+#     Args:
+#         dict (_type_): Python Dictionary
+#         SessionMixin (_type_): Mixin from Flask Session that expands the default session object in Flask 
+#     """
+    
+#     def init_default_session():
+#         """Initialize the session with default values"""
+#         for key, value in default_session_keys.items():
+#             session.setdefault(key, value)
+#         session.new = True
+#         session.modified = True
+        
+#     def init_session(self):
+#         """Initialize the session with USER if user values else populates with default values"""
+        
+#         #populate with default for anon-users 
+#         if not active_authenticated_user():
+#             return self.init_default_session()
+#         else:
+#             user_id=current_user.id
+#             user_session_data = get_user_data(user_id=user_id)
+#             if user_session_data:
+#                 #update session with state_country, animal_types, curr_location, distance
+#                 session.update(user_session_data)
+        
+        
+#     def reset_session(self):
+#         """Reset the session to default values"""
+#         self.clear()
+#         self.init_session()
+
+# class CustomSessionInterface(SessionInterface):
+#     def open_session(self, app, request):
+#         session = CustomSession()
+#         session.init_session()
+#         app.logger.info(f"Session initialized - {session}")
+#         return session
+
+#     def reset_session(self, app, session):
+#         session.reset_session()
+#         app.logger.info(f"Session reset to default - {session}")
 
 ##############################################################################
 # User signup/login/logout
@@ -238,9 +248,10 @@ def do_login(user):
     # update the other global variables
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
-    update_global_variables(session, g)
-    session.update("CURR_LOCATION", user.location.city_state_country_str())
-    session.update("ANIMAL_TYPES", user.animal_types)
+    # update_global_variables(session, g)
+    # session.update("CURR_LOCATION", user.location.city_state_country_str())
+    # session.update("ANIMAL_TYPES", user.animal_types)
+    load_session()
     app.logger.info(
         f"do_login({user.username}) successful. Session[CURR_USER]=",
         session["CURR_USER"],
@@ -557,6 +568,108 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
+def get_user_data(user_id):
+    if user_id:
+        result = (
+            db.session.query(
+                User.id,
+                User.animal_types,
+                UserLocation.state,
+                UserLocation.country,
+                UserTravelPreferences.distance_filter_preference
+            )
+            .join(UserLocation)
+            .join(UserTravelPreferences)
+            .filter(User.id == user_id)
+            .first()
+        )
+        #debugging
+        if result:
+            print(f"User ID: {result.id}")
+            print(f"Animal Types: {result.animal_types}")
+            print(f"State: {result.state}")
+            print(f"Country: {result.country}")
+            print(f"Distance Filter Preference: {result.distance_filter_preference}")
+            
+            current_location = db.session.query(UserLocation).filter(UserLocation.user_id == user_id).first() 
+            
+            return {
+                'CURR_USER_KEY': result.id,
+                'ANIMAL_TYPES': result.animal_types,
+                'STATE_COUNTRY': f"{result.state+result.country}",
+                'DISTANCE_PREF': result.distance_filter_preference,
+                "CURR_LOCATION": current_location.get_location_info() if current_location else default_session_keys["CURR_LOCATION"]
+            }
+    #handle no results
+    print("No User data found")
+    return None
+    
+
+
+# Helper function to retrieve PetFinder API status query param based on rescue actions
+def get_rescue_action_mapped_to_animal_status():
+    """
+    Fetches the appropriate PetFinder API status query parameter based on the user's rescue action type.
+
+    Args:
+        user (User): Current user object with a 'rescue_action_type' attribute.
+
+    Returns:
+        str: Status query parameter value for the PetFinder API.
+    """
+    # Default status to return when user is interested in adoption or fostering
+    default_animal_status = "adoptable,found"
+
+    # Check if user and user.rescue_action_type exist, and retrieve the list
+    if active_authenticated_user() and current_user.rescue_action_type:
+        rescue_actions = set(current_user.rescue_action_type)
+
+        # If the current_user only wants to volunteer and/or donate, return None (no status needed)
+        if rescue_actions.issubset({"volunteering", "donation"}):
+            return None
+
+        # Otherwise, return the default status (-adopted, adoptable, found)
+        return default_animal_status
+
+    # If no current_user or no rescue_action_type is provided, return the default status
+    return default_animal_status
+
+# Helper function to get the location or default location
+def get_location(no_geocode=False):
+    """
+    Retrieves location from user data or session or defaults to a preset location.
+    Args:
+        user_location (UserLocation): Location object related to the current user.
+    Returns:
+        str: A geolocation string or postal code based on the user's or default location.
+    """
+        # If the user is authenticated and active
+    if active_authenticated_user():
+        user = load_user(user_id=current_user.id)
+        user_location = (
+            user.location
+            if user
+            else db.session.query(UserLocation)
+            .filter_by(user_id=current_user.id)
+            .first()
+        )
+        #update db if user_location found but not linked to user
+        if user_location and not user.location:
+            user.location = user_location
+            #save to db
+            db.session.add(user)
+            db.commit()
+        
+        if no_geocode:
+            return user_location.city_state_country_str() #return city/state/str eg. for UI rendering purposes  
+        else:
+            return user_location.get_location_info() #returns first truthy location column
+    #handle anon user
+    else:
+        if no_geocode:
+            return default_session_keys["DEFAULT_LOCATION"]['state'].lower() + default_session_keys["CURR_LOCATION"]['country'].lower()
+        else:
+            return default_session_keys['CURR_LOCATION']
 
 def create_init_params(type="animal"):
     """
@@ -570,20 +683,7 @@ def create_init_params(type="animal"):
         dict: A dictionary of API query parameters including type, page, location, distance, and limit.
     """
 
-    # Helper function to get the location or default location
-    def get_location(user_location=None):
-        """
-        Retrieves location from user data or session or defaults to a preset location.
-        Args:
-            user_location (UserLocation): Location object related to the current user.
-        Returns:
-            str: A geolocation string or postal code based on the user's or default location.
-        """
-        return (
-            user_location.get_location_info()
-            if user_location
-            else session.get("CURR_LOCATION", "43.6429,-79.3889")
-        )
+
 
     # Helper function to retrieve species preferences or default to 'dog'
     def get_species_preferences(user=None):
@@ -597,36 +697,10 @@ def create_init_params(type="animal"):
         return (
             list(user.animal_types)
             if user and user.animal_types
-            else list(session.get("ANIMAL_TYPES", "dog"))
+            else list(default_session_keys.get("ANIMAL_TYPES", "dog"))
         )
 
-    # Helper function to retrieve PetFinder API status query param based on rescue actions
-    def get_rescue_action_mapped_to_animal_status():
-        """
-        Fetches the appropriate PetFinder API status query parameter based on the user's rescue action type.
-
-        Args:
-            user (User): Current user object with a 'rescue_action_type' attribute.
-
-        Returns:
-            str: Status query parameter value for the PetFinder API.
-        """
-        # Default status to return when user is interested in adoption or fostering
-        default_animal_status = "adoptable,found"
-
-        # Check if user and user.rescue_action_type exist, and retrieve the list
-        if active_authenticated_user() and current_user.rescue_action_type:
-            rescue_actions = set(current_user.rescue_action_type)
-
-            # If the current_user only wants to volunteer and/or donate, return None (no status needed)
-            if rescue_actions.issubset({"volunteering", "donation"}):
-                return None
-
-            # Otherwise, return the default status (-adopted, adoptable, found)
-            return default_animal_status
-
-        # If no current_user or no rescue_action_type is provided, return the default status
-        return default_animal_status
+    
 
     # Common session values or default ones
     current_page_count = (
@@ -1157,7 +1231,7 @@ def set_global():
     """
 
     # Check if the user is logged in
-    if "CURR_USER" in session:
+    if active_authenticated_user():
 
         # check db, session and 'g' for user preferences. if not found, will return default country : 'CA', animal_type: 'dog'
         country = get_user_preference(key="country", session=session, g=g)
@@ -1183,7 +1257,7 @@ def set_global():
                 # Set global country and animal type for anonymous users
                 update_anon_preferences(form=form)
 
-    return render_template("users/form.html", form=form, next=url_for("results"))
+    return render_template("users/form.html", form=form, next=url_for("discover_animals"))
 
 
 ##############################################################################
@@ -1286,10 +1360,9 @@ def signup_preferences():
 @login_required
 @app.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
-    current_user_id = session.get("CURR_USER")["id"]
     if request.method == "GET":
         user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
-            u_id=current_user_id, animal_type=animal_type
+            u_id=current_user.id, animal_type=animal_type
         )
 
     if request.method == "POST":
@@ -1366,14 +1439,14 @@ def homepage():
     - logged in:
     """
 
-    if "CURR_USER_KEY" in session:
+    # if "CURR_USER_KEY" in session:
         # users_followed_by_current_user = g.user.following
 
         # Now, you can use this list of users to get their messages
 
-        return render_template("home.html", user=g.user, messages=g.user.messages)
+        # return render_template("home.html", user=g.user, messages=g.user.messages)
 
-    else:
+    # else:
         # try:
         # params = {**PetFinderPetPyAPI.default_options_obj}
         # # results = PetFinderPetPyAPI.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
@@ -1382,24 +1455,46 @@ def homepage():
         # except Exception as e:
         #     results = None
 
-        return render_template("home-anon.html")  # , results=results
+    return render_template("home-anon.html")  # , results=results
 
 
 ##############################################################################
 
+def init_default_session():
+    """Initialize the session with default values"""
+    for key, value in default_session_keys.items():
+        session.setdefault(key, value)
+    session.new = True
+    session.modified = True
 
-# Initialize global variables before each request
+#load user data into session before each request
 @app.before_request
-def get_app_data():
-    """Function that runs before each request to refresh global variables and grab initial API data if none
+def load_session():
+        """Update the session with user values if user else populates with default values"""
+        
+        #populate with default for anon-users for new sessions
+        if not active_authenticated_user() and session.new:
+            return init_default_session()
+        else:
+            user_id=current_user.id
+            user_session_data = get_user_data(user_id=user_id)
+            if user_session_data:
+                #update session with state_country, animal_types, curr_location, distance
+                session.update(user_session_data)
 
-    Returns:
-        _type_: _description_
-    """
-    # update global variables
-    with app.app_context():
-        if session.modified == True:
-            update_global_variables(session=session, g=g)
+    
+# Initialize global variables before each request
+# @app.before_request
+# def get_app_data():
+#     """Function that runs before each request to refresh global variables and grab initial API data if none
+
+#     Returns:
+#         _type_: _description_
+#     """
+#     # update global variables
+#     with app.app_context():
+#         if session.modified == True:
+#             update_global_variables(session=session, g=g)
 
 
 # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
@@ -1410,7 +1505,8 @@ def inject_global_vars():
     return {
         "session": session,
         "g": g,
-        "animal_emojis": PetFinderPetPyAPI.animal_emojis,
+        "animal_emojis": api.animal_emojis,
+        "animal_types": api.animal_types,
     }
 
 

@@ -602,3 +602,10 @@ form.hidden {
 }
 
 /* ================================ Animal Cards */
+/* ================================ Animal Modal */
+
+.custom-modal .modal-dialog {
+  /* padding-top to modal to ensure it doesn't obscure the flash messages container 
+  Adjust this value as needed */
+  margin-top: 60px; 
+}

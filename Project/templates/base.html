@@ -25,7 +25,8 @@
 
   <body class="{% block body_class %}{% endblock %}">
     {% include 'header.html' %}
-
+    {% include 'animalModal.html' %}
+    
     <div class="container" id="flash_message_container">
       {% for category, message in get_flashed_messages(with_categories=True) %}
       <div class="alert alert-{{ category }}">{{ message }}</div>
