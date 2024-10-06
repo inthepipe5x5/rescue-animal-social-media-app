@@ -11,8 +11,9 @@ from wtforms import (  # type: ignore # type: ignore
 )
 from petpy import Petfinder
 import os
+from dotenv import load_dotenv  # type: ignore
 
-from wtforms.validators import DataRequired, Email, Length, ValidationError, Regexp, EqualTo  # type: ignore
+from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo  # type: ignore
 from wtforms_alchemy import model_form_factory  # type: ignore
 import pycountry  # type: ignore
 
@@ -22,6 +23,7 @@ from models import (
     UserLocation,
     UserTravelPreferences,
 )
+load_dotenv()
 
 # from package.PetFinderAPI import api
 

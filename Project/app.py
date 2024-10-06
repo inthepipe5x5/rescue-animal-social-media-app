@@ -88,6 +88,7 @@ default_session_keys = {
     "DISTANCE_PREF": 100,
 }
 
+
 def create_app():
     # create Flask app
     app = Flask(__name__)
@@ -138,28 +139,27 @@ login_manager.login_view = "login"
 api = PetFinderPetPyAPI()
 
 
-
 ##############################################################################
-#SESSION FUNCTIONS
+# SESSION FUNCTIONS
 
 # class CustomSession(dict, SessionMixin):
 #     """Custom Session Interface to handle session management by expanding beyond the basic dictionary functionality of Flask Session
 #     Args:
 #         dict (_type_): Python Dictionary
-#         SessionMixin (_type_): Mixin from Flask Session that expands the default session object in Flask 
+#         SessionMixin (_type_): Mixin from Flask Session that expands the default session object in Flask
 #     """
-    
+
 #     def init_default_session():
 #         """Initialize the session with default values"""
 #         for key, value in default_session_keys.items():
 #             session.setdefault(key, value)
 #         session.new = True
 #         session.modified = True
-        
+
 #     def init_session(self):
 #         """Initialize the session with USER if user values else populates with default values"""
-        
-#         #populate with default for anon-users 
+
+#         #populate with default for anon-users
 #         if not active_authenticated_user():
 #             return self.init_default_session()
 #         else:
@@ -168,8 +168,8 @@ api = PetFinderPetPyAPI()
 #             if user_session_data:
 #                 #update session with state_country, animal_types, curr_location, distance
 #                 session.update(user_session_data)
-        
-        
+
+
 #     def reset_session(self):
 #         """Reset the session to default values"""
 #         self.clear()
@@ -515,7 +515,7 @@ def user_favorite(favorite_id):
 def profile():
     """Update profile for current user."""
 
-    if "CURR_USER" not in session:
+    if not active_authenticated_user():
         flash("Access unauthorized.", "danger")
         return redirect(url_for("login"))
 
@@ -530,7 +530,7 @@ def profile():
                 db.session.add(logged_in_user)
                 db.session.commit()  # commit to db
                 flash("Changes saved successfully", "success")  # show success to user
-                return redirect(url_for("users_show", user_id=g.user.id))
+                return redirect(url_for("show_user", user_id=g.user.id))
             else:
                 db.session.rollback()
                 flash(
@@ -568,6 +568,7 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
+
 def get_user_data(user_id):
     if user_id:
         result = (
@@ -576,34 +577,41 @@ def get_user_data(user_id):
                 User.animal_types,
                 UserLocation.state,
                 UserLocation.country,
-                UserTravelPreferences.distance_filter_preference
+                UserTravelPreferences.distance_filter_preference,
             )
             .join(UserLocation)
             .join(UserTravelPreferences)
             .filter(User.id == user_id)
             .first()
         )
-        #debugging
+        # debugging
         if result:
             print(f"User ID: {result.id}")
             print(f"Animal Types: {result.animal_types}")
             print(f"State: {result.state}")
             print(f"Country: {result.country}")
             print(f"Distance Filter Preference: {result.distance_filter_preference}")
-            
-            current_location = db.session.query(UserLocation).filter(UserLocation.user_id == user_id).first() 
-            
+
+            current_location = (
+                db.session.query(UserLocation)
+                .filter(UserLocation.user_id == user_id)
+                .first()
+            )
+
             return {
-                'CURR_USER_KEY': result.id,
-                'ANIMAL_TYPES': result.animal_types,
-                'STATE_COUNTRY': f"{result.state+result.country}",
-                'DISTANCE_PREF': result.distance_filter_preference,
-                "CURR_LOCATION": current_location.get_location_info() if current_location else default_session_keys["CURR_LOCATION"]
+                "CURR_USER_KEY": result.id,
+                "ANIMAL_TYPES": result.animal_types,
+                "STATE_COUNTRY": f"{result.state+result.country}",
+                "DISTANCE_PREF": result.distance_filter_preference,
+                "CURR_LOCATION": (
+                    current_location.get_location_info()
+                    if current_location
+                    else default_session_keys["CURR_LOCATION"]
+                ),
             }
-    #handle no results
+    # handle no results
     print("No User data found")
     return None
-    
 
 
 # Helper function to retrieve PetFinder API status query param based on rescue actions
@@ -634,6 +642,7 @@ def get_rescue_action_mapped_to_animal_status():
     # If no current_user or no rescue_action_type is provided, return the default status
     return default_animal_status
 
+
 # Helper function to get the location or default location
 def get_location(no_geocode=False):
     """
@@ -643,33 +652,42 @@ def get_location(no_geocode=False):
     Returns:
         str: A geolocation string or postal code based on the user's or default location.
     """
-        # If the user is authenticated and active
+    # If the user is authenticated and active
     if active_authenticated_user():
         user = load_user(user_id=current_user.id)
         user_location = (
             user.location
-            if user
+            if user and user.location
             else db.session.query(UserLocation)
             .filter_by(user_id=current_user.id)
             .first()
         )
-        #update db if user_location found but not linked to user
+
+        # update db if user_location found but not linked to user
         if user_location and not user.location:
             user.location = user_location
-            #save to db
+            # save to db
             db.session.add(user)
-            db.commit()
-        
+            db.session.commit()
+
         if no_geocode:
-            return user_location.city_state_country_str() #return city/state/str eg. for UI rendering purposes  
+            return (
+                user_location.city_state_country_str()
+            )  # return city/state/str eg. for UI rendering purposes
         else:
-            return user_location.get_location_info() #returns first truthy location column
-    #handle anon user
+            return (
+                user_location.get_location_info()
+            )  # returns first truthy location column
+    # handle anon user
     else:
         if no_geocode:
-            return default_session_keys["DEFAULT_LOCATION"]['state'].lower() + default_session_keys["CURR_LOCATION"]['country'].lower()
+            return (
+                default_session_keys["DEFAULT_LOCATION"]["state"].lower()
+                + default_session_keys["CURR_LOCATION"]["country"].lower()
+            )
         else:
-            return default_session_keys['CURR_LOCATION']
+            return default_session_keys["CURR_LOCATION"]
+
 
 def create_init_params(type="animal"):
     """
@@ -682,8 +700,6 @@ def create_init_params(type="animal"):
     Returns:
         dict: A dictionary of API query parameters including type, page, location, distance, and limit.
     """
-
-
 
     # Helper function to retrieve species preferences or default to 'dog'
     def get_species_preferences(user=None):
@@ -699,8 +715,6 @@ def create_init_params(type="animal"):
             if user and user.animal_types
             else list(default_session_keys.get("ANIMAL_TYPES", "dog"))
         )
-
-    
 
     # Common session values or default ones
     current_page_count = (
@@ -1045,6 +1059,46 @@ def animal_data():
         )
 
 
+# # TESTING/DEBUGGING ROUTE
+# @login_required
+# @app.route("/data/prefs/animals", methods=["GET"])
+# def all_animal_pref_data():
+
+#     if active_authenticated_user():
+#         user_id = current_user.id
+#     else:
+#         # user_id = 18  # user: 99299@99299.com
+#         return jsonify(
+#             {"results": [], "success_flag": False, "message": "No user logged in"}
+#         )
+#     user_animal_prefs = UserAnimalPreferences.get_all_user_animal_preferences(
+#         u_id=user_id
+#     )
+#     if user_animal_prefs:
+#         message = "User animal preferences retrieved successfully."
+#         category = "success"
+#     else:
+#         message = "No animal preferences found."
+#         category = "error"
+#     flash(message=message, category=category)
+#     # return all user animal_preferences grouped by animal type as found in db
+#     # if not clean_bool:
+#     #     output = user_animal_prefs if user_animal_prefs else []
+
+#     output = (
+#         api.preprocess_preferences(prefs_obj=user_animal_prefs)
+#         if user_animal_prefs
+#         else []
+#     )
+#     return jsonify(
+#         {
+#             "results": output,
+#             "message": message,
+#             "success_flag": True if category != "error" else False,
+#         }
+#     )
+
+
 @login_required
 @app.route("/data/prefs/<animal_type>", methods=["GET"])
 def animal_pref_data(animal_type):
@@ -1053,8 +1107,8 @@ def animal_pref_data(animal_type):
     else:
         species = animal_type.lower()
 
-    if "CURR_USER" in session:
-        user_id = session.get("CURR_USER")["id"]
+    if active_authenticated_user():
+        user_id = current_user.id
     else:
         # user_id = 18  # user: 99299@99299.com
         return jsonify(
@@ -1071,8 +1125,6 @@ def animal_pref_data(animal_type):
         category = "error"
     flash(message=message, category=category)
     return jsonify(user_animal_prefs)
-    # else:
-    # return redirect(url_for("login"))
 
 
 @app.route("/reseed_db", methods=["GET"])
@@ -1097,13 +1149,8 @@ def reseed_db():
         "rescue_action_type": ["volunteering", "donation", "adoption", "animal foster"],
     }
 
-    test_user_location = {
-        "country": "CA",
-        "state": "ON",
-        "postal_code": "m5j 0b3",
-        "geolocation": "43.6429,79.3889",
-        "city": "Toronto",
-    }
+    test_user_location = default_session_keys["DEFAULT_LOCATION"]
+
     default_animal_prefs = [
         {"declawed": False},
         {"shots_current": False},
@@ -1158,7 +1205,7 @@ def reseed_db():
             "message": "database recreated and user test123 inserted",
             "user": {"id": test123.id, **test_user},
             "location": test_user_location,
-            "animal_prefs": test123_prefs,
+            "animal_prefs": test_user_animal_prefs,
         }
     )
 
@@ -1257,7 +1304,9 @@ def set_global():
                 # Set global country and animal type for anonymous users
                 update_anon_preferences(form=form)
 
-    return render_template("users/form.html", form=form, next=url_for("discover_animals"))
+    return render_template(
+        "users/form.html", form=form, next=url_for("discover_animals")
+    )
 
 
 ##############################################################################
@@ -1286,7 +1335,6 @@ def signup_user():
     # instantiate add user form
     form = UserAddForm()
     if form.validate_on_submit():
-        print(form.csrf_token)
         data = {field.name: field.data for field in form}
         try:
 
@@ -1315,7 +1363,7 @@ def signup_user():
             return render_template("users/signup.html", form=form)
 
         do_login(user)
-
+        flash("User # {user.id} created successfully: {user.username}")
         # Redirect to location form for additional information
         flash(
             "Please consider enabling geolocation in the browser to help us return more accurate results relative to your location",
@@ -1402,7 +1450,7 @@ def animal_preferences(animal_type):
     if form.validate_on_submit():
         try:
             new_prefs = UserAnimalPreferences.update_user_pref(
-                user_id=current_user_id,
+                user_id=current_user.id,
                 species=animal_type,
                 form_data_obj=form.data,
             )
@@ -1412,7 +1460,7 @@ def animal_preferences(animal_type):
 
             flash(f"Successfully updated {animal_type} preferences.", "success")
             # return redirect(url_for("animal_pref_data", animal_type=animal_type))
-            return redirect(url_for("users_show", user_id=current_user_id))
+            return redirect(url_for("show_user", user_id=current_user.id))
         except Exception as e:
             app.logger.error(f"Error updating preferences: {e}")
             db.session.rollback()
@@ -1420,7 +1468,7 @@ def animal_preferences(animal_type):
                 "An error occurred while saving your preferences. Please try again.",
                 "danger",
             )
-            return redirect(url_for("users_show", user_id=current_user_id))
+            return redirect(url_for("profile"))
 
     return render_template(
         "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
@@ -1440,25 +1488,26 @@ def homepage():
     """
 
     # if "CURR_USER_KEY" in session:
-        # users_followed_by_current_user = g.user.following
+    # users_followed_by_current_user = g.user.following
 
-        # Now, you can use this list of users to get their messages
+    # Now, you can use this list of users to get their messages
 
-        # return render_template("home.html", user=g.user, messages=g.user.messages)
+    # return render_template("home.html", user=g.user, messages=g.user.messages)
 
     # else:
-        # try:
-        # params = {**PetFinderPetPyAPI.default_options_obj}
-        # # results = PetFinderPetPyAPI.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
-        # results = PetFinderPetPyAPI.get_orgs_df(**params)
-        # print(results)
-        # except Exception as e:
-        #     results = None
+    # try:
+    # params = {**PetFinderPetPyAPI.default_options_obj}
+    # # results = PetFinderPetPyAPI.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
+    # results = PetFinderPetPyAPI.get_orgs_df(**params)
+    # print(results)
+    # except Exception as e:
+    #     results = None
 
     return render_template("home-anon.html")  # , results=results
 
 
 ##############################################################################
+
 
 def init_default_session():
     """Initialize the session with default values"""
@@ -1467,22 +1516,28 @@ def init_default_session():
     session.new = True
     session.modified = True
 
-#load user data into session before each request
+
+# # load user data into session before each request
+# def update_session():
+#         if session.new: #new session if new session or session dependencies are modified in a route, the route will indicate that it's a new session
+#             load_session()
+
+
 @app.before_request
 def load_session():
-        """Update the session with user values if user else populates with default values"""
-        
-        #populate with default for anon-users for new sessions
-        if not active_authenticated_user() and session.new:
-            return init_default_session()
-        else:
-            user_id=current_user.id
-            user_session_data = get_user_data(user_id=user_id)
-            if user_session_data:
-                #update session with state_country, animal_types, curr_location, distance
-                session.update(user_session_data)
+    """Update the session with user values if user else populates with default values"""
 
-    
+    # populate with default for anon-users for new sessions
+    if not active_authenticated_user() and session.new:
+        return init_default_session()
+    else:
+        user_id = current_user.id if active_authenticated_user() else None
+        user_session_data = get_user_data(user_id=user_id)
+        if user_session_data:
+            # update session with state_country, animal_types, curr_location, distance
+            session.update(user_session_data)
+
+
 # Initialize global variables before each request
 # @app.before_request
 # def get_app_data():
@@ -1507,6 +1562,7 @@ def inject_global_vars():
         "g": g,
         "animal_emojis": api.animal_emojis,
         "animal_types": api.animal_types,
+        "current_user_id": current_user.id if active_authenticated_user() else None,
     }
 
 

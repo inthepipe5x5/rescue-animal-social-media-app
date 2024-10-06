@@ -175,7 +175,9 @@ class PetFinderPetPyAPI:
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             response = requests.get(request_url, headers=headers, params=params)
-            print(f"_GET_REQUEST() Response: {response.status_code}")
+            print(
+                f"_GET_REQUEST() @ {request_url} Params: {params} Headers: {headers} Response: {response.status_code}"
+            )
 
             # Check for a successful response
             response.raise_for_status()

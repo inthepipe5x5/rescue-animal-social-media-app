@@ -564,7 +564,10 @@ class UserAnimalPreferences(db.Model):
         Returns: a python object of animal_preferences
         """
         results = (
-            db.session.query(UserAnimalPreferences)
+            db.session.query(
+                UserAnimalPreferences.user_preference_name,
+                UserAnimalPreferences.user_preference_data,
+            )
             .filter(
                 UserAnimalPreferences.user_id == u_id,
                 UserAnimalPreferences.species == animal_type,
@@ -608,18 +611,17 @@ class UserAnimalPreferences(db.Model):
         user = User.query.get_or_404(u_id)
         if user:
             results = (
-                db.session.query(User, UserAnimalPreferences)
-                .join(UserAnimalPreferences)
-                .filter(User.id == u_id)
-                .filter(UserAnimalPreferences.species == func.any(user.animal_types))
+                db.session.query(UserAnimalPreferences)
+                .filter(UserAnimalPreferences.user_id == u_id)
                 .all()
             )
             print(results)
             # Group preferences by animal_type
-            return {
+            output = {
                 type: [result for result in results if result.species == type]
                 for type in user.animal_types
             }
+            return output
         return None  # In case user is not found, though get_or_404 should handle this
 
     @classmethod
