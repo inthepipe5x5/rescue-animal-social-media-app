@@ -1,0 +1,8 @@
+{% from 'macros.html' import render_pagination %}
+
+<footer class="footer mt-auto py-3 bg-body-tertiary">
+  <a class="navbar-brand" href="#">{request.endpoint}</a>
+  {# render pagination from flask session information #}
+  {render_pagination((current_page if current_page else 1), (total_pages if
+  total_pages else 1))}
+</footer>

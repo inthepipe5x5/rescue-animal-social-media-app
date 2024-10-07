@@ -1,0 +1,31 @@
+<div class="d-flex gap-2 mb-3">
+    <!-- Scroll to Top Button -->
+    <button id="scrollToTopBtn" class="button btn btn-secondary">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        fill="currentColor"
+        class="bi bi-arrow-bar-up"
+        viewBox="0 0 16 16"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"
+        ></path>
+      </svg>
+      <span class="visually-hidden">Back to top</span>
+    </button>
+  </div>
+
+  <script>
+    // Smooth scroll to top function
+    document
+      .getElementById("scrollToTopBtn")
+      .addEventListener("click", function () {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth", // Enables smooth scrolling
+        });
+      });
+  </script>

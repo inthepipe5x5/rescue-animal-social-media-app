@@ -280,6 +280,7 @@ def do_logout():
 
     # flask-login's logout user => will clean up the cookie if it exists
     logout_user()
+    
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -308,9 +309,10 @@ def login():
 @app.route("/logout")
 def logout():
     """Handle logout of user."""
-    if CURR_USER_KEY in session:
-        print(session[CURR_USER_KEY])
+    #remove user from session
     do_logout()
+    #populate default session data in
+    init_default_session()
     flash(f"Log out successful. Hope to see you again", "success")
     return redirect("/")
 
@@ -353,7 +355,7 @@ def show_user(user_id):
 @app.route("/users/location", methods=["GET", "POST"])
 def form_user_location():
     app.logger.info(
-        f"Request method: {request.method}, Current user.location: {current_user.location if current_user.location else 'No Saved Location'}"
+        f"Request method: {request.method}, Current user.location: {current_user.location if (active_authenticated_user() and current_user.location) else 'No Saved Location'}"
     )
     try:
         if active_authenticated_user() and current_user.location:
@@ -610,9 +612,10 @@ def get_user_data(user_id):
                 ),
             }
     # handle no results
-    print("No User data found")
-    return None
-
+    print("No User data found, default output returned")
+    default_output = default_session_keys.copy()
+    default_output['STATE_COUNTRY'] = get_location(no_geocode=False)
+    return default_output
 
 # Helper function to retrieve PetFinder API status query param based on rescue actions
 def get_rescue_action_mapped_to_animal_status():
@@ -1483,27 +1486,20 @@ def animal_preferences(animal_type):
 def homepage():
     """Show homepage:
 
-    - anon users:
-    - logged in:
+
     """
 
-    # if "CURR_USER_KEY" in session:
-    # users_followed_by_current_user = g.user.following
-
-    # Now, you can use this list of users to get their messages
-
-    # return render_template("home.html", user=g.user, messages=g.user.messages)
-
-    # else:
-    # try:
-    # params = {**PetFinderPetPyAPI.default_options_obj}
-    # # results = PetFinderPetPyAPI.petpy_api.organizations(sort='-recent')#, country="CA", city="Toronto", state='ON')
-    # results = PetFinderPetPyAPI.get_orgs_df(**params)
-    # print(results)
-    # except Exception as e:
-    #     results = None
-
-    return render_template("home-anon.html")  # , results=results
+    if active_authenticated_user():
+        #grab user
+        user = current_user._get_current_object()
+        user = user if user else load_user(user_id=current_user.id)
+        
+        #set session with user data
+        load_session()
+        
+        return render_template('home.html', user=user)
+    else:
+        return render_template("home-anon.html")  # , results=results
 
 
 ##############################################################################
@@ -1511,8 +1507,12 @@ def homepage():
 
 def init_default_session():
     """Initialize the session with default values"""
+    #clear session
+    do_logout()
+    #populate with default_session_keys
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
+    session['STATE_COUNTRY'] = get_location(no_geocode=False)
     session.new = True
     session.modified = True
 
@@ -1528,7 +1528,7 @@ def load_session():
     """Update the session with user values if user else populates with default values"""
 
     # populate with default for anon-users for new sessions
-    if not active_authenticated_user() and session.new:
+    if not active_authenticated_user() and session.new == True:
         return init_default_session()
     else:
         user_id = current_user.id if active_authenticated_user() else None

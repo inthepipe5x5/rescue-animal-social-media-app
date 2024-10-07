@@ -2,7 +2,15 @@
 <div id="profile-hero" class="image-wrapper">
   <img
     class="img-fluid"
-    src="{{ user.header_imge or '../../static/images/profile/default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg' }}" {# provided stock URLs are not working #}
+    src={{ user.header_imge or url_for(static='../../static/images/profile',filename='/default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg') }}
+    {#
+    provided
+    stock
+    URLs
+    are
+    not
+    working
+    #}
     alt="Header Background Image for {{ user.username }}"
     id="profile-background"
   />
@@ -45,7 +53,8 @@
             <h4>{{ user.likes | length }}</h4>
           </li>
           <div class="ml-auto">
-            {% if "CURR_USER" in session and session["CURR_USER"].id == user.id %}
+            {% if "CURR_USER" in session and session["CURR_USER"].id == user.id
+            %}
             <a href="/users/profile" class="btn btn-outline-secondary">
               Edit Profile
             </a>
@@ -54,7 +63,8 @@
                 Delete Profile
               </button>
             </form>
-            {% elif session["CURR_USER"] %} {% if session["CURR_USER"].is_following(user) %}
+            {% elif session["CURR_USER"] %} {% if
+            session["CURR_USER"].is_following(user) %}
             <form method="POST" action="/users/stop-following/{{ user.id }}">
               <button class="btn btn-primary">Unfollow</button>
             </form>

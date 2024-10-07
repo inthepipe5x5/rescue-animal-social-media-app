@@ -1,53 +1,6 @@
 {% extends 'base.html' %} {% block content %}
 <div class="row">
-  <aside class="col-md-4 col-lg-3 col-sm-12" id="home-aside">
-    <div class="card user-card">
-      <div>
-        <div class="image-wrapper">
-          <img
-            src="{{ g.user.header_image_url }}"
-            alt="user header picture"
-            class="card-hero"
-          />
-        </div>
-        <a href="/users/{{ g.user_id }}" class="card-link">
-          <img
-            src="{{ g.user.image_url }}"
-            alt="Image for {{ g.user.username }}"
-            class="card-image"
-          />
-          <p>@{{ g.user.username }}</p>
-        </a>
-        <ul class="user-stats nav nav-pills">
-          <li class="stat">
-            <p class="small">Following</p>
-            <h4>
-              <a href="/users/{{ g.user_id }}/following"
-                >{{ g.user.following | length }}</a
-              >
-            </h4>
-          </li>
-          <!--
-              IRRELEVANT STAT ELEMENTS NEED TO REMOVE LATER 
-              
-              <li class="stat">
-                <p class="small">favorites</p>
-                <h4>
-                  <a href="/users/{{ g.user_id }}">{{ g.user.favorites | length }}</a>
-                </h4>
-              </li>
-              <li class="stat">
-                <p class="small">Followers</p>
-                <h4>
-                  <a href="/users/{{ g.user_id }}/followers">{{ g.user.followers | length }}</a>
-                </h4>
-              </li>
-            -->
-        </ul>
-      </div>
-    </div>
-  </aside>
-
+  {% if favorites %}
   <div class="col-lg-6 col-md-8 col-sm-12">
     <ul class="list-group" id="favorites">
       {% for fav in favorites %}
@@ -81,5 +34,7 @@
       {% endfor %}
     </ul>
   </div>
+  {% endif %}
+
 </div>
 {% endblock %}
