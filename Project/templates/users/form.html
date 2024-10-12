@@ -1,8 +1,9 @@
-{% extends 'base.html' %} {% block body_class %}onboarding{% endblock %} {%
-block content %}
+{% extends 'base.html' %} 
+{% block body_class %}onboarding{% endblock %} 
+{% block content %}
 
-<div class="row justify-content-md-center">
-  <div class="col-md-7 col-lg-5">
+<div class="row justify-content-md-center justify-content-sm-start">
+  <div class="col-md-7 col-lg-8">
     <h3 class="content-message">
       {{ form_title if form_title else "Narrow Down your Search"}}
     </h3>
@@ -19,7 +20,7 @@ block content %}
               type="checkbox"
               name="{{ field.name }}"
               value="{{ value }}"
-            />{{ label }}
+            />{{ label | format_kebob_case }}
           </label>
           {% endfor %}
         </div>
@@ -29,18 +30,21 @@ block content %}
       </div>
       {% elif field.name == 'geolocation' %}
       <!--
-      <button
-        class="btn btn-light btn-lg btn-block"
-        id="get-geolocation-button"
-        type="button"
-      >
-        Get My Location
-      </button> -->
+          <button
+            class="btn btn-light btn-lg btn-block"
+            id="get-geolocation-button"
+            type="button"
+          >
+            Get My Location
+          </button> -->
       {% elif field.type == 'BooleanField' %}
       <div class="form-group">
         <div class="form-check form-switch">
-          {{ field(class="form-check-input") }} {{
-          field.label(class="form-check-label") }}
+          <label class="form-check-label">
+            <b>{{ field.label.text | format_kebob_case }}</b>
+            {{ field(class="form-check-input") }} 
+          </label>
+
         </div>
         {% for error in field.errors %}
         <div class="invalid-feedback">{{ error }}</div>
@@ -48,16 +52,10 @@ block content %}
       </div>
       {% elif field.type == 'IntegerRangeField' %}
       <div class="form-group">
-        {{ field.label(class="form-label") }}
         <label for="{{ field.name }}-input">
-          {% if field.name == 'distance_filter_preference' %}Within{% endif %}
-          <span id="{{ field.name }}-value"
-            >{{ field.data if field.data else field.default }}</span
-          >
-          {% if field.name == 'distance_filter_preference' %}Miles{% endif %}
-        </label>
+          <div><b>{{ field.name if not field.label.text else field.label.text | format_kebob_case }}</b></div>
         <div class="form-range">
-          {{ field(class="form-range-input", id=field.name + "-input") }}
+          {{ field(class="form-range-input", id=field.name + "-input") }}<span id="{{ field.name}}-input">100 Miles</span>
         </div>
         {% for error in field.errors %}
         <div class="invalid-feedback">{{ error }}</div>
@@ -68,12 +66,13 @@ block content %}
           .getElementById("{{ field.name }}-input")
           .addEventListener("input", function () {
             document.getElementById("{{ field.name }}-value").innerText =
-              this.value;
+              `${this.value} Miles`;
           });
       </script>
       {% else %}
       <div class="form-group">
-        {{ field.label(class="form-label") }} {{ field(class="form-control") }}
+        <label class="form-label">{{ field.label.text | capitalize_underscores }}</label> {{
+        field(class="form-control") }} 
         {% for error in field.errors %}
         <div class="invalid-feedback">{{ error }}</div>
         {% endfor %}
@@ -87,8 +86,7 @@ block content %}
   </div>
 </div>
 
-{% endblock %} {% block scripts %} {{ super() }}
-
-{% for script in page_scripts %}
+{% endblock %} {% block scripts %} {{ super() }} {% for script in page_scripts
+%}
 <script src="{{ script }}"></script>
 {% endfor %} {% endblock %}

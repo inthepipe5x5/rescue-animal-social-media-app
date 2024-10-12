@@ -1,8 +1,9 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+{% block content %}
 <div id="profile-hero" class="image-wrapper">
   <img
     class="img-fluid"
-    src={{ user.header_imge or url_for(static='../../static/images/profile',filename='/default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg') }}
+    src="{{ user.header_image if user.header_image else url_for('static', filename='images/profile/default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg') }}"
     {#
     provided
     stock
@@ -85,7 +86,28 @@
     <h4 id="sidebar-username">@{{ user.username }}</h4>
     <p>{{user.bio}}</p>
     <p class="user-location">
-      <span class="fa fa-map-marker"></span>{{user.location}}
+      <a href="{{ url_for('form_user_location') }}" class="btn btn-primary">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          fill="currentColor"
+          class="bi bi-pin-map"
+          viewBox="0 0 16 16"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8z"
+          ></path>
+          <path
+            fill-rule="evenodd"
+            d="M8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"
+          ></path>
+        </svg>
+        {{session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else
+        session['CURR_LOCATION'] if 'CURR_LOCATION' in session else "Please set
+        your location"}}
+      </a>
     </p>
   </div>
 

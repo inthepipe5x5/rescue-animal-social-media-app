@@ -87,16 +87,12 @@ class PetFinderPetPyAPI:
     _petpy_api_instance = None
 
     def __init__(self, *args, **kwargs):
-        self.access_token = None
-        self.token_expiration = None
+        self.access_token = os.environ.get("ACCESS_TOKEN", None)
+        self.token_expiration = os.environ.get("TOKEN_EXPIRATION", None)
 
-    @classmethod
-    def petpy_api(cls):
-        if cls._petpy_api_instance is None:
-            cls._petpy_api_instance = Petfinder(
-                key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
-            )
-        return cls._petpy_api_instance
+        if not self.access_token:
+            self._get_access_token()
+
 
     def _get_access_token(self):
         """Instance method to request a new access token from Petfinder API
@@ -128,6 +124,11 @@ class PetFinderPetPyAPI:
                 token_info = response.json()
                 self.access_token = token_info["access_token"]
                 self.token_expiration = current_time + token_info["expires_in"]
+
+                # save token & token_expiration to env variables
+                os.environ["ACCESS_TOKEN"] = self.access_token
+                os.environ["TOKEN_EXPIRATION"] = self.token_expiration
+
                 print("new access_token received PetFinderAPI and api instance updated")
                 return self.access_token
             elif response.status_code == 500:
@@ -177,6 +178,9 @@ class PetFinderPetPyAPI:
             response = requests.get(request_url, headers=headers, params=params)
             print(
                 f"_GET_REQUEST() @ {request_url} Params: {params} Headers: {headers} Response: {response.status_code}"
+            )
+            print(
+                f"_GET_REQUEST()RESPONSE @ {response.url} Params: {params} Status: {response.status_code}"
             )
 
             # Check for a successful response
@@ -669,7 +673,7 @@ class PetFinderPetPyAPI:
                 print(f"RETRY API Response: {response.status_code} - {response.text}")
 
             # Filter results based on favorites
-            if favorites:
+            if favorites and len(results > 0):
                 results = self.filter_favorites_by_id(
                     results=results,
                     favorites=favorites,
@@ -677,7 +681,9 @@ class PetFinderPetPyAPI:
                     is_animal=True,
                 )
 
-            if results:
+            elif (
+                results
+            ):  # elif so that this results is truthy check is done after filtering out by favorites
                 # update the results key in response
                 response["results"] = results
                 # update the page key in response
@@ -702,6 +708,7 @@ class PetFinderPetPyAPI:
         self,
         init_params,
         favorites,
+        results_per_page=6,
         user_preferences_dict={},
         filter_prefs={},
     ):
@@ -716,13 +723,14 @@ class PetFinderPetPyAPI:
         try:
             page_data = next(pagination)
             print("generated API results=", page_data["pagination"])
+
         except StopIteration:
             # Handle case where the requested page doesn't exist
             # Handle case where no results are found
             return {
                 "filtered": [],
                 "pagination": {},
-                "results": [],
+                "results": locals.get("page_data") if "page_data" in locals() else [],
                 "success_flag": False,
                 "api_page": init_params.get("page", 1),
                 "bad_keys": [],

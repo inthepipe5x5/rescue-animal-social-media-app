@@ -1,4 +1,4 @@
-{% macro render_animal_card(animal, date_delta) %}
+{% macro render_singular_animal_card(animal, date_delta) %}
   <div class="col">
     <div class="card text-start h-100">
       {% if animal.photos | length > 0 %}
@@ -68,44 +68,90 @@
   </div>
 {% endmacro %}
 
-{% macro render_pagination(current_page, total_pages, base_url=request.location) %}
+{% macro render_pagination(current_page, base_url=request.location) %}
 <nav aria-label="Page navigation">
   <ul class="pagination justify-content-center">
     {% set current_page = current_page|int %}
-    {% set total_pages = total_pages|int %}
-    
-    {# Edge case: Make sure total_pages is always greater than or equal to 1 #}
-    {% if total_pages < 1 %}
-      {% set total_pages = 1 %}
-    {% endif %}
 
-    {# Previous button - Disable if on the first page or if total_pages is inaccurate #}
+    {# Previous button - Disable if on the first page #}
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
       <a class="page-link" href="{{ base_url }}/{{ current_page - 1 if current_page > 1 else 1 }}" {% if current_page == 1 %}tabindex="-1"{% endif %}>Previous</a>
     </li>
 
     {# Previous page link if applicable #}
     {% if current_page > 1 %}
-      <li class="page-item"><a class="page-link" href="{{ base_url }}/{{ current_page - 1 }}">{{ current_page - 1 }}</a></li>
+      <li class="page-item"><a class="page-link" href="{{ base_url }}/{{ current_page - 1 }}">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+        </svg>
+
+      </a></li>
     {% endif %}
 
     {# Current page #}
     <li class="page-item active"><a class="page-link" href="{{ base_url }}/{{ current_page }}">{{ current_page }}</a></li>
 
-    {# Next page link if applicable #}
-    {% if current_page < total_pages %}
-      <li class="page-item"><a class="page-link" href="{{ base_url }}/{{ current_page + 1 }}">{{ current_page + 1 }}</a></li>
-    {% endif %}
+    {# Next page link - Placeholder, as total_pages is no longer available #}
+    <li class="page-item"><a class="page-link" href="{{ base_url }}/{{ current_page + 1 }}">{{ current_page + 1 }}</a></li>
 
-    {# Next button - Disable if on the last page or total_pages is incorrect #}
-    <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
-      <a class="page-link" href="{{ base_url }}/{{ current_page + 1 if current_page < total_pages else total_pages }}">Next</a>
+    {# Next button - Always enabled, since total_pages is removed #}
+    <li class="page-item">
+      <a class="page-link" href="{{ base_url }}/{{ current_page + 1 }}">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+        </svg>
+    
+      </a>
     </li>
+    
+    {# Inform user about dynamic updates (optional) #}
+    <li class="page-item">
+      <span data-bs-toggle="tooltip" title="Note: Page counts might change due to dynamic updates and content rendering." class="badge bg-light text-dark rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle">
+          <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"></path>
+        </svg>
+      </span>
+    </li>
+    
   </ul>
-
-  {# Inform user if total_pages or data might be inaccurate due to dynamic data changes #}
-  {% if total_pages == 1 %}
-    <p class="text-muted">Note: Page counts might change due to dynamic updates.</p>
-  {% endif %}
 </nav>
 {% endmacro %}
+
+{% macro render_animal_cards_list(animals) %} 
+<div class="animal-card-results card-group"> 
+  
+  {% for animal in animals %} 
+  
+<div class="card {{ animal_bg_colors[animal.type] if animal.type }}">
+   <div class="card-header d-flex align-items-center"> 
+    <div class="d-flex justify-content-start flex-grow-1">
+       <span class="md-mr-auto p-2"> <h4>{{ animal_emojis[animal.type] or animal_emojis[animal.species] or '🦄' }}</h4> 
+      </span> 
+      {# Card Header #}
+      <div class="ml-auto p-2"> <h5>{{ animal.name }}</h5> </div>
+    </div> 
+    <small class="text-muted">📍{{animal.contact.address}} </small> </div> 
+    
+    {# Card Body #}
+     <div class="card-body"> 
+      <span class="badge text-light {{ 'success' if animal.status.lower() != 'adopted' else 'info' }}"> {{ animal.status if animal.status else "Adoptable"}} </span> 
+      <p>{{ animal.breeds+" - " if animal.breeds else ""}}{{ animal.age+" - " if animal.age else ""}} - {{ animal.gender+" - " if animal.gender else ""}}</p>
+      
+      <img src="{{ animal.photos }}" class="card-img-top img-fluid" alt="{{ animal.name }}"> 
+      
+      <p class="card-text"><small class="text-muted">{{ animal.date_delta }} - Days Since Posted</small></p> 
+    
+      </div> 
+      </div>
+     {% endfor %} 
+  
+    </div>
+    
+    <style> @media (min-width: 992px) { .card-group > .card { flex: 0 0 calc(33.333% - 1rem); margin: 0.5rem; } } @media (min-width: 768px) and (max-width: 991px) { .card-group > .card { flex: 0 0 calc(50% - 1rem); margin: 0.5rem; } } @media (max-width: 767px) { .card-group > .card { flex: 0 0 100%; margin: 0.5rem; } } </style> 
+    
+    {% endmacro %}
+
+
+{% macro render_skeleton_cards(skeleton_count=6) %} <div class="card-group"> {% for _ in range(skeleton_count) %} <div class="card bg-light"> <div class="card-header"> <div class="d-flex align-items-center"> <div class="skeleton skeleton-text" style="width: 70%; height: 20px; margin-right: 10px;"></div> <div class="ml-auto skeleton skeleton-text" style="width: 30%; height: 20px;"></div> </div> </div> <div class="card-body"> <span class="badge text-light bg-secondary" style="width: 60%; display: inline-block; height: 20px;"></span> <p class="skeleton skeleton-text" style="width: 80%; height: 20px;"></p> <img src="#" class="card-img-top img-fluid" alt="Loading..." style="height: 150px; object-fit: cover;"> <p class="skeleton skeleton-text" style="width: 50%; height: 15px;"></p> </div> </div> {% endfor %} </div> {% endmacro %}

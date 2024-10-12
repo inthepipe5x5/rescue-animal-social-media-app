@@ -3,35 +3,32 @@
   <div class="row text-center">
     <div class="col">
       <div id="parent-results-container">
-        <div id="animal-results-error-container" class="container">
-          <span class="text-danger"><!--PUT ERRORS HERE--></span>
+        {# ANIMAL RESULTS PAGINATION NAV#}
+        <div class="nav-scroller bg-body shadow-sm">
+          <nav class="nav" aria-label="Secondary navigation">
+            <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
+            <a class="nav-link" href="#">
+              <span class="badge rounded-pill bg-danger text-bg-light rounded-pill align-text-bottom">Matching Animal Results{{animals | length if animals else 0}}<span class="visually-hidden">Number Of Animal Results Found</span></span>
+            </a
+            {% if results %}
+            render_pagination(current_page=session.CURRENT_DISCOVER_ANIMALS_PAGE)
+    
+            {% endif %}
+          </nav>
         </div>
+
+
+        {% if hidden_form %}
+          {% include 'hiddenForm.html' with hidden_form=hidden_form %}
+          {% include url_for('static', filename="geolocation.js") %}
+        {% endif %}
 
         <div
           id="animal-results-cards-container"
           class="row row-cols-1 row-cols-md-3 g-4"
         >
-          <form
-            id="hidden_form"
-            class="hidden
-            method="POST"
-            action="{{ url_for('animal_data') }}"
-          >
-            {{form.hidden_tag()}}
-            {% for field in form %}
-                {% if field.widget.input_type == 'hidden' %}
-                    {% for error in field.errors %}
-                        <div class="error">{{ error }}</div>
-                    {% endfor %}
-                    {{ field(placeholder=field.label.text, class="form-control") }}
-                {% endif %}
-            {% endfor %}
-          </form>
+          
         </div>
-        <!-- Include geolocation.js -->
-
-        <!-- Include renderAnimalCards.js -->
-        <script src="{{ url_for('static', filename='renderAnimalCards.js') }}"></script>
 
       </div>
     </div>

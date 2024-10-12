@@ -2,17 +2,18 @@
     block content %}
     
     <div class="row justify-content-md-center">
-      <div class="col-md-7 col-lg-5">
+      <div class="col-md-7 col-lg-8">
         <h3 class="join-message">Narrow Down your Search</h3>
         <hr />
         <form method="POST" action="{{ url_for(request.endpoint, animal_type=endpoint_param) }}">
           {{ form.csrf_token }} {% for field in form if field.widget.input_type !=
-          'hidden' %} {% if field.widget.input_type == 'select' %}
+          'hidden' %} 
+          {% if field.widget.input_type == 'select' %}
           <div class="form-group">
             {{ field.label(class="form-label") }}
             <div class="btn-group btn-group-toggle" data-toggle="buttons">
               {% for value, label in field.choices %}
-              <label class="btn btn-outline-primary">
+              <label class="btn btn-outline-primary"> {{field.label.text | format_kebob_case }}
                 <input
                   type="checkbox"
                   name="{{ field.name }}"

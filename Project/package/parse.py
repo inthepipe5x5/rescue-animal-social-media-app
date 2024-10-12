@@ -329,7 +329,23 @@ class Parse:
         else:
             return data
 
-    def clean_text(self, text, *cleaning_rules):
+    def format_kebob_case(input_string) -> str: 
+        """Helper function to remove underscores & capitalize input string text  
+
+        Args:
+            input_string (str): string text to remove underscores & capitalize
+
+        Returns:
+            str: formatted string text 
+        """
+        # Guard clause: return the original string if no underscores are found
+        if '_' not in input_string:
+            return input_string
+        
+        # Split the string by underscores, capitalize each part, and join them back with spaces
+        return ' '.join(part.capitalize() for part in input_string.split('_'))
+    
+    def clean_text(self, text, *cleaning_rules) -> str:
         """
         Clean text by removing common artifacts, unescaping HTML, and applying other cleaning rules.
 
@@ -337,6 +353,8 @@ class Parse:
         :param cleaning_rules: additional cleaning functions to apply
         :return: str, the cleaned text
         """
+        if not cleaning_rules:
+            cleaning_rules = self.format_kebob_case(input_string=text)
         # Unescape any HTML entities (e.g., &quot;, &amp;, etc.)
         text = html.unescape(text)
 
@@ -663,14 +681,16 @@ class ParseAnimal(Parse):
                     "locale",
                     "contact",
                 ):
-                    #handle if key = "contact" and the address DICT is nested within 
+                    # TODO: need to fix this as accessing animal.location is easier plus it doesn't handle non-dict situations cleanly
+                    # handle if key = "contact" and the address DICT is nested within
                     if key == "contact":
-                        self.results[key] = (
-                            self.parse_address(value.get("address"))
-                            if isinstance(value, dict)
+                        location = value["address"] if "address" in value else value
+                        self.results["location"] = (
+                            self.parse_address(location)
+                            if isinstance(location, dict)
                             else (
-                                self.clean_text(value, self.normalize_name)
-                                if isinstance(value, str)
+                                self.clean_text(location, self.normalize_name)
+                                if isinstance(location, str)
                                 else "Unknown Location"
                             )
                         )
@@ -697,14 +717,12 @@ class ParseAnimal(Parse):
                     "colours",
                     "coat color",
                 ):
-                    print(f"color key={key}:{value}")
                     self.results[key] = self.parse_color(value)
                     self.parsed_keys.add(key)
                 elif key.lower() in (
                     "coat",
                     "coats",
                 ):
-                    print(f"coat key={key}:{value}")
                     self.results[key] = value if value else "Mystery Coat"
                     self.parsed_keys.add(key)
                 elif key.lower() in (
@@ -752,7 +770,11 @@ class ParseAnimal(Parse):
                 return f"{primary}"
         else:
             print("parse colors output", primary)
-            return primary if primary and primary not in ["", "_", "__", None] else "Unknown Color"
+            return (
+                primary
+                if primary and primary not in ["", "_", "__", None]
+                else "Unknown Color"
+            )
 
     def parse_breed(self, breeds_obj):
         """Function to parse breeds object property in a single Animal result from PetFinder API results"""

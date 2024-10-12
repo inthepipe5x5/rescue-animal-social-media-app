@@ -23,6 +23,7 @@ from models import (
     UserLocation,
     UserTravelPreferences,
 )
+
 load_dotenv()
 
 # from package.PetFinderAPI import api
@@ -220,14 +221,6 @@ class GlobalPreferencesForm(FlaskForm):
         for value, label in animal_dict:
             self[value] = BooleanField(f"Set {label} Filters", default=False)
 
-    travel = BooleanField(
-        "Would you like to customize your travel preferences?", default=False
-    )
-    # user info
-    residence = BooleanField("Would you like to describe your living situation?")
-
-    resources = BooleanField("Would you like to describe your resources?")
-
 
 class AnonExperiencesForm(UserExperiencesForm):
 
@@ -315,7 +308,7 @@ class ValidGeolocation:
     def __call__(self, form, field):
         try:
             if not field.data:
-                return ''
+                return ""
             else:
                 latitude, longitude = map(float, field.data.split(","))
                 if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
@@ -388,16 +381,22 @@ class UserTravelForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super(UserTravelForm, self).__init__(*args, **kwargs)
 
-        for name, field in self._fields.items():
-            if field.label is None:
+        # Accessing fields directly from self._fields
+        for field_name, field in self._fields.items():
+            if not field.label or not field.label.text:
                 # If no label is explicitly set, use the field name but replace underscores with spaces and capitalize each word
                 label_text = " ".join(
-                    word.capitalize() for word in name.replace("_", " ").split()
+                    word.capitalize() for word in field_name.replace("_", " ").split()
+                )
+            elif "_" in field.label.text:
+                label_text = " ".join(
+                    word.capitalize() for word in field_name.replace("_", " ").split()
                 )
             else:
                 # Use the existing label if it's set
                 label_text = field.label.text
 
+            # Set the modified label text
             field.label.text = label_text
 
 

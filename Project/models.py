@@ -74,6 +74,26 @@ class UserFavorites(db.Model):
             return []  # Return an empty list instead of raising an exception
         # turn favorites into a set to remove duplicates and then return a list
         return list({fav.favorite_id for fav in favorites})
+    
+    @classmethod
+    def get_org_favorites(cls, user_id):
+        """
+        Read function -> Get all favorites of a given user_id
+        """
+        if not user_id:
+            raise ValueError(
+                f"No user_id passed into UserFavorites.get_favorites(), got id:'{user_id}' instead"
+            )
+        # Query the database for animal favorites where is_animal is True.
+        favorites = (
+            db.session.query(UserFavorites)
+            .filter(UserFavorites.user_id == user_id, UserFavorites.is_animal == False)
+            .all()
+        )
+        if not favorites:
+            return []  # Return an empty list instead of raising an exception
+        # turn favorites into a set to remove duplicates and then return a list
+        return list({fav.favorite_id for fav in favorites})
 
     @classmethod
     def add_favorite(cls, user_id, favorite_id, is_animal=True):

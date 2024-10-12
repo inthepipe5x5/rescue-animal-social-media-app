@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand">
-  <div class="container-fluid">
-    <div class="navbar-header">
+  <ul class="nav navbar-nav navbar-left mr-auto">
+    <div class="navbar-header ml-4">
       <a href="/" class="navbar-brand">
         <img
           class="d-inline-block align-top"
@@ -9,83 +9,89 @@
         />Far Fetched
       </a>
     </div>
-    <ul class="nav navbar-nav navbar-right">
-      {% if session['CURR_LOCATION'] %}
-      <li class="nav-item">
-        <a href="{{ url_for('form_user_location') }}"
-          >{{ session['CURR_LOCATION'] if 'STATE_COUNTRY' in session else
-          session["COUNTRY"] }}📍</a
-        >
-      </li>
-      {% else %}
-      <li class="nav-item">
-        <a href="{{ url_for('form_user_location') }}">
-          {{ session['CURR_LOCATION'] if 'CURR_LOCATION' else "Location"}}📍</a
-        >
-      </li>
-      {% endif %}
-      <div class="vr"></div>
-      <!-- vertical divider div -->
+  </ul>
+  <ul class="nav navbar-nav navbar-right">
 
-      {% if not session["animal_types"] %}
-      <li class="nav-item">
-        <button
-          class="btn btn-link nav-link"
-          data-bs-toggle="modal"
-          data-bs-target="#animalTypesModal"
-        >
-          Animal Filters
-        </button>
-      </li>
-      {% else %} {% for type in session["animal_types"] %}
-      <li class="nav-item">
-        <a href="{{ url_for('animal_preferences', animal_type=type) }}">
-          {{ animal_emojis[type] }}
-        </a>
-      </li>
-      {% endfor %} {% endif %}
+    {% if not session["ANIMAL_TYPES"] %}
+    <li class="nav-item">
+      <a class="btn btn-link" href=url_for("")></a>
+    </li>
+    {% else %}
+    {% for type in session["ANIMAL_TYPES"] %}
+    <li class="nav-item">
+      <a class='btn btn-link nav-link' href="{{ url_for('animal_preferences', animal_type=type) }}">
+        {{ animal_emojis[type] }}
+      </a>
+    </li>
+    {% endfor %}
+    <li class="nav-item">in</li>
+    <li class="nav-item">
+      <a class="text-dark" href={{ url_for('form_user_location') }}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8z"></path>
+          <path fill-rule="evenodd" d="M8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"></path>
+        </svg>{{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else session["CURR_LOCATION"] if "CURR_LOCATION" in session else "Location Not Set" }}</a>
+    </li>
+    {% endif %}
 
-      <div class="vr"></div>
-      <!-- vertical divider div -->
+    <div class="vr"></div>
 
-      <li class="nav-item">
-        <a href="{{ url_for('discover_animals') }}">Discover Animals</a>
-      </li>
-      <li class="nav-item">
-        <a href="{{ url_for('discover_animals') }}">Favorites</a>
-      </li>
-      {#
-      <li class="nav-item">
-        <a href="{{ url_for('discover_orgs') }}">Discover Orgs</a>
-      </li>
-      #} {% if request.endpoint %}
-      <li>
-        <form class="navbar-form navbar-right" action="/users">
-          <input
-            name="q"
-            class="form-control"
-            placeholder="Fetch some animals!"
-            id="search"
-          />
-          <button class="btn btn-default">
-            <span class="fa fa-search"></span>
-          </button>
-        </form>
-      </li>
-      {% endif %} {% if not session.CURR_USER %}
-      <li><a href="/signup">Sign up</a></li>
-      <li><a href="/login">Log in</a></li>
-      {% else %}
-      <li>
-        <a href="/users/{{ session.CURR_USER.id }}">
-          <img
-            src="{{ session.CURR_USER.image_url }}"
-            alt="{{ session.CURR_USER.username }}"
-          />
-        </a>
-      </li>
-      <li><a href="/logout">Log out</a></li>
-      {% endif %}
-    </ul>
-  </div>
+    <!-- First Dropdown -->
+    <li class="nav-item dropdown">
+      <button
+        class="nav-link dropdown-toggle"
+        id="navbarDropdown"
+        data-toggle="dropdown"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        Discover
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+        <li class="dropdown-header"><h6>Result Types</h6></li>
+        <li><a class="dropdown-item" href="{{ url_for('discover_animals') }}">Nearby Animals</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('discover_orgs')}}">Nearby Rescue Orgs</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('all_user_favorites') }}">Favorites</a></li>
+      </ul>
+    </li>
+
+    <!-- Second Dropdown -->
+    <li class="nav-item dropdown">
+      <button
+        class="nav-link dropdown-toggle"
+        id="preferencesDropdown"
+        data-toggle="dropdown"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        Set Preferences
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="preferencesDropdown">
+        <li class="dropdown-header"><h6>Search Filters</h6></li>
+        <li><a class="dropdown-item" href="{{ url_for('form_user_location') }}">Location Filter</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('user_travel_preferences')}}">Distance Filter</a></li>
+        <div class="dropdown-divider"></div>
+        <li class="dropdown-header"><h6>Animal Filters</h6></li>
+        {% for type_key, type_value in animal_emojis.items() %}
+          <li class="nav-item">
+            <a class="dropdown-item" href="{{ url_for('animal_preferences', animal_type=animal_type) }}">
+              {{ animal_emojis[animal_type] }} {{ animal_type|replace('-', ' ')|title }} Preferences
+            </a>    
+          </li>
+        {% endfor %}
+      </ul>
+    </li>
+
+    
+    {% if not session.CURR_USER %}
+    <li><a href="/signup">Sign up</a></li>
+    <li><a href="/login">Log in</a></li>
+    {% else %}
+    <li><a href="/users/{{ session.CURR_USER.id }}">
+        {{ session.CURR_USER.username }}<img src="{{ session.CURR_USER.image_url }}" alt="{{ session.CURR_USER.username }}" />
+    </a></li>
+    <li><a href="/logout">Log out</a></li>
+    {% endif %}
+    
+   </ul>
 </nav>

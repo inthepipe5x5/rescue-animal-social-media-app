@@ -24,10 +24,13 @@ from flask_login import (
     logout_user,
     current_user,
 )
-
+from petpy import Petfinder
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from dotenv import load_dotenv  # type: ignore
 import os
+import pycountry
+import requests
+from time import sleep
 
 # from functools import wraps #TODO: to protect certain API routes
 from flask_bcrypt import Bcrypt
@@ -64,9 +67,10 @@ from package.helper import (
     add_location_to_g,
     add_animal_types_to_g,
 )
-from package.PetFinderAPI import PetFinderPetPyAPI
 from config import config, Config
-import pycountry
+from package.PetFinderAPI import PetFinderPetPyAPI
+from package.parse import Parse
+
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
@@ -76,7 +80,7 @@ load_dotenv()
 default_session_keys = {
     "CURR_LOCATION": os.environ.get("CURR_LOCATION", "43.6429,-79.3889"),
     "ANIMAL_TYPES": os.environ.get("ANIMAL_TYPES", ["dog"]),
-    "CURRENT_DISCOVER_ANIMAL_PAGE": 1,
+    "CURRENT_DISCOVER_ANIMALS_PAGE": 1,
     "CURRENT_DISCOVER_ORG_PAGE": 1,
     "DEFAULT_LOCATION": {
         "geolocation": "43.6429,-79.3889",
@@ -86,6 +90,7 @@ default_session_keys = {
         "city": "Toronto",
     },
     "DISTANCE_PREF": 100,
+    "RESULTS_PER_PAGE": 6,  # default is 6 (so render 2 rows of 3 columns of cards)
 }
 
 
@@ -135,10 +140,23 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-# api instance
+#Custom Jinja filters
+custom_filters_dict = {
+    "format_kebob_case": Parse.format_kebob_case,
+}
+for function_key, function in custom_filters_dict.items():
+    app.jinja_env.filters[function_key] = function 
+
+# api instance of helper class
 api = PetFinderPetPyAPI()
 
+# petpy instance
+petpy = Petfinder(key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET"))
 
+#set auth in petpy
+if not petpy._auth:
+    petpy._auth = os.environ.get('ACCESS_TOKEN', None)
+    
 ##############################################################################
 # SESSION FUNCTIONS
 
@@ -280,7 +298,6 @@ def do_logout():
 
     # flask-login's logout user => will clean up the cookie if it exists
     logout_user()
-    
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -309,9 +326,9 @@ def login():
 @app.route("/logout")
 def logout():
     """Handle logout of user."""
-    #remove user from session
+    # remove user from session
     do_logout()
-    #populate default session data in
+    # populate default session data in
     init_default_session()
     flash(f"Log out successful. Hope to see you again", "success")
     return redirect("/")
@@ -407,7 +424,7 @@ def form_user_location():
 
 @login_required
 @app.route("/users/travel", methods=["GET", "POST"])
-def update_travel_preferences():
+def user_travel_preferences():
     travel_preferences = UserTravelPreferences.query.filter_by(
         user_id=current_user.id
     ).first()
@@ -443,7 +460,7 @@ def update_travel_preferences():
     return render_template(
         "/users/form.html",
         form=form,
-        form_title="How far should we look?",
+        form_title="How far are you willing to travel? Change the distance parameter to have more localized results.",
         page_scripts=[url_for("static", filename="setTravelPreference.js")],
     )
 
@@ -472,8 +489,50 @@ def update_travel_preferences():
 #     return render_template("users/followers.html", user=user)
 
 
-@app.route("/users/favorite/<int:favorite_id>", methods=["POST"])
 @login_required
+@app.route("/users/favorite/all", methods=["POST"])
+def all_user_favorites():
+    """Add or toggle a favorite for the currently-logged-in user."""
+    
+    fav_type = request.args.get("type", "animals").lower() if request.args else 'all'
+
+    user = (
+        current_user
+        if current_user.is_authenticated
+        else session.get("CURR_USER", None)
+    )
+    if not user:
+        flash("Access unauthorized.", "danger")
+        return redirect(url_for("login"))
+
+    try:
+        if fav_type == 'all':
+            user_favorites = UserFavorites.get_favorites(user_id=user.id)
+        
+        #return fave orgs
+        elif fav_type.lower() in ('orgs', 'organizations', 'organization', 'rescue', 'rescues'):
+            user_favorites = UserFavorites.get_orgs_favorites(user_id=user.id)
+        
+        #return fave animals if fave_type not specified
+        # elif fav_type == 'animals':
+        else:
+            user_favorites = UserFavorites.get_animal_favorites(user_id=user.id)
+        
+        return jsonify(
+            {
+                "user_id": user.id,
+                "action": fav_type,
+                "results": user_favorites if user_favorites else [],
+            }
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@login_required
+@app.route("/users/favorite/<int:favorite_id>", methods=["POST"])
 def user_favorite(favorite_id):
     """Add or toggle a favorite for the currently-logged-in user."""
 
@@ -512,7 +571,7 @@ def user_favorite(favorite_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
+@login_required
 @app.route("/users/profile", methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
@@ -543,7 +602,6 @@ def profile():
                 )
 
         return render_template("users/edit.html", form=form, user=logged_in_user)
-
 
 @app.route("/users/delete", methods=["POST"])
 def delete_user():
@@ -603,7 +661,7 @@ def get_user_data(user_id):
             return {
                 "CURR_USER_KEY": result.id,
                 "ANIMAL_TYPES": result.animal_types,
-                "STATE_COUNTRY": f"{result.state+result.country}",
+                "STATE_COUNTRY": f"{result.state+', '+result.country}",
                 "DISTANCE_PREF": result.distance_filter_preference,
                 "CURR_LOCATION": (
                     current_location.get_location_info()
@@ -614,8 +672,9 @@ def get_user_data(user_id):
     # handle no results
     print("No User data found, default output returned")
     default_output = default_session_keys.copy()
-    default_output['STATE_COUNTRY'] = get_location(no_geocode=False)
+    default_output["STATE_COUNTRY"] = get_location(no_geocode=False)
     return default_output
+
 
 # Helper function to retrieve PetFinder API status query param based on rescue actions
 def get_rescue_action_mapped_to_animal_status():
@@ -721,7 +780,7 @@ def create_init_params(type="animal"):
 
     # Common session values or default ones
     current_page_count = (
-        session.get("CURRENT_DISCOVER_ANIMAL_PAGE", 1)
+        session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
         if type.lower() in ["animal", "animals"]
         else session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
     )
@@ -871,68 +930,107 @@ def create_user_preference_filters():
         return filters
 
 
-@app.route("/discover/animals", methods=["GET"])
+@app.route("/discover/animals", methods=["GET", "POST"])
 def discover_animals():
     # grab current page_count in session
-    current_page_count = session.get("CURRENT_DISCOVER_ANIMAL_PAGE", 1)
-    # direct to current page count
-    return redirect(url_for("discover_animals_page", page=current_page_count))
+    current_page_count = session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
+    if request.method.upper() == "GET":
+        # direct to current page count
+        return redirect(url_for("discover_animals_page", page=current_page_count))
+    elif request.method.upper() == "POST":
+        # current user
+        user = load_user(current_user.id) if active_authenticated_user() else None
+
+        init_params = create_init_params(type="animal")
+        if active_authenticated_user():
+            animal_prefs = get_user_animal_preferences(user_id=user.id)
+            expanded_params = api.preprocess_preferences(
+                init_params_copy=init_params.copy(), prefs_obj=animal_prefs
+            )
+        # create params for GET request
+        animal_params = (
+            expanded_params
+            if (expanded_params and active_authenticated_user())
+            else init_params
+        )
+        animal_params["count"] = 50  # return 50 results to filter
+
+        filters = (
+            {}
+            if not animal_prefs
+            else api.create_filter_conditions(preferences=animal_prefs)
+        )
+
+        try:
+            response = api._get_request(params=animal_params)
+            if response.get("animals") and len(response.get("animals")) > 0:
+                animal_lists = response.get("animals", [])
+                filtered = api.filter_results_list(
+                    results_list=animal_lists, filter_conditions=filters
+                )
+                if filtered and filtered.get("results"):
+                    all_results = filtered.get("results")
+                    results_per_page = session.get("RESULTS_PER_PAGE", 6)
+                    paginated_result_object = {}
+                    page_index = 1
+                    for result in all_results:
+                        if page_index in paginated_result_object:
+                            if (
+                                len(paginated_result_object[page_index])
+                                >= results_per_page
+                            ):
+                                # increment if greater or equal if the length of the list stored under this page_index is greater/equal to the RESULTS_PER_PAGE setting
+                                page_index = page_index + 1
+                            else:
+                                # append result to the object list under the page_index key
+                                paginated_result_object[page_index].append(result.id)
+                        else:
+                            # if page_index not in paginated_result_object, create a list with result
+                            paginated_result_object[page_index] = [result.id]
+
+                    if paginated_result_object:
+                        # TODO: REMOVE LATER AFTER DEBUGGING
+                        app.logger.debug(
+                            "animal results in session created", paginated_result_object
+                        )
+
+                        # save to session so that future routes can use this
+                        session["ANIMAL_RESULTS_DICT"] = paginated_result_object
+
+        except Exception as e:
+            app.logger.error("UH OH, something went wrong @ {request.endpoint} - {e}")
 
 
-# @app.route("/discover/animals/<int:page>", methods=["GET"])
-# def discover_animals_page(page=1):
-#     # handle invalid page attempts & or if the user hasn't visited page 1 yet
-#     if not "TOTAL_PAGE_COUNT" in session or page > session.get("TOTAL_PAGE_COUNT", 2):
-#         flash("Sorry, we haven't found that many friends to adopt yet!")
-#         # redirect to page 1
-#         redirect(url_for("discover_animals_page", page=1))
+@app.route("/discover/animals/<int:page>", methods=["GET"])
+def discover_animals_page(page):
+    args = request.args if request.args else {}
 
-#     # Grab user info
-#     user_id = current_user.id if active_authenticated_user() else None
-#     if user_id:
-#         user = load_user(user_id=user_id)
-#         user_location = (
-#             user.location
-#             if user.location
-#             else db.session.query(UserLocation).filter_by(user_id=user_id).first()
-#         )
+    # handle no page
+    if not page:
+        page = session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
+        if args and "next" in args:
+            # increment page
+            page = page + 1
+            # update session
+            session["CURRENT_DISCOVER_ANIMALS_PAGE"] = page
+        if args and "prev" in args:
+            # increment page
+            page = page - 1
+            # update session
+            session["CURRENT_DISCOVER_ANIMALS_PAGE"] = page
+    # handle invalid page attempts & or if the user hasn't visited page 1 yet
+    if not "ANIMAL_RESULTS_DICT" in session:
+        flash("Sorry, we haven't found that many friends to adopt yet!")
+        # make post request to seed
+        requests.post(url_for("discover_animals"))
+        sleep(3)
+        redirect(url_for("discover_animals_page", page=page))
 
-#     # Fallback location if not logged in or no location set
-#     location = (
-#         user_location.get_location_info()
-#         if user_id and user_location
-#         else default_session_keys["DEFAULT_LOCATION"]
-#     )
+    animal_id_list = session.get("ANIMAL_RESULTS_DICT").get(page, [])
 
-#     # Create a form with the user's location
-#     form = HiddenLocationForm(obj=location)
+    animals = api._get_request(animal_id=animal_id_list)
 
-#     # Fetch paginated results using the generator
-#     api = PetFinderPetPyAPI()
-#     paginated_result_gen = paginated_results(
-#         api.get_mapped_animals_by_type,
-#         species=user.animal_types if user_id else "dog",
-#     )
-
-#     # Get the first result (or the one corresponding to the current page)
-#     try:
-#         result = next(paginated_result_gen)
-#     except StopIteration:
-#         return render_template("animalResults.html", form=form, results=[], page=page)
-
-#     # Update current page count in the session
-#     session["CURRENT_DISCOVER_ANIMAL_PAGE"] = page
-
-#     # Update total page count in the session
-#     # TODO: determine if result object contains pagination or total_pages
-#     session["TOTAL_DISCOVER_ANIMAL_PAGE"] = int(
-#         result["pagination"]["total_pages"]
-#     ) or int(result["total_pages"])
-
-#     # Render the result in the template
-#     return render_template(
-#         "animalResults.html", form=form, results=result["results"], page=page
-#     )
+    return render_template("animalResults.html", animals=animals)
 
 
 @app.route("/data/<country>/state", methods=["GET"])
@@ -1044,7 +1142,7 @@ def animal_data():
                 200,
             )
 
-        # Return the first batch of results
+        # Return the batch of results
         return jsonify(results), 200
 
     except Exception as e:
@@ -1213,6 +1311,46 @@ def reseed_db():
     )
 
 
+@app.route("/discover/orgs", methods=["GET", "POST"])
+def discover_orgs():
+    # grab current page_count in session
+    current_page_count = session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
+    if request.method.upper() == "GET":
+        # direct to current page count
+        return redirect(url_for("discover_orgs_page", page=current_page_count))
+
+@app.route("/discover/orgs/<int:page>", methods=["GET"])
+def discover_orgs_page(page):
+    args = request.args if request.args else {}
+
+    # handle no page
+    if not page:
+        page = session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
+        if args and "next" in args:
+            # increment page
+            page = page + 1
+            # update session
+            session["CURRENT_DISCOVER_ORGS_PAGE"] = page
+        if args and "prev" in args:
+            # increment page
+            page = page - 1
+            # update session
+            session["CURRENT_DISCOVER_ORGS_PAGE"] = page
+    # handle invalid page attempts & or if the user hasn't visited page 1 yet
+    if not "ANIMAL_RESULTS_DICT" in session:
+        flash("Sorry, we haven't found that many friends to adopt yet!")
+        # make post request to seed
+        requests.post(url_for("discover_orgs"))
+        sleep(3)
+        redirect(url_for("discover_orgs_page", page=page))
+
+    animal_id_list = session.get("ANIMAL_RESULTS_DICT").get(page, [])
+
+    animals = petpy.animals(animal_id=animal_id_list)
+
+    return render_template("animalResults.html", animals=animals)
+
+
 @app.route("/data/orgs", methods=["GET", "POST"])
 def orgs_data():
     """ROUTE TO GET ORGS DATA
@@ -1283,9 +1421,8 @@ def set_global():
     # Check if the user is logged in
     if active_authenticated_user():
 
-        # check db, session and 'g' for user preferences. if not found, will return default country : 'CA', animal_type: 'dog'
-        country = get_user_preference(key="country", session=session, g=g)
-        animal_types = get_user_preference(key="animal_types", session=session, g=g)
+        animal_types = session.get('ANIMAL_TYPES') if 'ANIMAL_TYPES' in session else current_user.animal_types
+        state_country = session.get('STATE_COUNTRY') if 'STATE_COUNTRY' in session else current_user.location
         form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
         # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
@@ -1459,7 +1596,7 @@ def animal_preferences(animal_type):
             )
             print(new_prefs)
             # reset current_animal_page count to 1
-            session.pop("CURRENT_DISCOVER_ANIMAL_PAGE", 1)
+            session.pop("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
 
             flash(f"Successfully updated {animal_type} preferences.", "success")
             # return redirect(url_for("animal_pref_data", animal_type=animal_type))
@@ -1484,20 +1621,17 @@ def animal_preferences(animal_type):
 
 @app.route("/")
 def homepage():
-    """Show homepage:
-
-
-    """
+    """Show homepage:"""
 
     if active_authenticated_user():
-        #grab user
+        # grab user
         user = current_user._get_current_object()
         user = user if user else load_user(user_id=current_user.id)
-        
-        #set session with user data
+
+        # set session with user data
         load_session()
-        
-        return render_template('home.html', user=user)
+
+        return render_template("home.html", user=user)
     else:
         return render_template("home-anon.html")  # , results=results
 
@@ -1507,12 +1641,12 @@ def homepage():
 
 def init_default_session():
     """Initialize the session with default values"""
-    #clear session
+    # clear session
     do_logout()
-    #populate with default_session_keys
+    # populate with default_session_keys
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
-    session['STATE_COUNTRY'] = get_location(no_geocode=False)
+    session["STATE_COUNTRY"] = get_location(no_geocode=False)
     session.new = True
     session.modified = True
 
@@ -1560,8 +1694,28 @@ def inject_global_vars():
     return {
         "session": session,
         "g": g,
-        "animal_emojis": api.animal_emojis,
         "animal_types": api.animal_types,
+        "animal_emojis": api.animal_emojis,
+        "animal_border_colors": {
+            "dog": "border-primary",
+            "cat": "border-secondary",
+            "rabbit": "border-success",
+            "small-furry": "border-danger",
+            "horse": "border-warning",
+            "bird": "border-info",
+            "scales-fins-other": "border-light",
+            "barnyard": "border-dark",
+        },
+        "animal_bg_colors": {
+            "dog": "bg-primary",
+            "cat": "bg-secondary",
+            "rabbit": "bg-success",
+            "small-furry": "bg-danger",
+            "horse": "bg-warning",
+            "bird": "bg-info",
+            "scales-fins-other": "bg-light",
+            "barnyard": "bg-dark",
+        },
         "current_user_id": current_user.id if active_authenticated_user() else None,
     }
 

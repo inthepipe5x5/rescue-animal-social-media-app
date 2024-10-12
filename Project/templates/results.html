@@ -7,8 +7,11 @@
       <div id="search-results-container">
         {% if not results %}
         <h3 class="text-muted-warning">Error 404: Nothing found!</h3>
-        {% endif %} {% if results %} {% if results.animals %}
-        <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% endif %} 
+        
+        {#
+          {% if results %}
+          <div class="row row-cols-1 row-cols-md-3 g-4">
          {% for animal in results.animals %}
           <div class="col">
             <div class="card text-start h-100">
@@ -102,7 +105,9 @@
           </div>
           {% endfor %} 
         </div>
-        {% endif %} {% endif %}
+        {% endif %} 
+          #}
+
       </div>
     </div>
   </div>
