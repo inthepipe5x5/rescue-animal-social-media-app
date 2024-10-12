@@ -22,11 +22,15 @@ body.error-404 {
 
 /* ======================= Nav */
 
+#main-navbar {
+  margin-bottom: 60px;
+}
+
 .navbar {
   background-color: #fff;
-  height: 46px;
+  height: 60px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
-  margin-bottom: 1rem;
+  margin-bottom: 60px;
   position: relative;
   z-index: 9999;
 }
@@ -35,10 +39,22 @@ body.error-404 {
   color: #66757f;
   font-size: 13px;
   font-weight: bold;
+  transition: color 0.3s ease, background-color 0.3s ease; /* Smooth transition */
 }
 
 .navbar a:hover {
-  color: #1c94e0;
+  color: #1c94e0; /* Change text color on hover */
+}
+
+/* Hover effect for all navbar items */
+.navbar-nav li:hover > a,
+.navbar-nav li > .dropdown-toggle:hover {
+  background-color: rgba(28, 148, 224, 0.1); /* Light background on hover */
+}
+
+/* Specific styles for dropdown items */
+.dropdown-menu .dropdown-item:hover {
+  background-color: rgba(28, 148, 224, 0.2); /* Darker background for dropdown items */
 }
 
 .navbar-brand {
@@ -54,7 +70,8 @@ body.error-404 {
   border-radius: 2px;
 }
 
-.nav > li > a > img {
+.nav > li > a > span > img,
+img#user_profile_img {
   width: 32px;
   border-radius: 32px;
 }
@@ -82,74 +99,31 @@ nav form.navbar-form {
   box-sizing: border-box;
 }
 
+nav + .container {
+  margin-bottom: 1rem;
+}
+
 #search.form-control + .btn {
   position: absolute;
   right: 9px;
   top: 2px;
-  bottom: 4px;
-  z-index: 1;
-  padding: 0;
-  color: #66757f;
 }
 
 #search.form-control + .btn:active,
 #search.form-control + .btn:focus {
-  box-shadow: none;
+    box-shadow: none; 
 }
 
 #search:active,
 #search:focus {
-  box-shadow: none;
-  border: 2px solid #007bff;
-}
-
-/* on "onboarding" pages (signup & login), the navbar is
-   different: no search box, the logo is centered, and it has
-   a background color.
- */
-
-.onboarding > .navbar {
-  background-image: url("/static/images/animal-pictures/kym-ellis-p025ltbEPwM-unsplash.png");
-  background-size: 100% 100%;
-}
-
-.onboarding .navbar-header {
-  margin: 0 auto;
-}
-
-.onboarding .navbar-brand {
-  margin: 0;
-}
-
-.onboarding .navbar-brand span {
-  display: none;
-}
-
-.onboarding .nav.navbar-nav.navbar-right {
-  position: absolute;
-  right: 16px;
-}
-
-.onboarding > .navbar a {
-  color: #fff;
-}
-
-.onboarding > .navbar form.navbar-form {
-  display: none;
-}
-
-.onboarding {
-  background-color: #fff;
+    box-shadow: none; 
+    border: 2px solid #007bff; /* Change border color on focus */
 }
 
 @media (max-width: 468px) {
-  nav form.navbar-form {
-    display: none;
-  }
-}
-
-nav + .container {
-  margin-bottom: 1rem;
+    nav form.navbar-form {
+        display: none; /* Hide search form on small screens */
+    }
 }
 
 /* ===================== User profile */
