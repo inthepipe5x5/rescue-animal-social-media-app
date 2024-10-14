@@ -140,12 +140,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-#Custom Jinja filters
+# Custom Jinja filters
 custom_filters_dict = {
     "format_kebob_case": Parse.format_kebob_case,
 }
 for function_key, function in custom_filters_dict.items():
-    app.jinja_env.filters[function_key] = function 
+    app.jinja_env.filters[function_key] = function
 
 # api instance of helper class
 api = PetFinderPetPyAPI()
@@ -153,10 +153,10 @@ api = PetFinderPetPyAPI()
 # petpy instance
 petpy = Petfinder(key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET"))
 
-#set auth in petpy
+# set auth in petpy
 if not petpy._auth:
-    petpy._auth = os.environ.get('ACCESS_TOKEN', None)
-    
+    petpy._auth = os.environ.get("ACCESS_TOKEN", None)
+
 ##############################################################################
 # SESSION FUNCTIONS
 
@@ -493,8 +493,8 @@ def user_travel_preferences():
 @app.route("/users/favorite/all", methods=["POST"])
 def all_user_favorites():
     """Add or toggle a favorite for the currently-logged-in user."""
-    
-    fav_type = request.args.get("type", "animals").lower() if request.args else 'all'
+
+    fav_type = request.args.get("type", "animals").lower() if request.args else "all"
 
     user = (
         current_user
@@ -506,18 +506,24 @@ def all_user_favorites():
         return redirect(url_for("login"))
 
     try:
-        if fav_type == 'all':
+        if fav_type == "all":
             user_favorites = UserFavorites.get_favorites(user_id=user.id)
-        
-        #return fave orgs
-        elif fav_type.lower() in ('orgs', 'organizations', 'organization', 'rescue', 'rescues'):
+
+        # return fave orgs
+        elif fav_type.lower() in (
+            "orgs",
+            "organizations",
+            "organization",
+            "rescue",
+            "rescues",
+        ):
             user_favorites = UserFavorites.get_orgs_favorites(user_id=user.id)
-        
-        #return fave animals if fave_type not specified
+
+        # return fave animals if fave_type not specified
         # elif fav_type == 'animals':
         else:
             user_favorites = UserFavorites.get_animal_favorites(user_id=user.id)
-        
+
         return jsonify(
             {
                 "user_id": user.id,
@@ -571,6 +577,7 @@ def user_favorite(favorite_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+
 @login_required
 @app.route("/users/profile", methods=["GET", "POST"])
 def profile():
@@ -602,6 +609,7 @@ def profile():
                 )
 
         return render_template("users/edit.html", form=form, user=logged_in_user)
+
 
 @app.route("/users/delete", methods=["POST"])
 def delete_user():
@@ -1319,6 +1327,7 @@ def discover_orgs():
         # direct to current page count
         return redirect(url_for("discover_orgs_page", page=current_page_count))
 
+
 @app.route("/discover/orgs/<int:page>", methods=["GET"])
 def discover_orgs_page(page):
     args = request.args if request.args else {}
@@ -1421,8 +1430,16 @@ def set_global():
     # Check if the user is logged in
     if active_authenticated_user():
 
-        animal_types = session.get('ANIMAL_TYPES') if 'ANIMAL_TYPES' in session else current_user.animal_types
-        state_country = session.get('STATE_COUNTRY') if 'STATE_COUNTRY' in session else current_user.location
+        animal_types = (
+            session.get("ANIMAL_TYPES")
+            if "ANIMAL_TYPES" in session
+            else current_user.animal_types
+        )
+        state_country = (
+            session.get("STATE_COUNTRY")
+            if "STATE_COUNTRY" in session
+            else current_user.location
+        )
         form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
         # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
@@ -1685,6 +1702,17 @@ def load_session():
 #         if session.modified == True:
 #             update_global_variables(session=session, g=g)
 
+animal_colors = {
+    "dog": "primary",
+    "cat": "secondary",
+    "rabbit": "success",
+    "small-furry": "danger",
+    "horse": "warning",
+    "bird": "info",
+    "scales-fins-other": "light",
+    "barnyard": "dark",
+}
+
 
 # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
 @app.context_processor
@@ -1696,27 +1724,18 @@ def inject_global_vars():
         "g": g,
         "animal_types": api.animal_types,
         "animal_emojis": api.animal_emojis,
+        "animal_colors": animal_colors,
         "animal_border_colors": {
-            "dog": "border-primary",
-            "cat": "border-secondary",
-            "rabbit": "border-success",
-            "small-furry": "border-danger",
-            "horse": "border-warning",
-            "bird": "border-info",
-            "scales-fins-other": "border-light",
-            "barnyard": "border-dark",
+            key: "border-" + value for key, value in animal_colors.items()
         },
         "animal_bg_colors": {
-            "dog": "bg-primary",
-            "cat": "bg-secondary",
-            "rabbit": "bg-success",
-            "small-furry": "bg-danger",
-            "horse": "bg-warning",
-            "bird": "bg-info",
-            "scales-fins-other": "bg-light",
-            "barnyard": "bg-dark",
+            key: "bg-" + value for key, value in animal_colors.items()
+        },
+        "animal_btn_colors": {
+            key:"btn-"+value for key, value in animal_colors.items()
         },
         "current_user_id": current_user.id if active_authenticated_user() else None,
+        "user_auth_status": active_authenticated_user(),
     }
 
 
