@@ -1115,7 +1115,7 @@ def animal_data():
             UserFavorites.get_animal_favorites(user_id=user.id)
             if active_authenticated_user()
             else []
-        )
+        ) or []
 
         # Fetch and yield paginated results
         results = api.get_mapped_animals_by_type(
