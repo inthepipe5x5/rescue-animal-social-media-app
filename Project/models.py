@@ -74,7 +74,7 @@ class UserFavorites(db.Model):
             return []  # Return an empty list instead of raising an exception
         # turn favorites into a set to remove duplicates and then return a list
         return list({fav.favorite_id for fav in favorites})
-    
+
     @classmethod
     def get_org_favorites(cls, user_id):
         """
@@ -645,7 +645,7 @@ class UserAnimalPreferences(db.Model):
         return None  # In case user is not found, though get_or_404 should handle this
 
     @classmethod
-    def seed_user_pref(cls, user_id, form):
+    def seed_user_pref(cls, user_id):
         """Seeds animal preferences for the user
 
         Args:
@@ -666,25 +666,51 @@ class UserAnimalPreferences(db.Model):
         pref_list = []
 
         for animal in all_animal_types:
-            pref_form = form(animal)
-            # add pref_form to pref_list
-            for pref_key, pref_value in pref_form.data.items():
-                if pref_key != "csrf_token":
-                    # object to be copied and inserted into pref_list
 
-                    # handle if pref_value is [] with no real values
-                    if isinstance(pref_value, list) and len(pref_value) == 0:
-                        pref_value.append("any")
+            pref_obj_template = {
+                "species": animal,
+                "user_preference_name": None,
+                "user_preference_data": None,
+                "user_id": user_id,
+            }
+            default_bool_prefs = [
+                "spayed_neutered",
+                "house_trained",
+                "declawed",
+                "special_needs",
+                "shots_current",
+                "child_friendly",
+                "dogs_friendly",
+                "cats_friendly",
+            ]
+            default_attr_prefs = [
+                "breed",
+                "coat",
+                "color",
+                "gender",
+                "size",
+                "personality",
+                "age",
+            ]
+        
+        pref_list = []
 
-                    pref_obj = {
-                        "species": animal,
-                        "user_preference_name": pref_key,
-                        "user_preference_data": pref_value,
-                        "user_id": user_id,
-                    }
-
-                # Append pref_data to pref_list
-                pref_list.append(pref_obj)
+        for animal in all_animal_types:
+            for pref in default_bool_prefs:
+                pref_list.append({
+                    "species": animal,
+                    "user_preference_name": pref,
+                    "user_preference_data": False,
+                    "user_id": user_id
+                })
+            
+            for pref in default_attr_prefs:
+                pref_list.append({
+                    "species": animal,
+                    "user_preference_name": pref,
+                    "user_preference_data": "any",
+                    "user_id": user_id
+                })
 
         # Bulk insert the data into the database
         if pref_list:

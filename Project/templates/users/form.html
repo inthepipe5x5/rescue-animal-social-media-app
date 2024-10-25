@@ -71,7 +71,7 @@
       </script>
       {% else %}
       <div class="form-group">
-        <label class="form-label">{{ field.label.text | capitalize_underscores }}</label> {{
+        <label class="form-label">{{ field.label.text | format_kebob_case }}</label> {{
         field(class="form-control") }} 
         {% for error in field.errors %}
         <div class="invalid-feedback">{{ error }}</div>

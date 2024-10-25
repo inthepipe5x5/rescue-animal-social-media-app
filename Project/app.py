@@ -1510,7 +1510,7 @@ def signup_user():
 
             # seed animal_preferences for the user
             UserAnimalPreferences.seed_user_pref(
-                user_id=user.id, form=SpecificAnimalPreferencesForm
+                user_id=user.id
             )
 
             # init_orgs = PetFinderPetPyAPI.get_orgs_df()
@@ -1520,7 +1520,7 @@ def signup_user():
             return render_template("users/signup.html", form=form)
 
         do_login(user)
-        flash("User # {user.id} created successfully: {user.username}")
+        flash("User # {user.id} created successfully: {user.username}", "success")
         # Redirect to location form for additional information
         flash(
             "Please consider enabling geolocation in the browser to help us return more accurate results relative to your location",
@@ -1732,7 +1732,7 @@ def inject_global_vars():
             key: "bg-" + value for key, value in animal_colors.items()
         },
         "animal_btn_colors": {
-            key:"btn-"+value for key, value in animal_colors.items()
+            key: "btn-" + value for key, value in animal_colors.items()
         },
         "current_user_id": current_user.id if active_authenticated_user() else None,
         "user_auth_status": active_authenticated_user(),

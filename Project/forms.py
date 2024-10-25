@@ -515,8 +515,10 @@ class SpecificAnimalPreferencesForm(FlaskForm):
         )
 
         # Fetch dynamic choices
-        breed_choices = api.breeds(animal_type)["breeds"][animal_type]
+        breed_choices = api.breeds(animal_type)["breeds"]
+        print(breed_choices) if breed_choices else print("no breed_choices received from api")
         animals = api.animal_types(animal_type)
+        print(animals) if animals else print("no animals received from api")
         coat_color_choices = animals["type"]["colors"] or None
         coat_choices = animals["type"]["coats"] or None
         # Set dynamic choices
