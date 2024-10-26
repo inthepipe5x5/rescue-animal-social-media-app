@@ -638,7 +638,7 @@ class UserAnimalPreferences(db.Model):
             print(results)
             # Group preferences by animal_type
             output = {
-                type: [result for result in results if result.species == type]
+                type: [result for result in results if result.species.lower() == type.lower()]
                 for type in user.animal_types
             }
             return output

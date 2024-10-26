@@ -106,7 +106,7 @@ class PetFinderPetPyAPI:
         current_time = int(time.time())
 
         # Check if instance has a valid token
-        if self.access_token and current_time < self.token_expiration:
+        if (self.access_token and self.token_expiration) and current_time < self.token_expiration:
             return self.access_token
 
         # If not, request a new token
@@ -126,8 +126,8 @@ class PetFinderPetPyAPI:
                 self.token_expiration = current_time + token_info["expires_in"]
 
                 # save token & token_expiration to env variables
-                os.environ["ACCESS_TOKEN"] = self.access_token
-                os.environ["TOKEN_EXPIRATION"] = self.token_expiration
+                os.environ["ACCESS_TOKEN"] = str(self.access_token)
+                os.environ["TOKEN_EXPIRATION"] = str(self.token_expiration)
 
                 print("new access_token received PetFinderAPI and api instance updated")
                 return self.access_token
@@ -673,7 +673,7 @@ class PetFinderPetPyAPI:
                 print(f"RETRY API Response: {response.status_code} - {response.text}")
 
             # Filter results based on favorites
-            if favorites and len(results > 0):
+            if favorites and results:
                 results = self.filter_favorites_by_id(
                     results=results,
                     favorites=favorites,

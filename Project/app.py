@@ -1118,6 +1118,7 @@ def animal_data():
         ) or []
 
         # Fetch and yield paginated results
+        #TODO: this method is returning None and causing an error =>  '<' not supported between instances of 'int' and 'NoneType'
         results = api.get_mapped_animals_by_type(
             init_params=init_params,
             favorites=favorites,
@@ -1330,61 +1331,63 @@ def discover_orgs():
 
 @app.route("/discover/orgs/<int:page>", methods=["GET"])
 def discover_orgs_page(page):
-    args = request.args if request.args else {}
+    # args = request.args if request.args else {}
 
-    # handle no page
-    if not page:
-        page = session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
-        if args and "next" in args:
-            # increment page
-            page = page + 1
-            # update session
-            session["CURRENT_DISCOVER_ORGS_PAGE"] = page
-        if args and "prev" in args:
-            # increment page
-            page = page - 1
-            # update session
-            session["CURRENT_DISCOVER_ORGS_PAGE"] = page
-    # handle invalid page attempts & or if the user hasn't visited page 1 yet
-    if not "ANIMAL_RESULTS_DICT" in session:
-        flash("Sorry, we haven't found that many friends to adopt yet!")
-        # make post request to seed
-        requests.post(url_for("discover_orgs"))
-        sleep(3)
-        redirect(url_for("discover_orgs_page", page=page))
+    # # handle no page
+    # if not page:
+    #     page = session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
+    #     if args and "next" in args:
+    #         # increment page
+    #         page = page + 1
+    #         # update session
+    #         session["CURRENT_DISCOVER_ORGS_PAGE"] = page
+    #     if args and "prev" in args:
+    #         # increment page
+    #         page = page - 1
+    #         # update session
+    #         session["CURRENT_DISCOVER_ORGS_PAGE"] = page
+    # # handle invalid page attempts & or if the user hasn't visited page 1 yet
+    # if not "ANIMAL_RESULTS_DICT" in session:
+    #     flash("Sorry, we haven't found that many friends to adopt yet!")
+    #     # make post request to seed
+    #     requests.post(url_for("discover_orgs"))
+    #     sleep(3)
+    #     redirect(url_for("discover_orgs_page", page=page))
 
-    animal_id_list = session.get("ANIMAL_RESULTS_DICT").get(page, [])
+    # animal_id_list = session.get("ANIMAL_RESULTS_DICT").get(page, [])
 
-    animals = petpy.animals(animal_id=animal_id_list)
+    # animals = petpy.animals(animal_id=animal_id_list)
 
-    return render_template("animalResults.html", animals=animals)
+    # return render_template("animalResults.html", animals=animals)
 
+    return jsonify({"THIS IS UNDER DEVELOPMENT"})
 
 @app.route("/data/orgs", methods=["GET", "POST"])
 def orgs_data():
-    """ROUTE TO GET ORGS DATA
+    # """ROUTE TO GET ORGS DATA
 
-    Args:
-        type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
+    # Args:
+    #     type (STR): string of either 'animal', 'animals', 'org', 'orgs' that determine the type of PetFinder API call being made
 
-    Returns:
-        _type_: _description_
-    """
-    if "CURR_USER" in session:
-        country = get_user_preference(key="country", session=session, g=g)
-        state = get_user_preference(key="state", session=session, g=g)
-    else:
-        country = get_anon_preference(key="country", session=session, g=g)
-        state = get_anon_preference(key="state", session=session, g=g)
+    # Returns:
+    #     _type_: _description_
+    # """
+    # if "CURR_USER" in session:
+    #     country = get_user_preference(key="country", session=session, g=g)
+    #     state = get_user_preference(key="state", session=session, g=g)
+    # else:
+    #     country = get_anon_preference(key="country", session=session, g=g)
+    #     state = get_anon_preference(key="state", session=session, g=g)
 
-    api = PetFinderPetPyAPI()
-    orgs_search_args = {"country": country, "state": state, "sort": "distance"}
-    if "org_id" in request.args:
-        orgs_search_args["id"] = request.args["org_id"]
+    # api = PetFinderPetPyAPI()
+    # orgs_search_args = {"country": country, "state": state, "sort": "distance"}
+    # if "org_id" in request.args:
+    #     orgs_search_args["id"] = request.args["org_id"]
 
-    org_results = api.organizations(**orgs_search_args)["organizations"]
-    print([(org.name, org.adoption.policy) for org in org_results])
-    return jsonify(org_results)
+    # org_results = api.organizations(**orgs_search_args)["organizations"]
+    # print([(org.name, org.adoption.policy) for org in org_results])
+    # return jsonify(org_results)
+    return jsonify({"THIS IS UNDER DEVELOPMENT"})
 
 
 @app.route("/set_location", methods=["POST"])

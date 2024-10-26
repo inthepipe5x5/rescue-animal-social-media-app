@@ -14,7 +14,7 @@
         {% for error in field.errors %}
           <span class="text-danger">{{ error }}</span>
         {% endfor %}
-        {{ field.label(class="form-control-label") }}
+        {{ field.label(class="form-control-label") | format_kebob_case }}
         {{ field(placeholder=field.label.text, class="form-control") }}
       {% endfor %}
 

@@ -100,7 +100,7 @@
 
     <!-- User Authentication Links -->
     <ul class="nav navbar-nav ms-auto d-none d-sm-flex">
-      {% if not session.CURR_USER %}
+      {% if not user_auth_status %}
       <li><a href="/signup">Sign up</a></li>
       <li><a href="/login">Log in</a></li>
       {% else %}
