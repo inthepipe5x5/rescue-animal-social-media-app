@@ -5,7 +5,7 @@
     <ul class="list-group" id="favorites">
       {% for fav in favorites %}
       <li class="list-group-item">
-        <a href="/favorites/{{ fav.id  }}" class="message-link" />
+        <a href="/favorites/{{ fav.id  }}" class="btn btn-link" />
         <a href="/users/{{ fav.user_id }}">
           <img src="{{ fav.user.image_url }}" alt="" class="timeline-image" />
         </a>
@@ -25,7 +25,7 @@
             class="
                 btn 
                 btn-sm 
-                {{'btn-primary' if fav.id in likes else 'btn-secondary'}}"
+                {{'btn-primary' if fav.id in favorites else 'btn-secondary'}}"
           >
             <i class="fa fa-thumbs-up"></i>
           </button>
@@ -36,9 +36,95 @@
   </div>
   {% endif %}
 
-  <div class="container px-4 py-5" id="hanging-icons">
-    <h2 class="pb-2 border-bottom">Hanging icons</h2>
-    <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+  <div class="border rounded-3 bg-body-tertiary container px-4 py-3" id="user-home-content-container">
+    <h2 class="pb-2 border-bottom">Welcome back {{user.username if user and user.username else "User"}}</h2>
+    <p>Browse pets from over 14,500 shelters and rescues from PetFinder</p>
+    
+    <div class="container px-4 py-1" id="home-animal-cards">
+      <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4 py-5">
+        <div class="col">
+          <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image: url('{{ url_for('static', filename='images/graphics/dog_freepik.png') }}');">
+            <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+              <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Dogs</h3>
+            </div>
+          </div>
+        </div>
+  
+        <div class="col">
+          <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image:url('{{ url_for('static', filename='images/graphics/cat_freepik.png') }}');">
+            <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+              <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Cats</h3>
+            </div>
+          </div>
+        </div>
+  
+        <div class="col">
+          <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image: url('unsplash-photo-3.jpg');">
+            <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+              <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Even More Animals</h3>
+              <p>Browse pets from over 14,500 shelters and rescues from PetFinder</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          const cards = document.querySelectorAll('.home-animal-cards');
+          
+          cards.forEach(card => {
+              card.addEventListener('mousemove', handleMouseMove);
+              card.addEventListener('mouseleave', handleMouseLeave);
+              card.addEventListener('mouseenter', handleMouseEnter);
+          });
+      
+          function handleMouseMove(e) {
+              const card = e.currentTarget;
+              const cardRect = card.getBoundingClientRect();
+              const cardCenterX = cardRect.left + cardRect.width / 2;
+              const cardCenterY = cardRect.top + cardRect.height / 2;
+              
+              const mouseX = e.clientX - cardCenterX;
+              const mouseY = e.clientY - cardCenterY;
+              
+              const rotateX = (mouseY / cardRect.height) * 20;
+              const rotateY = -(mouseX / cardRect.width) * 20;
+              
+              card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+          }
+      
+          function handleMouseLeave(e) {
+              const card = e.currentTarget;
+              card.style.transform = 'rotateX(0) rotateY(0)';
+              card.style.border = 'none';
+              const h3 = card.querySelector('h3');
+              if (h3) {
+                  h3.style.color = 'white'; // Reset to original color
+              }
+          }
+      
+          function handleMouseEnter(e) {
+              const card = e.currentTarget;
+              card.style.border = '3px solid #f4ab0e';
+              const h3 = card.querySelector('h3');
+              if (h3) {
+                  h3.style.color = '#f4ab0e';
+              }
+          }
+      });
+      </script>
+    {# div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+      <div class="col d-flex align-items-start">
+
+        
+
+      </div>
+      </div>
+    #}
+    
+    
+      <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
       <div class="col d-flex align-items-start">
         <div
           class="icon-square text-body-emphasis bg-body-secondary d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3"
@@ -60,7 +146,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="fs-2 text-body-emphasis">Settings</h3>
+          <h3 class="fs-2 text-body-emphasis">User Settings</h3>
           <p>
             Paragraph of text beneath the heading to explain the heading. We'll
             add onto it with another sentence and probably just keep going until
@@ -89,29 +175,49 @@
         <div>
           <h3 class="fs-2 text-body-emphasis">Animal Specific Filters</h3>
           <p>
-            Paragraph of text beneath the heading to explain the heading. We'll
-            add onto it with another sentence and probably just keep going until
-            we run out of words.
+            Select the types of rescue animals you'd like to see and create
+            animal type-specific filters.
           </p>
-          <a href="#" class="btn btn-primary"> Primary button </a>
+          {# <a href="#" class="btn btn-primary"> Primary button </a> #}
+          <button
+            class="btn btn-link nav-link"
+            data-toggle="modal"
+            data-bs-target="#animalTypesModal"
+          >
+            Set Animal Preferences
+          </button>
         </div>
       </div>
       <div class="col d-flex align-items-start">
         <div
           class="icon-square text-body-emphasis bg-body-secondary d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3"
         >
-        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" class="bi bi-bookmark-heart-fill" viewBox="0 0 16 16">
-          <path d="M2 15.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2zM8 4.41c1.387-1.425 4.854 1.07 0 4.277C3.146 5.48 6.613 2.986 8 4.412z"/>
-        </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            fill="currentColor"
+            class="bi bi-bookmark-heart-fill"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M2 15.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2zM8 4.41c1.387-1.425 4.854 1.07 0 4.277C3.146 5.48 6.613 2.986 8 4.412z"
+            />
+          </svg>
         </div>
         <div>
-          <h3 class="fs-2 text-body-emphasis">Featured title</h3>
+          <h3 class="fs-2 text-body-emphasis">View Your Favorites</h3>
           <p>
-            Paragraph of text beneath the heading to explain the heading. We'll
-            add onto it with another sentence and probably just keep going until
-            we run out of words.
+            Sometimes a new friend may catch your eye or you might find a rescue group that resonates with you. 
+            View them below!
           </p>
-          <a href="#" class="btn btn-primary"> Primary button </a>
+          <div class="btn-toolbar" role="toolbar" aria-label="Toolbar">
+            <div class="btn-group" role="group" aria-label="Button Group">
+
+          
+          <a href="{{ url_for('show_user_favorites', fav_type="all")}}" class="btn btn-primary"> View All </a>
+          <a href="{{ url_for('show_user_favorites', fav_type="orgs")}}" class="btn btn-secondary"> Fave Orgs </a>
+          <a href="{{ url_for('show_user_favorites', fav_type="animals")}}" class="btn btn-success"> Fave Animals </a>
         </div>
       </div>
     </div>

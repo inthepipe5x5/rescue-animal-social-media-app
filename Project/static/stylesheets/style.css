@@ -54,7 +54,12 @@ body.error-404 {
 
 /* Specific styles for dropdown items */
 .dropdown-menu .dropdown-item:hover {
-  background-color: rgba(28, 148, 224, 0.2); /* Darker background for dropdown items */
+  background-color: rgba(
+    28,
+    148,
+    224,
+    0.2
+  ); /* Darker background for dropdown items */
 }
 
 .navbar-brand {
@@ -111,19 +116,19 @@ nav + .container {
 
 #search.form-control + .btn:active,
 #search.form-control + .btn:focus {
-    box-shadow: none; 
+  box-shadow: none;
 }
 
 #search:active,
 #search:focus {
-    box-shadow: none; 
-    border: 2px solid #007bff; /* Change border color on focus */
+  box-shadow: none;
+  border: 2px solid #007bff; /* Change border color on focus */
 }
 
 @media (max-width: 468px) {
-    nav form.navbar-form {
-        display: none; /* Hide search form on small screens */
-    }
+  nav form.navbar-form {
+    display: none; /* Hide search form on small screens */
+  }
 }
 
 /* ===================== User profile */
@@ -530,7 +535,6 @@ p.card-bio {
   background-color: #f6f7f8;
   border-radius: 4px;
   margin-bottom: 20px;
-  
 }
 
 .skeleton-img {
@@ -564,7 +568,13 @@ p.card-bio {
 }
 
 .shimmer {
-  background: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+  background: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #edeef1 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
   background-size: 800px 104px;
   animation: shimmer 1.5s infinite linear;
 }
@@ -581,5 +591,21 @@ form.hidden {
 .custom-modal .modal-dialog {
   /* padding-top to modal to ensure it doesn't obscure the flash messages container 
   Adjust this value as needed */
-  margin-top: 60px; 
+  margin-top: 60px;
+}
+
+/* ================================ Custom Background Cards */
+
+.home-animal-cards {
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: all 0.3s ease;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.home-animal-cards:hover {
+  border: 5px solid #f4ab0e;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }

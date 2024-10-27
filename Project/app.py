@@ -460,41 +460,17 @@ def user_travel_preferences():
     return render_template(
         "/users/form.html",
         form=form,
-        form_title="How far are you willing to travel? Change the distance parameter to have more localized results.",
+        form_title="How far are you willing to travel?",
         page_scripts=[url_for("static", filename="setTravelPreference.js")],
     )
 
 
-# @app.route("/users/<int:user_id>/favorites")
-# def show_favorites(user_id):
-#     """Show list of people this user is favorites."""
-
-#     if "CURR_USER" not in session:
-#         flash("Access unauthorized.", "danger")
-#         return redirect("/")
-
-#     user = User.query.get_or_404(user_id)
-#     return render_template("users/favorites.html", user=user)
-
-
-# @app.route("/users/<int:user_id>/followers")
-# def users_followers(user_id):
-#     """Show list of followers of this user."""
-
-#     if "CURR_USER" not in session:
-#         flash("Access unauthorized.", "danger")
-#         return redirect("/")
-
-#     user = User.query.get_or_404(user_id)
-#     return render_template("users/followers.html", user=user)
-
-
 @login_required
-@app.route("/users/favorite/all", methods=["POST"])
-def all_user_favorites():
+@app.route("/users/favorite/<fav_type>", methods=["GET"])
+def show_user_favorites(fav_type):
     """Add or toggle a favorite for the currently-logged-in user."""
 
-    fav_type = request.args.get("type", "animals").lower() if request.args else "all"
+    fav_type = "all" if not fav_type else fav_type.lower() 
 
     user = (
         current_user
@@ -533,8 +509,8 @@ def all_user_favorites():
         )
 
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        # db.session.rollback()
+        return jsonify({"error": "Error getting favorites @ show_user_favorites API route =>" + str(e)}), 500
 
 
 @login_required
@@ -588,14 +564,13 @@ def profile():
         return redirect(url_for("login"))
 
     else:
-        user = session["CURR_USER"]
-        logged_in_user = User.query.get(user["id"])
-        form = UserEditForm(obj=logged_in_user)
+        active_user = current_user._get_current_object()
+        form = UserEditForm(obj=active_user)
 
         if form.validate_on_submit():
             if User.authenticate(form.username.data, form.password.data):
-                form.populate_obj(logged_in_user)
-                db.session.add(logged_in_user)
+                form.populate_obj(active_user)
+                db.session.add(active_user)
                 db.session.commit()  # commit to db
                 flash("Changes saved successfully", "success")  # show success to user
                 return redirect(url_for("show_user", user_id=g.user.id))
@@ -605,10 +580,10 @@ def profile():
                     "You were unsuccessful, try again", "error"
                 )  # show success to user
                 return render_template(
-                    "users/edit.html", form=form, user=logged_in_user
+                    "users/edit.html", form=form, user=active_user
                 )
 
-        return render_template("users/edit.html", form=form, user=logged_in_user)
+        return render_template("users/edit.html", form=form, user=active_user)
 
 
 @app.route("/users/delete", methods=["POST"])
@@ -712,7 +687,7 @@ def get_rescue_action_mapped_to_animal_status():
     # If no current_user or no rescue_action_type is provided, return the default status
     return default_animal_status
 
-
+#TODO: I can move this to the User ORM class in models.py and call from `current_user._get_current_object`` instead
 # Helper function to get the location or default location
 def get_location(no_geocode=False):
     """
@@ -1118,7 +1093,7 @@ def animal_data():
         ) or []
 
         # Fetch and yield paginated results
-        #TODO: this method is returning None and causing an error =>  '<' not supported between instances of 'int' and 'NoneType'
+        # TODO: this method is returning None and causing an error =>  '<' not supported between instances of 'int' and 'NoneType'
         results = api.get_mapped_animals_by_type(
             init_params=init_params,
             favorites=favorites,
@@ -1362,6 +1337,7 @@ def discover_orgs_page(page):
 
     return jsonify({"THIS IS UNDER DEVELOPMENT"})
 
+
 @app.route("/data/orgs", methods=["GET", "POST"])
 def orgs_data():
     # """ROUTE TO GET ORGS DATA
@@ -1512,9 +1488,7 @@ def signup_user():
             db.session.commit()
 
             # seed animal_preferences for the user
-            UserAnimalPreferences.seed_user_pref(
-                user_id=user.id
-            )
+            UserAnimalPreferences.seed_user_pref(user_id=user.id)
 
             # init_orgs = PetFinderPetPyAPI.get_orgs_df()
         except IntegrityError:
@@ -1737,7 +1711,11 @@ def inject_global_vars():
         "animal_btn_colors": {
             key: "btn-" + value for key, value in animal_colors.items()
         },
-        "current_user_id": current_user.id if active_authenticated_user() else None,
+        "CURR_USER": (
+            current_user._get_current_object()
+            if (active_authenticated_user() and current_user)
+            else None
+        ),
         "user_auth_status": active_authenticated_user(),
     }
 

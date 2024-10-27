@@ -40,7 +40,7 @@
         </li>
         {% endif %}
 
-        <div class="vr"></div>
+        <div class="vr my-5"></div>
 
         <!-- First Dropdown -->
         <li class="nav-item dropdown">
@@ -57,7 +57,7 @@
             <li class="dropdown-header"><h6>Result Types</h6></li>
             <li><a class="dropdown-item" href="{{ url_for('discover_animals') }}">Nearby Animals</a></li>
             <li><a class="dropdown-item" href="{{ url_for('discover_orgs')}}">Nearby Rescue Orgs</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('all_user_favorites') }}">Favorites</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('show_user_favorites', fav_type="all") }}">Favorites</a></li>
           </ul>
         </li>
 
@@ -104,8 +104,8 @@
       <li><a href="/signup">Sign up</a></li>
       <li><a href="/login">Log in</a></li>
       {% else %}
-      <li><a href="/users/{{ session.CURR_USER.id }}">
-        <span>{{ session.CURR_USER.username }}<img id="user_profile_img" src="{{ session.CURR_USER.image_url }}" alt="{{ session.CURR_USER.username }}" /></span>
+      <li><a class="btn btn-link" href="/users/{{ CURR_USER.id }}">
+        <span><img id="user_profile_img" src="{{ CURR_USER.image_url }}" alt="{{ CURR_USER.username }}" />{{ CURR_USER.username }}</span>
       </a></li>
       <li><a href="/logout">Log out</a></li>
       {% endif %}

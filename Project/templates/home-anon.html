@@ -23,6 +23,83 @@
       </div>
     </div>
 
+    <div
+  class="container-fluid px-4 py-1"
+>
+<div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4 py-5">
+  <div class="col">
+    <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image: url('{{ url_for('static', filename='images/graphics/dog_freepik.png') }}');">
+      <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+        <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">Dogs</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image:url('{{ url_for('static', filename='images/graphics/cat_freepik.png') }}');">
+      <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+        <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">Cats</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image: url('unsplash-photo-3.jpg');">
+      <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+        <h5 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">Even More Animals</h5>
+        <p>Login to browse rescue animals from over 14,500 shelters and rescues near you!</p>
+        <a type="button" href={{url_for('login')}} class="btn btn-outline-secondary btn-lg px-4">Other Search Options</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('.home-animal-cards');
+      
+      cards.forEach(card => {
+          card.addEventListener('mousemove', handleMouseMove);
+          card.addEventListener('mouseleave', handleMouseLeave);
+          card.addEventListener('mouseenter', handleMouseEnter);
+      });
+  
+      function handleMouseMove(e) {
+          const card = e.currentTarget;
+          const cardRect = card.getBoundingClientRect();
+          const cardCenterX = cardRect.left + cardRect.width / 2;
+          const cardCenterY = cardRect.top + cardRect.height / 2;
+          
+          const mouseX = e.clientX - cardCenterX;
+          const mouseY = e.clientY - cardCenterY;
+          
+          const rotateX = (mouseY / cardRect.height) * 20;
+          const rotateY = -(mouseX / cardRect.width) * 20;
+          
+          card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }
+  
+      function handleMouseLeave(e) {
+          const card = e.currentTarget;
+          card.style.transform = 'rotateX(0) rotateY(0)';
+          card.style.border = 'none';
+          const h3 = card.querySelector('h3');
+          if (h3) {
+              h3.style.color = 'white'; // Reset to original color
+          }
+      }
+  
+      function handleMouseEnter(e) {
+          const card = e.currentTarget;
+          card.style.border = '3px solid #f4ab0e';
+          const h3 = card.querySelector('h3');
+          if (h3) {
+              h3.style.color = '#f4ab0e';
+          }
+      }
+  });
+  </script>
+</div>
+
   </div>     <!-- class=ROW END DIV -->
   <div class="b-example-divider"></div> <!-- divider div-->
   <div class="container col-xxl-8 px-4 py-5">

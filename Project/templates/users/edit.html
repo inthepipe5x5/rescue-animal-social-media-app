@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 
+{% block body_class %}user profile edit{% endblock %}
+
+
 {% block content %}
 
   <div class="row justify-content-md-center">
-    <div class="col-md-4">
-      <h2 class="join-message">Edit Your Profile.</h2>
-      <form method="POST" id="user_form">
+    <div class="col-md-10 col-lg-5 col-sm-">
+      <h2 class="join-message">Edit Your Profile</h2>
+      <form class="p-4 p-md-5 border rounded-3 bg-body-tertiary" method="POST" id="user_form">
         {{ form.hidden_tag() }}
 
         {% for field in form if field.widget.input_type != 'hidden' and field.name != 'password' %}

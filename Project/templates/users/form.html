@@ -4,89 +4,102 @@
 
 <div class="row justify-content-md-center justify-content-sm-start">
   <div class="col-md-7 col-lg-8">
+    <form class="p-4 p-md-5 border rounded-3 bg-body-tertiary" method="POST" id="main_form" action="{{ url_for(request.endpoint) }}">
     <h3 class="content-message">
       {{ form_title if form_title else "Narrow Down your Search"}}
     </h3>
     <hr />
-    <form method="POST" id="main_form" action="{{ url_for(request.endpoint) }}">
-      {{ form.hidden_tag() }} {% for field in form if field.name != 'csrf_token'
-      %} {% if field.widget.input_type == 'select' %}
-      <div class="form-group">
-        {{ field.label(class="form-label") }}
-        <div class="btn-group btn-group-toggle" data-toggle="buttons">
-          {% for value, label in field.choices %}
-          <label class="btn btn-outline-primary">
-            <input
-              type="checkbox"
-              name="{{ field.name }}"
-              value="{{ value }}"
-            />{{ label | format_kebob_case }}
+      {{ form.hidden_tag() }}
+      {% for field in form if field.name != 'csrf_token' and field.type != 'IntegerRangeField' %}
+        {% if field.widget.input_type == 'select' %}
+          <div class="form-group">
+            {{ field.label(class="form-label") }}
+            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+              {% for value, label in field.choices %}
+              <label class="btn btn-outline-primary">
+                <input
+                  type="checkbox"
+                  name="{{ field.name }}"
+                  value="{{ value }}"
+                />{{ label | format_kebob_case }}
+              </label>
+              {% endfor %}
+            </div>
+            {% for error in field.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% elif field.name == 'geolocation' %}
+          <!--
+              <button
+                class="btn btn-light btn-lg btn-block"
+                id="get-geolocation-button"
+                type="button"
+              >
+                Get My Location
+              </button> -->
+        {% elif field.type == 'BooleanField' %}
+          <div class="form-group">
+            <div class="form-check form-switch">
+              <label class="form-check-label">
+                <b>{{ field.label.text | format_kebob_case }}</b>
+                {{ field(class="form-check-input") }} 
+              </label>
+            </div>
+            {% for error in field.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="form-group">
+            <label class="form-label">{{ field.label.text | format_kebob_case }}</label>
+            {{ field(class="form-control") }} 
+            {% for error in field.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    
+      {# render IntegerRangeField inputs #}
+      {% for field in form if field.type == 'IntegerRangeField' %}
+        <div class="form-group mt-4">
+          <label for="{{ field.name }}-input">
+            <div><b>{{ field.label.text | format_kebob_case }}</b></div>
+            <div class="form-range">
+              {{ field(class="form-range-input", id=field.name + "-input") }}
+              <span id="{{ field.name }}-value">{{ field.data or 100 }} Miles</span>
+            </div>
           </label>
+          {% for error in field.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
           {% endfor %}
         </div>
-        {% for error in field.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-      </div>
-      {% elif field.name == 'geolocation' %}
-      <!--
-          <button
-            class="btn btn-light btn-lg btn-block"
-            id="get-geolocation-button"
-            type="button"
-          >
-            Get My Location
-          </button> -->
-      {% elif field.type == 'BooleanField' %}
-      <div class="form-group">
-        <div class="form-check form-switch">
-          <label class="form-check-label">
-            <b>{{ field.label.text | format_kebob_case }}</b>
-            {{ field(class="form-check-input") }} 
-          </label>
+        <script>
+          document
+            .getElementById("{{ field.name }}-input")
+            .addEventListener("input", function () {
+              document.getElementById("{{ field.name }}-value").innerText =
+                `${this.value} Miles`;
+            });
+        </script>
+      {% endfor %}
 
-        </div>
-        {% for error in field.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-      </div>
-      {% elif field.type == 'IntegerRangeField' %}
-      <div class="form-group">
-        <label for="{{ field.name }}-input">
-          <div><b>{{ field.name if not field.label.text else field.label.text | format_kebob_case }}</b></div>
-        <div class="form-range">
-          {{ field(class="form-range-input", id=field.name + "-input") }}<span id="{{ field.name}}-input">100 Miles</span>
-        </div>
-        {% for error in field.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-      </div>
-      <script>
-        document
-          .getElementById("{{ field.name }}-input")
-          .addEventListener("input", function () {
-            document.getElementById("{{ field.name }}-value").innerText =
-              `${this.value} Miles`;
-          });
-      </script>
-      {% else %}
-      <div class="form-group">
-        <label class="form-label">{{ field.label.text | format_kebob_case }}</label> {{
-        field(class="form-control") }} 
-        {% for error in field.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-      </div>
-      {% endif %} {% endfor %}
       <hr />
-      <button type="submit" class="btn btn-primary btn-lg btn-block">
+      <a href="{{ url_for('homepage')}}" class="btn btn-secondary btn-md btn-block"> Cancel </a>
+      
+      <button type="submit" class="btn btn-primary btn-md btn-block">
         {% if next %}Continue{% else %}Submit{% endif %}
       </button>
     </form>
   </div>
 </div>
 
-{% endblock %} {% block scripts %} {{ super() }} {% for script in page_scripts
-%}
-<script src="{{ script }}"></script>
-{% endfor %} {% endblock %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  {% for script in page_scripts %}
+    <script src="{{ script }}"></script>
+  {% endfor %}
+{% endblock %}

@@ -537,11 +537,14 @@ class Parse:
             return photos_list[0]["full"]
 
         # Fallback for any other case
-        return url_for(
+        final_url = url_for(
             "static",
             filename=f"{default_photo_folder_name}/{default_animal_graphic['misc']}",
             _external=True,
         )
+        if not photos_list:
+            print("No photos received, default image URL =", final_url)
+        return final_url
 
 
 class ParseAnimal(Parse):

@@ -369,7 +369,7 @@ class UserTravelForm(ModelForm):
     """Optional form for adding user travel preferences"""
 
     distance_filter_preference = IntegerRangeField(
-        "Select a value (in miles) to select the maximum search radius for matching results",
+        "Locating all rescue organizations and animals Within X Miles",
         default=100,
         render_kw={"min": 0, "max": 500, "step": 10},
     )
