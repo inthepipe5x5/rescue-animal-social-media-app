@@ -1,0 +1,50 @@
+<!-- offcanvas.html -->
+{% block offcanvas_title %}Animal Results{% endblock %}
+
+{% block offcanvas_content %}
+<form class="mb-2" action="{{ url_for('update_animal_types') }}" method="POST" id="animalTypeForm">
+    {{ form.csrf_token }}
+    <div class="row row-cols-2 row-cols-md-3 g-2">
+        {% for animal_type, image_file in animal_default_photos.items() %}
+        <div class="col">
+            <label class="w-100">
+                <input type="checkbox" name="animal_types" value="{{ animal_type }}" class="d-none" 
+                       {% if animal_type in CURR_USER.animal_types %}checked{% endif %}>
+                <div class="card card-cover overflow-hidden text-bg-dark rounded-3 shadow-sm animal-type-card 
+                            {% if animal_type in CURR_USER.animal_types %}selected{% else %}dimmed{% endif %}"
+                     style="background-image: url('{{ url_for('static', filename='images/graphics/' + image_file) }}'); 
+                            height: 100px; background-size: cover; background-position: center;">
+                    <div class="d-flex flex-column h-100 p-2 pb-1 text-white text-shadow-1">
+                        <h6 class="mt-1 mb-0 lh-1 fw-bold">{{ animal_type | format_kebab_case }}</h6>
+                    </div>
+                </div>
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">Update Animal Types</button>
+    </div>
+</form>
+
+<hr />
+<div class="list-group mt-2">
+    <h5>Animal Preferences</h5>
+    {{ render_animal_filter_button_list() }}
+    
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const animalTypeCards = document.querySelectorAll('.animal-type-card');
+    animalTypeCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const checkbox = this.parentElement.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            this.classList.toggle('selected');
+            this.classList.toggle('dimmed');
+        });
+    });
+});
+</script>

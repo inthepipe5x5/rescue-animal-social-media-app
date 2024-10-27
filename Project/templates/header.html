@@ -17,19 +17,18 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="nav navbar-nav">
-
-        {% if not session["ANIMAL_TYPES"] %}
+      <ul class="nav navbar-nav"> Filters:
+        {% if not (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
         <li class="nav-item">
-          <a class="btn btn-link" href=url_for("")></a>
+          <a class="btn btn-link" href=url_for("")>Animal Results</a>
         </li>
         {% else %}
         <li class="nav-item d-flex align-items-center"> <!-- Use flex for text alignment -->
           <div>
             🔍 Results:
-            {% for type in session["ANIMAL_TYPES"] %}
+            {% for type in (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
             <a class='btn btn-link nav-link mx-1' href="{{ url_for('animal_preferences', animal_type=type) }}">
-              {{ animal_emojis[type] }}
+              {{ animal_emojis[type] }} Results
             </a>
             {% endfor %}
           </div>

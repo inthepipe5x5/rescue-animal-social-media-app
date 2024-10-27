@@ -1,0 +1,15 @@
+<!-- aside.html -->
+<div class="position-sticky pt-3">
+  <ul class="nav flex-column">
+    {% for item in aside_items %}
+    <li class="nav-item">
+      <a
+        class="nav-link btn {% 'active btn-primary' if item.active else 'btn-secondary disabled' %}"
+        href="{{ item.url }}"
+      >
+        {{ item.text }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

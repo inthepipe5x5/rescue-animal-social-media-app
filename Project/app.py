@@ -470,7 +470,7 @@ def user_travel_preferences():
 def show_user_favorites(fav_type):
     """Add or toggle a favorite for the currently-logged-in user."""
 
-    fav_type = "all" if not fav_type else fav_type.lower() 
+    fav_type = "all" if not fav_type else fav_type.lower()
 
     user = (
         current_user
@@ -510,7 +510,15 @@ def show_user_favorites(fav_type):
 
     except Exception as e:
         # db.session.rollback()
-        return jsonify({"error": "Error getting favorites @ show_user_favorites API route =>" + str(e)}), 500
+        return (
+            jsonify(
+                {
+                    "error": "Error getting favorites @ show_user_favorites API route =>"
+                    + str(e)
+                }
+            ),
+            500,
+        )
 
 
 @login_required
@@ -554,6 +562,35 @@ def user_favorite(favorite_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('users/animal_types', methods=["GET", "POST"])
+def update_animal_types():
+    if request.method == 'POST':
+        selected_types = request.form.getlist('animal_types')
+        # Update the current user's animal types via the current_user proxy
+        if active_authenticated_user():
+                # Update the current user's animal types
+                current_user.animal_types = selected_types
+                try:
+                    db.session.commit()
+                    flash('Animal types updated successfully', 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    flash('An error occurred while updating animal types', 'error')
+                    app.logger.error(f"Error updating animal_types for user {current_user.id} @ {request.url} => {str(e)}")
+                    return jsonify({"error": "An error occurred while updating animal types"}), 500
+        else:
+            # Limit anonymous users to just one selection
+            selected_type = selected_types[0] if selected_types else 'dog'
+            session['ANIMAL_TYPES'] = [selected_type]
+            flash('Animal type updated successfully', 'success')
+
+        return jsonify({"animal_types": current_user.animal_types}), 201
+    
+    #handle get requests
+    else:
+        animal_types = current_user.animal_types if active_authenticated_user() else default_session_keys.get('ANIMAL_TYPES', ['dog'])
+        return jsonify({"animal_types": animal_types}), 200
+
 @login_required
 @app.route("/users/profile", methods=["GET", "POST"])
 def profile():
@@ -579,9 +616,7 @@ def profile():
                 flash(
                     "You were unsuccessful, try again", "error"
                 )  # show success to user
-                return render_template(
-                    "users/edit.html", form=form, user=active_user
-                )
+                return render_template("users/edit.html", form=form, user=active_user)
 
         return render_template("users/edit.html", form=form, user=active_user)
 
@@ -687,7 +722,8 @@ def get_rescue_action_mapped_to_animal_status():
     # If no current_user or no rescue_action_type is provided, return the default status
     return default_animal_status
 
-#TODO: I can move this to the User ORM class in models.py and call from `current_user._get_current_object`` instead
+
+# TODO: I can move this to the User ORM class in models.py and call from `current_user._get_current_object`` instead
 # Helper function to get the location or default location
 def get_location(no_geocode=False):
     """
@@ -1702,6 +1738,17 @@ def inject_global_vars():
         "animal_types": api.animal_types,
         "animal_emojis": api.animal_emojis,
         "animal_colors": animal_colors,
+        "animal_default_photos": {
+            "dog": "dog-freepik.png",
+            "cat": "cat-freepik.png",
+            "horse": "horse-freepik.png",
+            "bird": "bird-eucalyp.png",
+            "small-furry": "small-furry-freepik.png",
+            "scales-fins-other": "scales-smashicons.png",
+            "barnyard": "scales-smashicons.png",
+            "rabbit": "rabbit-freepik.png",
+            "misc": "tracks_freepik.png",
+        },
         "animal_border_colors": {
             key: "border-" + value for key, value in animal_colors.items()
         },

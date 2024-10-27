@@ -594,7 +594,7 @@ form.hidden {
   margin-top: 60px;
 }
 
-/* ================================ Custom Background Cards */
+/* ================================ Custom Background Cards @ Home Pages */
 
 .home-animal-cards {
   background-size: contain;
@@ -608,4 +608,21 @@ form.hidden {
 .home-animal-cards:hover {
   border: 5px solid #f4ab0e;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+/* ================================ Off Canvas */
+
+.animal-type-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.animal-type-card.dimmed {
+  opacity: 0.6;
+}
+.animal-type-card.selected {
+  box-shadow: 0 0 0 3px #f4ab0e !important;
+  opacity: 1;
+}
+input[type="checkbox"]:checked + .animal-type-card {
+  box-shadow: 0 0 0 3px #f4ab0e !important;
+  opacity: 1;
 }

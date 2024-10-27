@@ -1,4 +1,6 @@
 <!-- Animal Types Modal -->
+{% from 'macros.html' import render_animal_filter_button_list %}
+
 <div
   class="modal fade custom-modal"
   id="animalTypesModal"
@@ -10,7 +12,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="animalTypesModalLabel">
-          Customize Animal Preferences By Type
+          Set Custom Animal Preference Filters
         </h5>
         <button
           type="button"
@@ -20,35 +22,7 @@
         ></button>
       </div>
       <div class="modal-body">
-        <div class="d-grid gap-2">
-          {% for animal_type in animal_types %} {% if user_auth_status %}
-          <a
-            href="{{ url_for('animal_preferences', animal_type=animal_type) }}"
-            class="btn {{ animal_btn_colors[animal_type] if animal_type in session['ANIMAL_TYPES'] and animal_type in animal_btn_colors else 'btn-info' }}"
-          >
-            {{ animal_emojis[animal_type] }} {{ animal_type|replace('-', '
-            ')|title }} Preferences
-          </a>
-          {% else %}
-          <a
-            href="{{ url_for('animal_preferences', animal_type=animal_type) }}"
-            class="btn btn-{{ animal_border_colors[animal_type] if (animal_type in session['ANIMAL_TYPES'] and animal_type in animal_border_colors) else 'info' }} 
-                             {{ 'disabled' if animal_type|lower != 'dog' else '' }}"
-            {%
-            if
-            animal_type|lower
-            !="dog"
-            %}disabled
-            aria-disabled="true"
-            {%
-            endif
-            %}
-          >
-            {{ animal_emojis[animal_type] }} {{ animal_type|replace('-', '
-            ')|title }} Preferences
-          </a>
-          {% endif %} {% endfor %}
-        </div>
+        { render_animal_filter_button_list() }
       </div>
     </div>
   </div>
