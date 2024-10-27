@@ -236,7 +236,7 @@ class PetFinderPetPyAPI:
 
         except requests.exceptions.RequestException as e:
             print(f"endpoint, request_url, params=> {request_url, params}")
-            print(f"_get_request ERROR=> ERROR: {e}")
+            print(f"_get_request RequestException ERROR=> {e}")
 
             error_response = {}
             if hasattr(e, "response") and e.response is not None:
@@ -254,7 +254,72 @@ class PetFinderPetPyAPI:
                 ),
                 "success_flag": False,
             }
+    def _get_animal_types(self, *types):
+        """
+        Make a GET request to Petfinder API /types route.
+        If types are provided, request specific animal types.
+        """
+        base_url = "https://api.petfinder.com/v2/types"
+        
+        if not types:
+            # If no types are specified, query all types
+            return self._get_request('types', request_url=base_url)
+        else:
+            # If types are specified, query each type individually
+            results = []
+            for animal_type in types:
+                type_url = f"{base_url}/{animal_type}"
+                result = self._get_request('type', request_url=type_url)
+                results.append(result)
+            return results
 
+    def _get_breeds(self, animal_type=None):
+        """
+        Make a GET request to Petfinder API /breeds route.
+        If animal_type is provided, request breeds for that specific type.
+        """
+        base_url = "https://api.petfinder.com/v2/types"
+        
+        if not animal_type:
+            # If no animal_type is specified, return an error or all types (depending on API behavior)
+            return self._get_request('types', request_url=base_url)
+        else:
+            # If animal_type is specified, query breeds for that type
+            breeds_url = f"{base_url}/{animal_type}/breeds"
+            return self._get_request('breeds', request_url=breeds_url)
+    
+    def _get_organizations(self, org_id=None, **params):
+        """
+        Make a GET request to Petfinder API /organizations route.
+        If org_id is provided, request a specific organization.
+        Additional parameters can be passed as keyword arguments.
+        """
+        base_url = "https://api.petfinder.com/v2/organizations"
+        
+        if org_id:
+            # If org_id is specified, query that specific organization
+            request_url = f"{base_url}/{org_id}"
+            return self._get_request('organization', request_url=request_url, **params)
+        else:
+            # If no org_id is specified, query all organizations with optional params
+            return self._get_request('organizations', request_url=base_url, **params)
+
+    def _get_animals(self, animal_id=None, **params):
+        """
+        Make a GET request to Petfinder API /animals route.
+        If animal_id is provided, request a specific animal.
+        Additional parameters can be passed as keyword arguments.
+        """
+        base_url = "https://api.petfinder.com/v2/animals"
+        
+        if animal_id:
+            # If animal_id is specified, query that specific animal
+            request_url = f"{base_url}/{animal_id}"
+            return self._get_request('animal', request_url=request_url, **params)
+        else:
+            # If no animal_id is specified, query all animals with optional params
+            return self._get_request('animals', request_url=base_url, **params)
+                
     def create_filter_conditions(self, preferences):
         """
         Create filter conditions based on a nested object of boolean or list values.
