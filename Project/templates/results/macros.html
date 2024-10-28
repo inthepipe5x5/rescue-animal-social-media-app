@@ -152,6 +152,7 @@
     <style> @media (min-width: 992px) { .card-group > .card { flex: 0 0 calc(33.333% - 1rem); margin: 0.5rem; } } @media (min-width: 768px) and (max-width: 991px) { .card-group > .card { flex: 0 0 calc(50% - 1rem); margin: 0.5rem; } } @media (max-width: 767px) { .card-group > .card { flex: 0 0 100%; margin: 0.5rem; } } </style> 
     
     {% endmacro %}
+
     {% macro render_animal_filter_button_list() %}
     <div class="d-grid gap-2">
         {% for animal_type in animal_types %}
@@ -175,3 +176,97 @@
 
 
 {% macro render_skeleton_cards(skeleton_count=6) %} <div class="card-group"> {% for _ in range(skeleton_count) %} <div class="card bg-light"> <div class="card-header"> <div class="d-flex align-items-center"> <div class="skeleton skeleton-text" style="width: 70%; height: 20px; margin-right: 10px;"></div> <div class="ml-auto skeleton skeleton-text" style="width: 30%; height: 20px;"></div> </div> </div> <div class="card-body"> <span class="badge text-light bg-secondary" style="width: 60%; display: inline-block; height: 20px;"></span> <p class="skeleton skeleton-text" style="width: 80%; height: 20px;"></p> <img src="#" class="card-img-top img-fluid" alt="Loading..." style="height: 150px; object-fit: cover;"> <p class="skeleton skeleton-text" style="width: 50%; height: 15px;"></p> </div> </div> {% endfor %} </div> {% endmacro %}
+
+
+{% macro render_animal_hero_cards(card1_title, card1_body, card1_link, card1_image, card2_title, card2_body, card2_link, card2_image, user_auth_status, url_for) %}
+<div class="container px-4 py-1" id="hoverable-animal-type-cards-container">
+  <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4 py-5">
+    {# Card 1 #}
+    <div class="col">
+      <a href="{{ card1_link }}" class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-cards" style="background-image: url('{{ url_for('static', filename=card1_image) }}');">
+        <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+          <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">{{ card1_title }}</h3>
+          <p class="card-text">{{ card1_body }}</p>
+        </div>
+      </a>
+    </div>
+
+    {# Card 2 #}
+    <div class="col">
+      <a href="{{ card2_link }}" class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-cards" style="background-image: url('{{ url_for('static', filename=card2_image) }}');">
+        <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
+          <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">{{ card2_title }}</h3>
+          <p class="card-text">{{ card2_body }}</p>
+        </div>
+      </a>
+    </div>
+
+    {# Card 3 #}
+    <div class="col">
+      {% if user_auth_status %}
+      <a class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-cards" style="background-image: url('{{ url_for('static', filename='unsplash-photo-3.jpg') }}');" data-bs-toggle="offcanvas" href="#dynamicOffcanvas" role="button" aria-controls="dynamicOffcanvas">
+        <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+          <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Even More Animals</h3>
+          <p>Browse pets from over 14,500 shelters and rescues from PetFinder</p>
+        </div>
+      </a>
+      {% else %}
+      <a class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-cards" style="background-image: url('{{ url_for('static', filename='unsplash-photo-3.jpg') }}');" href="{{ url_for('signup') }}">
+        <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+          <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold animated-action-text">Even More Animals</h3>
+          <p class="animated-cta-text">Browse pets from over 14,500 shelters and rescues from PetFinder</p>
+        </div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('.hoverable-animal-cards');
+      
+      cards.forEach(card => {
+          card.addEventListener('mousemove', handleMouseMove);
+          card.addEventListener('mouseleave', handleMouseLeave);
+          card.addEventListener('mouseenter', handleMouseEnter);
+      });
+  
+      function handleMouseMove(e) {
+          const card = e.currentTarget;
+          const cardRect = card.getBoundingClientRect();
+          const cardCenterX = cardRect.left + cardRect.width / 2;
+          const cardCenterY = cardRect.top + cardRect.height / 2;
+          
+          const mouseX = e.clientX - cardCenterX;
+          const mouseY = e.clientY - cardCenterY;
+
+          const rotateValue = 60;
+          
+          const rotateX = (mouseY / cardRect.height) * rotateValue;
+          const rotateY = -(mouseX / cardRect.width) * rotateValue;
+          
+          card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }
+  
+      function handleMouseLeave(e) {
+          const card = e.currentTarget;
+          card.style.transform = 'rotateX(0) rotateY(0)';
+          card.style.border = 'none';
+          const h3 = card.querySelector('h3');
+          if (h3) {
+              h3.style.color = 'white';
+          }
+      }
+  
+      function handleMouseEnter(e) {
+          const card = e.currentTarget;
+          card.style.border = '3px solid #f4ab0e';
+          const h3 = card.querySelector('h3');
+          if (h3) {
+              h3.style.color = '#f4ab0e';
+          }
+      }
+  });
+</script>
+{% endmacro %}

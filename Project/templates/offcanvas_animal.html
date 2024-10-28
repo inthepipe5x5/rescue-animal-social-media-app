@@ -1,4 +1,5 @@
 <!-- offcanvas.html -->
+{% extends "offcanvas.html" %}
 {% block offcanvas_title %}Animal Results{% endblock %}
 
 {% block offcanvas_content %}
@@ -10,12 +11,12 @@
             <label class="w-100">
                 <input type="checkbox" name="animal_types" value="{{ animal_type }}" class="d-none" 
                        {% if animal_type in CURR_USER.animal_types %}checked{% endif %}>
-                <div class="card card-cover overflow-hidden text-bg-dark rounded-3 shadow-sm animal-type-card 
+                <div class="card card-cover overflow-hidden text-bg-dark rounded-3 shadow-sm animal-input-card hoverable-animal-type-card
                             {% if animal_type in CURR_USER.animal_types %}selected{% else %}dimmed{% endif %}"
                      style="background-image: url('{{ url_for('static', filename='images/graphics/' + image_file) }}'); 
                             height: 100px; background-size: cover; background-position: center;">
                     <div class="d-flex flex-column h-100 p-2 pb-1 text-white text-shadow-1">
-                        <h6 class="mt-1 mb-0 lh-1 fw-bold">{{ animal_type | format_kebab_case }}</h6>
+                        <h6 class="mt-1 mb-0 lh-1 fw-bold">{{ animal_type | format_kebob_case }}</h6>
                     </div>
                 </div>
             </label>
@@ -30,14 +31,12 @@
 <hr />
 <div class="list-group mt-2">
     <h5>Animal Preferences</h5>
-    {{ render_animal_filter_button_list() }}
-    
+    {{ render_animal_filter_button_list() }}  
 </div>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const animalTypeCards = document.querySelectorAll('.animal-type-card');
+    const animalTypeCards = document.querySelectorAll('.animal-input-card');
     animalTypeCards.forEach(card => {
         card.addEventListener('click', function() {
             const checkbox = this.parentElement.querySelector('input[type="checkbox"]');
@@ -48,3 +47,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endblock %}

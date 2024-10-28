@@ -1,4 +1,8 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} 
+
+{% from "results/macros.html" import render_animal_hero_cards %}
+
+{% block content %}
 <div class="row">
   {% if favorites %}
   <div class="col-lg-6 col-md-8 col-sm-12">
@@ -35,95 +39,98 @@
     </ul>
   </div>
   {% endif %}
-
-  <div class="border rounded-3 bg-body-tertiary container px-4 py-3" id="user-home-content-container">
-    <h2 class="pb-2 border-bottom">Welcome back {{user.username if user and user.username else "User"}}</h2>
-    <p>Browse pets from over 14,500 shelters and rescues from PetFinder</p>
-    
-    <div class="container px-4 py-1" id="home-animal-cards">
-      <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4 py-5">
-        <div class="col">
-          <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image: url('{{ url_for('static', filename='images/graphics/dog_freepik.png') }}');">
-            <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
-              <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Dogs</h3>
-            </div>
-          </div>
+  <div class="container px-4 py-1" id="hoverable-animal-type-cards-container">
+    <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4 py-5">
+      <!-- Card 1 -->
+      <div class="col">
+        <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for("static", filename="images/graphics/dog-hug-freepik.png") }}');">
+          <a href="{{ url_for('discover_animals') }}" class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none">
+            <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">🔍Discover</h3>
+            <p class="card-text">Find your perfect furry companion</p>
+          </a>
         </div>
+      </div>
   
-        <div class="col">
-          <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image:url('{{ url_for('static', filename='images/graphics/cat_freepik.png') }}');">
-            <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1">
-              <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Cats</h3>
-            </div>
-          </div>
+      <!-- Card 2 -->
+      <div class="col">
+        <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for("static", filename="images/animal-pictures/kym-ellis-p025ltbEPwM-unsplash.jpg") }}');">
+          <a href="{{ url_for('show_user_favorites', fav_type='animals') }}" class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none">
+            <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">😻 Saved Favorites</h3>
+            <p class="card-text">Furry friends who've caught your eye</p>
+          </a>
         </div>
+      </div>
   
-        <div class="col">
-          <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg home-animal-cards" style="background-image: url('unsplash-photo-3.jpg');">
-            <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
-              <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Even More Animals</h3>
-              <p>Browse pets from over 14,500 shelters and rescues from PetFinder</p>
-            </div>
-          </div>
+      <!-- Card 3 -->
+      <div class="col">
+        {% if user_auth_status %}
+        <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for('static', filename='images/graphics/') }}');">
+          <a class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none" data-bs-toggle="offcanvas" href="#dynamicOffcanvas" role="button" aria-controls="dynamicOffcanvas">
+            <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold">Even More Animals</h3>
+            <p>Browse pets from over 14,500 shelters and rescues from PetFinder</p>
+          </a>
         </div>
+        {% else %}
+        <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for('static', filename='unsplash-photo-3.jpg') }}');">
+          <a href="{{ url_for('signup') }}" class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none">
+            <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold animated-action-text">Even More Animals</h3>
+            <p class="animated-cta-text">Browse pets from over 14,500 shelters and rescues from PetFinder</p>
+          </a>
+        </div>
+        {% endif %}
       </div>
     </div>
-
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-          const cards = document.querySelectorAll('.home-animal-cards');
-          
-          cards.forEach(card => {
-              card.addEventListener('mousemove', handleMouseMove);
-              card.addEventListener('mouseleave', handleMouseLeave);
-              card.addEventListener('mouseenter', handleMouseEnter);
-          });
-      
-          function handleMouseMove(e) {
-              const card = e.currentTarget;
-              const cardRect = card.getBoundingClientRect();
-              const cardCenterX = cardRect.left + cardRect.width / 2;
-              const cardCenterY = cardRect.top + cardRect.height / 2;
-              
-              const mouseX = e.clientX - cardCenterX;
-              const mouseY = e.clientY - cardCenterY;
-              
-              const rotateX = (mouseY / cardRect.height) * 20;
-              const rotateY = -(mouseX / cardRect.width) * 20;
-              
-              card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-          }
-      
-          function handleMouseLeave(e) {
-              const card = e.currentTarget;
-              card.style.transform = 'rotateX(0) rotateY(0)';
-              card.style.border = 'none';
-              const h3 = card.querySelector('h3');
-              if (h3) {
-                  h3.style.color = 'white'; // Reset to original color
-              }
-          }
-      
-          function handleMouseEnter(e) {
-              const card = e.currentTarget;
-              card.style.border = '3px solid #f4ab0e';
-              const h3 = card.querySelector('h3');
-              if (h3) {
-                  h3.style.color = '#f4ab0e';
-              }
-          }
-      });
-      </script>
-    {# div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
-      <div class="col d-flex align-items-start">
-
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.hoverable-animal-type-cards');
         
+        cards.forEach(card => {
+            card.addEventListener('mousemove', handleMouseMove);
+            card.addEventListener('mouseleave', handleMouseLeave);
+            card.addEventListener('mouseenter', handleMouseEnter);
+        });
+    
+        function handleMouseMove(e) {
+            const card = e.currentTarget;
+            const cardRect = card.getBoundingClientRect();
+            const cardCenterX = cardRect.left + cardRect.width / 2;
+            const cardCenterY = cardRect.top + cardRect.height / 2;
+            
+            const mouseX = e.clientX - cardCenterX;
+            const mouseY = e.clientY - cardCenterY;
+  
+            const rotateValue = 60;
+            
+            const rotateX = (mouseY / cardRect.height) * rotateValue;
+            const rotateY = -(mouseX / cardRect.width) * rotateValue;
+            
+            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        }
+    
+        function handleMouseLeave(e) {
+            const card = e.currentTarget;
+            card.style.transform = 'rotateX(0) rotateY(0)';
+            card.style.border = 'none';
+            const h3 = card.querySelector('h3');
+            if (h3) {
+                h3.style.color = 'white';
+            }
+        }
+    
+        function handleMouseEnter(e) {
+            const card = e.currentTarget;
+            card.style.border = '3px solid #f4ab0e';
+            const h3 = card.querySelector('h3');
+            if (h3) {
+                h3.style.color = '#f4ab0e';
+            }
+        }
+    });
+  </script>
+  </div>
 
-      </div>
-      </div>
-    #}
-    
-    
       <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
       <div class="col d-flex align-items-start">
         <div
@@ -223,4 +230,18 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block offcanvas %}
+{% include "offcanvas_animal.html" %}
+{% endblock offcanvas %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='home-ui.js') }}"></script> {# animal h3.animated-action-text and p.animated-cta-text #}
+{% if page_scripts %}
+{% for script in page_scripts %}
+  <script src="{{ script }}"></script>
+{% endfor %}
+{% endif %}
 {% endblock %}

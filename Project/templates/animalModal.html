@@ -1,6 +1,5 @@
 <!-- Animal Types Modal -->
-{% from 'macros.html' import render_animal_filter_button_list %}
-
+{% from "results/macros.html" import render_animal_filter_button_list %}
 <div
   class="modal fade custom-modal"
   id="animalTypesModal"
@@ -22,7 +21,7 @@
         ></button>
       </div>
       <div class="modal-body">
-        { render_animal_filter_button_list() }
+        {{ render_animal_filter_button_list() }}
       </div>
     </div>
   </div>

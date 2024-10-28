@@ -9,7 +9,7 @@ from wtforms import (  # type: ignore # type: ignore
     HiddenField,
     IntegerRangeField,
 )
-from petpy import Petfinder
+# from petpy import Petfinder
 import os
 from dotenv import load_dotenv  # type: ignore
 
@@ -510,17 +510,16 @@ class SpecificAnimalPreferencesForm(FlaskForm):
     def __init__(self, animal_type, *args, **kwargs):
         super(SpecificAnimalPreferencesForm, self).__init__(*args, **kwargs)
         self.animal_type = animal_type
-        api = Petfinder(
-            key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET")
-        )
+
 
         # Fetch dynamic choices
-        breed_choices = api.breeds(animal_type)["breeds"]
+        breed_choices = kwargs["breeds"]
         print(breed_choices) if breed_choices else print("no breed_choices received from api")
-        animals = api.animal_types(animal_type)
-        print(animals) if animals else print("no animals received from api")
-        coat_color_choices = animals["type"]["colors"] or None
-        coat_choices = animals["type"]["coats"] or None
+        type = kwargs(animal_type)
+        print(type) if type else print(f"no type received from api, type: {type}")
+        coat_color_choices = type["type"]["colors"] or None
+        coat_choices = type["type"]["coats"] or None
+        
         # Set dynamic choices
         if breed_choices and len(breed_choices) > 0:
             for name in breed_choices:

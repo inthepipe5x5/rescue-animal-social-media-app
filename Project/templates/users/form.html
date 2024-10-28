@@ -99,7 +99,9 @@
 
 {% block scripts %}
   {{ super() }}
-  {% for script in page_scripts %}
-    <script src="{{ script }}"></script>
-  {% endfor %}
+{% if page_scripts %}
+{% for script in page_scripts %}
+  <script src="{{ script }}"></script>
+{% endfor %}
+{% endif %}
 {% endblock %}

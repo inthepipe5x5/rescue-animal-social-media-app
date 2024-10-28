@@ -1,4 +1,4 @@
-<nav id="main-navbar" class="navbar navbar-expand-md">
+<nav id="main-navbar" class="navbar navbar-expand-lg">
   <div class="container-fluid">
     <div class="navbar-header ml-4">
       <a href="/" class="navbar-brand">
@@ -17,25 +17,32 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="nav navbar-nav"> Filters:
+      <ul class="nav navbar-nav"> 
+        🔍 Finding:
+
         {% if not (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
         <li class="nav-item">
-          <a class="btn btn-link" href=url_for("")>Animal Results</a>
+          <a class="btn btn-link" href="{{ url_for('discover_animals') }}">Animal Results</a>
         </li>
         {% else %}
         <li class="nav-item d-flex align-items-center"> <!-- Use flex for text alignment -->
           <div>
-            🔍 Results:
-            {% for type in (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
-            <a class='btn btn-link nav-link mx-1' href="{{ url_for('animal_preferences', animal_type=type) }}">
-              {{ animal_emojis[type] }} Results
-            </a>
-            {% endfor %}
+            {#
+              {% for type in (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
+              <a class='btn btn-link nav-link mx-1' href="{{ url_for('animal_preferences', animal_type=type) }}">
+                {{ animal_emojis[type] }}
+                </a>
+                #}
+                <a class="btn nav-link text-dark"  href="">
+                  {% for type in (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
+                  {{ animal_emojis[type] }}
+                  {% endfor %}
+                </a>
           </div>
         </li>
         <li class="nav-item">
           <a class="btn nav-link text-dark" href={{ url_for('form_user_location') }}>
-            Location: {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else session["CURR_LOCATION"] if "CURR_LOCATION" in session else "Location Not Set" }}📍</a>
+            at 📍 {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else (CURR_USER.location.country + ", " +  CURR_USER.location.country) if (CURR_USER and CURR_USER.location ) else "Location Not Set" }}</a>
         </li>
         {% endif %}
 
@@ -88,7 +95,7 @@
             <li class="dropdown-header"><h6>Animal Filters</h6></li>
             {% for animal_type in animal_types %}
               <li><a class="dropdown-item" href="{{ url_for('animal_preferences', animal_type=animal_type) }}">
-                {{ animal_emojis[animal_type] }} {{ animal_type|replace('-', ' ')|title }} Preferences
+                {{ animal_emojis[animal_type] }} {{ animal_type| format_kebob_case }} Preferences
               </a></li>
             {% endfor %}
           </ul>
@@ -106,7 +113,7 @@
       <li><a class="btn btn-link" href="/users/{{ CURR_USER.id }}">
         <span><img id="user_profile_img" src="{{ CURR_USER.image_url }}" alt="{{ CURR_USER.username }}" />{{ CURR_USER.username }}</span>
       </a></li>
-      <li><a href="/logout">Log out</a></li>
+      <li><a class="btn btn-link" href="/logout">Log out</a></li>
       {% endif %}
     </ul>
 

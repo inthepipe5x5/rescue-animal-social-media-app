@@ -24,11 +24,13 @@ body.error-404 {
 
 #main-navbar {
   margin-bottom: 60px;
+  position: sticky;
+  top: 0;
 }
 
 .navbar {
   background-color: #fff;
-  height: 60px;
+  height: 80px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   margin-bottom: 60px;
   position: relative;
@@ -36,14 +38,14 @@ body.error-404 {
 }
 
 .navbar a {
-  color: #66757f;
+  color: #f4ab0e;
   font-size: 13px;
   font-weight: bold;
   transition: color 0.3s ease, background-color 0.3s ease; /* Smooth transition */
 }
 
 .navbar a:hover {
-  color: #1c94e0; /* Change text color on hover */
+  color: #f4ab0e; /* Change text color on hover */
 }
 
 /* Hover effect for all navbar items */
@@ -86,7 +88,7 @@ ul.nav.navbar-nav {
 }
 
 ul.nav.navbar-nav li {
-  margin: 0 0.5rem;
+  margin: 0 0.25rem;
   display: flex;
 }
 
@@ -596,29 +598,31 @@ form.hidden {
 
 /* ================================ Custom Background Cards @ Home Pages */
 
-.home-animal-cards {
+.hoverable-animal-type-cards {
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
   transform-style: preserve-3d;
   perspective: 1000px;
+  cursor: pointer;
 }
 
-.home-animal-cards:hover {
+.hoverable-animal-cards:hover {
   border: 5px solid #f4ab0e;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
-/* ================================ Off Canvas */
+/* ================================ Animal Input Cards*/
 
-.animal-type-card {
-  transition: all 0.3s ease;
+/* commented out as .hoverable-animal-type-cards covers this  */
+/* .animal-type-card {
+  transition: all 0.1s ease;
   cursor: pointer;
-}
-.animal-type-card.dimmed {
+} */
+.animal-input-card.dimmed {
   opacity: 0.6;
 }
-.animal-type-card.selected {
+.animal-input-card.selected {
   box-shadow: 0 0 0 3px #f4ab0e !important;
   opacity: 1;
 }

@@ -105,6 +105,15 @@ class PetFinderPetPyAPI:
         """
         current_time = int(time.time())
 
+        # Check if valid token is stored in os.environ
+        os_key = os.environ.get('ACCESS_TOKEN', None)
+        os_key_expiration = os.environ.get('TOKEN_EXPIRATION', None)
+        
+        if (os_key and os_key_expiration) and current_time < os_key_expiration:
+            self.access_token = os_key
+            self.token_expiration = os_key_expiration
+            return os_key
+        
         # Check if instance has a valid token
         if (self.access_token and self.token_expiration) and current_time < self.token_expiration:
             return self.access_token

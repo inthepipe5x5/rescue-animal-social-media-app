@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% from "results/macros.html" import render_animal_hero_cards %}
+
 {% block content %}
 <div class="container-fluid">
   <div class="row">
@@ -23,6 +25,8 @@
       </div>
     </div>
 
+
+    {# TODO: REMOVE THIS LATER, IT'S ANON HOME HERO CARDS ORIGINAL
     <div
   class="container-fluid px-4 py-1"
 >
@@ -53,6 +57,29 @@
     </div>
   </div>
 </div>
+#}
+
+<div class="border rounded-3 bg-body-tertiary container px-4 py-3" id="user-home-content-container">
+  <h2 class="pb-2 border-bottom">Welcome back {{ CURR_USER.username if user and CURR_USER.username else "Animal Lover" }}</h2>
+  <p>
+    <span class="animated-action-text">Find</span>
+    <span> </span>{# span for space between letters#}
+    <span class="animated-subject-text">Furry Friends Nearby</span>!
+  </p>
+  
+{{ render_animal_hero_cards(
+  card1_title="Dogs",
+  card1_body="Find your perfect canine companion",
+  card1_link=url_for('dogs'),
+  card1_image="dog_image.jpg",
+  card2_title="Cats",
+  card2_body="Discover your ideal feline friend",
+  card2_link=url_for('cats'),
+  card2_image="cat_image.jpg",
+  user_auth_status=user_auth_status,
+  url_for=url_for
+) }}
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
       const cards = document.querySelectorAll('.home-animal-cards');

@@ -140,7 +140,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-# Custom Jinja filters
+# Inject Custom Jinja filters Here
 custom_filters_dict = {
     "format_kebob_case": Parse.format_kebob_case,
 }
@@ -150,12 +150,13 @@ for function_key, function in custom_filters_dict.items():
 # api instance of helper class
 api = PetFinderPetPyAPI()
 
-# petpy instance
-petpy = Petfinder(key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET"))
 
-# set auth in petpy
-if not petpy._auth:
-    petpy._auth = os.environ.get("ACCESS_TOKEN", None)
+# # petpy instance
+# petpy = Petfinder(key=os.environ.get("API_KEY"), secret=os.environ.get("API_SECRET"))
+
+# # set auth in petpy
+# if not petpy._auth:
+#     petpy._auth = os.environ.get("ACCESS_TOKEN", None)
 
 ##############################################################################
 # SESSION FUNCTIONS
@@ -562,7 +563,7 @@ def user_favorite(favorite_id):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('users/animal_types', methods=["GET", "POST"])
+@app.route('/users/animal_types', methods=["GET", "POST"])
 def update_animal_types():
     if request.method == 'POST':
         selected_types = request.form.getlist('animal_types')
@@ -690,7 +691,7 @@ def get_user_data(user_id):
     # handle no results
     print("No User data found, default output returned")
     default_output = default_session_keys.copy()
-    default_output["STATE_COUNTRY"] = get_location(no_geocode=False)
+    default_output["STATE_COUNTRY"] = get_location(no_geocode=True)
     return default_output
 
 
@@ -764,7 +765,7 @@ def get_location(no_geocode=False):
         if no_geocode:
             return (
                 default_session_keys["DEFAULT_LOCATION"]["state"].lower()
-                + default_session_keys["CURR_LOCATION"]["country"].lower()
+                + default_session_keys["DEFAULT_LOCATION"]["country"].lower()
             )
         else:
             return default_session_keys["CURR_LOCATION"]
@@ -1451,10 +1452,11 @@ def set_global():
             else current_user.animal_types
         )
         state_country = (
-            session.get("STATE_COUNTRY")
+            session.get("STATE_COUNTRY", "ON, CA🍁")
             if "STATE_COUNTRY" in session
-            else current_user.location
+            else current_user.location.city_state_country_str()
         )
+        
         form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
         # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
