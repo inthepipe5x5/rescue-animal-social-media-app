@@ -630,3 +630,96 @@ input[type="checkbox"]:checked + .animal-type-card {
   box-shadow: 0 0 0 3px #f4ab0e !important;
   opacity: 1;
 }
+/* ================================ Error Page Styling */
+
+/* General styling for the error hero component */
+.error-hero {
+  background-color: #f4f4f4;
+  color: #333;
+  padding: 50px 20px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin: 20px auto;
+  max-width: 600px;
+}
+
+/* Title styling with shimmer effect */
+.error-hero h1 {
+  color: #f4ab0e; /* Primary color for title */
+  font-size: 2.5em;
+  margin: 0 0 10px;
+  position: relative;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* Subtitle and paragraph styling */
+.error-hero h2 {
+  color: #666;
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+
+.error-hero p {
+  color: #444;
+  font-size: 1.1em;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* Redirect button styling */
+.error-hero .btn {
+  display: inline-block;
+  padding: 12px 25px;
+  background-color: #f4ab0e; /* Primary color for button */
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.error-hero .btn:hover {
+  background-color: #d9970d; /* Darken on hover for accessibility */
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .error-hero {
+      padding: 30px 15px;
+  }
+  
+  .error-hero h1 {
+      font-size: 2em;
+  }
+  
+  .error-hero h2 {
+      font-size: 1.3em;
+  }
+
+  .error-hero p {
+      font-size: 1em;
+  }
+}
+
+/* Styling for the animal media section */
+.error-hero .animal-media {
+  margin: 15px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.error-hero .animal-image {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}

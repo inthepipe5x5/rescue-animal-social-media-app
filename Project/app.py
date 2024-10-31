@@ -35,6 +35,7 @@ from time import sleep
 # from functools import wraps #TODO: to protect certain API routes
 from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
+from werkzeug.exceptions import HTTPException
 
 from models import (
     db,
@@ -91,6 +92,7 @@ default_session_keys = {
     },
     "DISTANCE_PREF": 100,
     "RESULTS_PER_PAGE": 6,  # default is 6 (so render 2 rows of 3 columns of cards)
+    "VIEWED_CONTENT_LIST": [],  # list of id of PetFinder API content seen by the user
 }
 
 
@@ -563,34 +565,44 @@ def user_favorite(favorite_id):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/users/animal_types', methods=["GET", "POST"])
+@app.route("/users/animal_types", methods=["GET", "POST"])
 def update_animal_types():
-    if request.method == 'POST':
-        selected_types = request.form.getlist('animal_types')
+    if request.method == "POST":
+        selected_types = request.form.getlist("animal_types")
         # Update the current user's animal types via the current_user proxy
         if active_authenticated_user():
-                # Update the current user's animal types
-                current_user.animal_types = selected_types
-                try:
-                    db.session.commit()
-                    flash('Animal types updated successfully', 'success')
-                except Exception as e:
-                    db.session.rollback()
-                    flash('An error occurred while updating animal types', 'error')
-                    app.logger.error(f"Error updating animal_types for user {current_user.id} @ {request.url} => {str(e)}")
-                    return jsonify({"error": "An error occurred while updating animal types"}), 500
+            # Update the current user's animal types
+            current_user.animal_types = selected_types
+            try:
+                db.session.commit()
+                flash("Animal types updated successfully", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash("An error occurred while updating animal types", "error")
+                app.logger.error(
+                    f"Error updating animal_types for user {current_user.id} @ {request.url} => {str(e)}"
+                )
+                return (
+                    jsonify({"error": "An error occurred while updating animal types"}),
+                    500,
+                )
         else:
             # Limit anonymous users to just one selection
-            selected_type = selected_types[0] if selected_types else 'dog'
-            session['ANIMAL_TYPES'] = [selected_type]
-            flash('Animal type updated successfully', 'success')
+            selected_type = selected_types[0] if selected_types else "dog"
+            session["ANIMAL_TYPES"] = [selected_type]
+            flash("Animal type updated successfully", "success")
 
         return jsonify({"animal_types": current_user.animal_types}), 201
-    
-    #handle get requests
+
+    # handle get requests
     else:
-        animal_types = current_user.animal_types if active_authenticated_user() else default_session_keys.get('ANIMAL_TYPES', ['dog'])
+        animal_types = (
+            current_user.animal_types
+            if active_authenticated_user()
+            else default_session_keys.get("ANIMAL_TYPES", ["dog"])
+        )
         return jsonify({"animal_types": animal_types}), 200
+
 
 @login_required
 @app.route("/users/profile", methods=["GET", "POST"])
@@ -649,11 +661,34 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 
 
 def get_user_data(user_id):
+    """
+    Retrieves user information from the database based on the provided user ID.
+
+    This function fetches data including animal types, location, and travel
+    preferences for the specified user.
+
+    Args:
+        user_id (int): The unique identifier of the user.
+
+    Returns:
+        dict: A dictionary containing user information with the following keys:
+            - user_id (int): The user's unique identifier.
+            - animal_types (list): Types of animals associated with the user.
+            - location (dict): User's location details including city, state, and country.
+            - distance_filter (int): User's preferred distance filter setting.
+            - current_location (dict): User's current location if available, or a default location.
+
+    Note:
+        If the user with the given user_id does not exist in the database,
+        the function may return None or raise an exception (implementation-dependent).
+    """
+    
     if user_id:
         result = (
             db.session.query(
                 User.id,
                 User.animal_types,
+                UserLocation.city,
                 UserLocation.state,
                 UserLocation.country,
                 UserTravelPreferences.distance_filter_preference,
@@ -680,6 +715,7 @@ def get_user_data(user_id):
             return {
                 "CURR_USER_KEY": result.id,
                 "ANIMAL_TYPES": result.animal_types,
+                "CITY_STATE": f"{result.city+', '+result.state}",
                 "STATE_COUNTRY": f"{result.state+', '+result.country}",
                 "DISTANCE_PREF": result.distance_filter_preference,
                 "CURR_LOCATION": (
@@ -754,7 +790,9 @@ def get_location(no_geocode=False):
 
         if no_geocode:
             return (
-                user_location.city_state_country_str()
+                f"{user_location.city},{user_location.state}"
+                if user_location.city and user_location.state
+                else user_location.get_location_info()
             )  # return city/state/str eg. for UI rendering purposes
         else:
             return (
@@ -821,15 +859,25 @@ def create_init_params(type="animal"):
         species = get_species_preferences(user)
         location_str = get_location(user_location)
         distance_pref = (
-            UserTravelPreferences._get_distance_filter_param(user_id=current_user.id)
-            or distance_pref
+            current_user.travel_preference.distance_filter_preference
+            if current_user.travel_preference
+            else (
+                UserTravelPreferences._get_distance_filter_param(
+                    user_id=current_user.id
+                )
+                or 100
+            )
         )
         status = get_rescue_action_mapped_to_animal_status()
     else:
         # Non-authenticated user, default settings
-        species = default_session_keys.get("ANIMAL_TYPES", "dog")
-        location_str = os.environ.get("CURR_LOCATION", "43.6429,-79.3889")
-        distance_pref = 100
+        species = session.get("ANIMAL_TYPES") or default_session_keys.get(
+            "ANIMAL_TYPES", "dog"
+        )
+        location_str = session.get("CURR_LOCATION") or os.environ.get(
+            "CURR_LOCATION", "43.6429,-79.3889"
+        )
+        distance_pref = session.get("DISTANCE_PREF", 100)
 
     # Set limit based on species length (more species = more results per page)
     species_len = len(species) or 1
@@ -861,12 +909,12 @@ def create_init_params(type="animal"):
             "state": str(
                 user_location.state
                 if user_location
-                else default_session_keys.get("state", "ON")
+                else default_session_keys.get("location.state", "ON")
             ),  # Fallback state to ON
             "country": str(
                 user_location.country
                 if user_location
-                else default_session_keys.get("country", "CA")
+                else default_session_keys.get("location.country", "CA")
             ),  # Fallback country to CA
             "distance": distance_pref,
             "limit": limit,
@@ -895,6 +943,7 @@ def get_user_animal_preferences(user_id=None, species_list=["dog"]):
     user_prefs_query = UserAnimalPreferences.get_all_user_animal_preferences(
         u_id=user_id
     )
+
     return (
         {species: user_prefs_query for species in species_list}
         if user_prefs_query
@@ -929,8 +978,8 @@ def create_user_preference_filters():
         # Create location filters
         location_filters = api.create_filter_conditions(
             preferences={
-                "state": user_location.state,
-                "country": user_location.country,
+                "state": user_location.city,
+                "country": user_location.state,
             }
         )
         if user_prefs:
@@ -950,107 +999,130 @@ def create_user_preference_filters():
         return filters
 
 
-@app.route("/discover/animals", methods=["GET", "POST"])
+@app.route("/discover/animals", methods=["GET"])
 def discover_animals():
-    # grab current page_count in session
-    current_page_count = session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
-    if request.method.upper() == "GET":
-        # direct to current page count
-        return redirect(url_for("discover_animals_page", page=current_page_count))
-    elif request.method.upper() == "POST":
-        # current user
-        user = load_user(current_user.id) if active_authenticated_user() else None
+    """Route to fetch and display paginated animal data, with error handling and fallback UI in case of API downtime."""
 
-        init_params = create_init_params(type="animal")
-        if active_authenticated_user():
-            animal_prefs = get_user_animal_preferences(user_id=user.id)
-            expanded_params = api.preprocess_preferences(
-                init_params_copy=init_params.copy(), prefs_obj=animal_prefs
+    if active_authenticated_user():
+        user_data = get_user_data(current_user.id) 
+    
+    target_count = int(request.args.get("count", 9))  # Number of animals per page
+    
+    #grab VIEWED_CONTENT_LIST and user favorites
+    user_favorites = set([fav.id for fav in current_user._get_current_object().favorites] if active_authenticated_user() else [])
+    viewed_content = session.get("VIEWED_CONTENT_LIST", [])
+    #combined viewed_content and user_favorites to create list of ids to exclude
+    exclude_ids = viewed_content.extend(list(user_favorites))
+        
+    
+
+    # Fetch user preferences
+    animal_types = request.args.get("animal_type") or init_params.get('type') or session.get('ANIMAL_TYPES', ['dog'])
+    animal_prefs = get_user_animal_preferences()
+    # Ensure animal_types is a list, even if a single type is provided as a string
+    if isinstance(animal_types, str):
+        animal_types = [animal_types]
+    elif isinstance(animal_types, (list, set, tuple)):
+        animal_types = animal_types
+    
+    init_params=create_init_params(type="animals")
+    
+    next_urls = session.get(
+        "next_urls", {animal_type: None for animal_type in animal_types}
+    )
+
+    # Initialize generator
+    generator = api.animal_pagination_generator(
+        animal_types=animal_types, target_count=target_count, init_params=init_params, next_urls=next_urls, exclude_ids=exclude_ids
+    )
+    render_content = []
+    no_api_content = False
+
+    try:
+        # Generate paginated data until target count is met
+        while len(render_content) < target_count:
+            results, next_urls = next(generator)
+            session["next_urls"] = next_urls  # Save updated next URLs in session
+
+            if not results:
+                no_api_content = True
+                break  # Exit if generator returns no content
+
+            # Apply user filters and parse results
+            filters = create_user_preference_filters()
+            filtered_results, success_flag = api.filter_parse_animal_results(
+                results, filter_prefs=filters
             )
-        # create params for GET request
-        animal_params = (
-            expanded_params
-            if (expanded_params and active_authenticated_user())
-            else init_params
-        )
-        animal_params["count"] = 50  # return 50 results to filter
+            render_content.extend(filtered_results)
 
-        filters = (
-            {}
-            if not animal_prefs
-            else api.create_filter_conditions(preferences=animal_prefs)
-        )
+            # If filtering was successful, exit loop
+            if success_flag:
+                #add ids of result objects to VIEWED_CONTENT_LIST in session
+                session.update("VIEWED_CONTENT_LIST", [result.id for result in filtered_results])
+                if next_urls:
+                    session.update('next_urls', next_urls)        
+                break
 
-        try:
-            response = api._get_request(params=animal_params)
-            if response.get("animals") and len(response.get("animals")) > 0:
-                animal_lists = response.get("animals", [])
-                filtered = api.filter_results_list(
-                    results_list=animal_lists, filter_conditions=filters
+        # No content available message
+        if no_api_content:
+            flash(
+                "No animals found matching your filters. Adjust filters or try again later!",
+                "warning",
+            )
+
+            # Attempt to get a fresh set of animals without filters
+            init_params = {"limit": target_count}  # Set basic params as needed
+            try:
+                backup_results = api.get_request(
+                    "animals", f"{api.API_BASE_URL}/animals", params=init_params
                 )
-                if filtered and filtered.get("results"):
-                    all_results = filtered.get("results")
-                    results_per_page = session.get("RESULTS_PER_PAGE", 6)
-                    paginated_result_object = {}
-                    page_index = 1
-                    for result in all_results:
-                        if page_index in paginated_result_object:
-                            if (
-                                len(paginated_result_object[page_index])
-                                >= results_per_page
-                            ):
-                                # increment if greater or equal if the length of the list stored under this page_index is greater/equal to the RESULTS_PER_PAGE setting
-                                page_index = page_index + 1
-                            else:
-                                # append result to the object list under the page_index key
-                                paginated_result_object[page_index].append(result.id)
-                        else:
-                            # if page_index not in paginated_result_object, create a list with result
-                            paginated_result_object[page_index] = [result.id]
-
-                    if paginated_result_object:
-                        # TODO: REMOVE LATER AFTER DEBUGGING
-                        app.logger.debug(
-                            "animal results in session created", paginated_result_object
+                if not backup_results:
+                    # Redirect to the custom error route if API returns no data
+                    return redirect(
+                        url_for(
+                            "custom_error",
+                            error_title="PetFinder API Unavailable",
+                            error_subtitle="We're sorry for the inconvenience.",
+                            error_message="PetFinder's API is temporarily down. Please try again later.",
                         )
+                    )
 
-                        # save to session so that future routes can use this
-                        session["ANIMAL_RESULTS_DICT"] = paginated_result_object
+                # If backup data is found, parse and return as JSON or HTML
+                render_content = backup_results.get("animals", [])
 
-        except Exception as e:
-            app.logger.error("UH OH, something went wrong @ {request.endpoint} - {e}")
+            except Exception as api_error:
+                app.logger.error(f"API Backup Call Failed: {api_error}")
+                return redirect(
+                    url_for(
+                        "custom_error",
+                        error_title="PetFinder API Error",
+                        error_subtitle="Unable to retrieve animals.",
+                        error_message="Our system is currently experiencing issues connecting to PetFinder. Please try again later.",
+                    )
+                )
 
+        # Return JSON for AJAX requests (e.g., "load more" button) or render HTML
+        if request.is_json:
+            return jsonify(
+                {"results": render_content, "success_flag": bool(render_content)}
+            )
 
-@app.route("/discover/animals/<int:page>", methods=["GET"])
-def discover_animals_page(page):
-    args = request.args if request.args else {}
+        # Render template with animal data
+        return render_template("results.html", animals=render_content)
 
-    # handle no page
-    if not page:
-        page = session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
-        if args and "next" in args:
-            # increment page
-            page = page + 1
-            # update session
-            session["CURRENT_DISCOVER_ANIMALS_PAGE"] = page
-        if args and "prev" in args:
-            # increment page
-            page = page - 1
-            # update session
-            session["CURRENT_DISCOVER_ANIMALS_PAGE"] = page
-    # handle invalid page attempts & or if the user hasn't visited page 1 yet
-    if not "ANIMAL_RESULTS_DICT" in session:
-        flash("Sorry, we haven't found that many friends to adopt yet!")
-        # make post request to seed
-        requests.post(url_for("discover_animals"))
-        sleep(3)
-        redirect(url_for("discover_animals_page", page=page))
+    except Exception as e:
+        # Log the error with detailed information
+        app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
 
-    animal_id_list = session.get("ANIMAL_RESULTS_DICT").get(page, [])
-
-    animals = api._get_request(animal_id=animal_id_list)
-
-    return render_template("animalResults.html", animals=animals)
+        # Redirect to the error page with custom error details
+        return redirect(
+            url_for(
+                "custom_error",
+                error_title="Unexpected Error",
+                error_subtitle="We ran into an issue!",
+                error_message="Our system encountered an issue loading animals. Please try refreshing the page or come back later.",
+            )
+        )
 
 
 @app.route("/data/<country>/state", methods=["GET"])
@@ -1109,116 +1181,6 @@ def get_state(country):
             },
         }
     )
-
-
-@app.route("/data/animals", methods=["GET", "POST"])
-def animal_data():
-    """DATA ROUTE FOR FRONTEND TO GET PETPY API ANIMALS DATA"""
-    user = load_user(current_user.id) if active_authenticated_user() else None
-    try:
-        # Create PetFinder API query params based on user settings saved in session
-        init_params = create_init_params(type="animals")
-
-        # grab animal prefs => will return None if no user
-        animal_prefs = get_user_animal_preferences(user_id=user.id) or {}
-
-        # grab user favorites if user
-        favorites = (
-            UserFavorites.get_animal_favorites(user_id=user.id)
-            if active_authenticated_user()
-            else []
-        ) or []
-
-        # Fetch and yield paginated results
-        # TODO: this method is returning None and causing an error =>  '<' not supported between instances of 'int' and 'NoneType'
-        results = api.get_mapped_animals_by_type(
-            init_params=init_params,
-            favorites=favorites,
-            user_preferences_dict=animal_prefs,
-            filter_prefs=create_user_preference_filters(),
-        )
-
-        # Check if the results are valid
-        if (
-            not results
-            or not isinstance(results, dict)
-            or not results["success_flag"]
-            or not results["results"]
-        ):
-            return (
-                jsonify(
-                    {
-                        "success_flag": False,
-                        "message": "No results found.",
-                        "results": results["results"] if results else [],
-                        "bad_keys": results["bad_keys"] if results else [],
-                        "unfiltered": not any(
-                            [len(results["results"]) > 0, results["success_flag"]]
-                        )
-                        or results.get(
-                            "unfiltered", False
-                        ),  # Ensure `unfiltered` key exists
-                    }
-                ),
-                200,
-            )
-
-        # Return the batch of results
-        return jsonify(results), 200
-
-    except Exception as e:
-        err_msg = f"ERROR /data/animals => {str(e)}"
-        print(err_msg)
-        return (
-            jsonify(
-                {
-                    "success_flag": False,
-                    "message": "An error occurred while fetching animal data.",
-                    "error": err_msg,
-                }
-            ),
-            500,
-        )
-
-
-# # TESTING/DEBUGGING ROUTE
-# @login_required
-# @app.route("/data/prefs/animals", methods=["GET"])
-# def all_animal_pref_data():
-
-#     if active_authenticated_user():
-#         user_id = current_user.id
-#     else:
-#         # user_id = 18  # user: 99299@99299.com
-#         return jsonify(
-#             {"results": [], "success_flag": False, "message": "No user logged in"}
-#         )
-#     user_animal_prefs = UserAnimalPreferences.get_all_user_animal_preferences(
-#         u_id=user_id
-#     )
-#     if user_animal_prefs:
-#         message = "User animal preferences retrieved successfully."
-#         category = "success"
-#     else:
-#         message = "No animal preferences found."
-#         category = "error"
-#     flash(message=message, category=category)
-#     # return all user animal_preferences grouped by animal type as found in db
-#     # if not clean_bool:
-#     #     output = user_animal_prefs if user_animal_prefs else []
-
-#     output = (
-#         api.preprocess_preferences(prefs_obj=user_animal_prefs)
-#         if user_animal_prefs
-#         else []
-#     )
-#     return jsonify(
-#         {
-#             "results": output,
-#             "message": message,
-#             "success_flag": True if category != "error" else False,
-#         }
-#     )
 
 
 @login_required
@@ -1456,7 +1418,7 @@ def set_global():
             if "STATE_COUNTRY" in session
             else current_user.location.city_state_country_str()
         )
-        
+
         form = UserExperiencesForm(animal_types=animal_types, country=country)
     else:
         # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
@@ -1668,6 +1630,91 @@ def homepage():
         return render_template("home-anon.html")  # , results=results
 
 
+# ERROR routes ##############################################################################
+def handle_error(e):
+    """Handle both HTTP exceptions and other exceptions."""
+    error_code = e.code if isinstance(e, HTTPException) else 500
+    error_details = {
+        400: {
+            "error_title": "400 Bad Request",
+            "error_subtitle": "Oops! That's an invalid request.",
+            "error_message": "The server couldn't understand your request. Please check your input and try again.",
+        },
+        401: {
+            "error_title": "401 Unauthorized",
+            "error_subtitle": "Access Denied",
+            "error_message": "You don't have permission to access this resource. Please log in or check your credentials.",
+        },
+        403: {
+            "error_title": "403 Forbidden",
+            "error_subtitle": "Access Restricted",
+            "error_message": "You don't have permission to access this resource.",
+        },
+        404: {
+            "error_title": "404 Not Found",
+            "error_subtitle": "Oops! Page not found.",
+            "error_message": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
+        },
+        500: {
+            "error_title": "500 Internal Server Error",
+            "error_subtitle": "Oops! Something went wrong.",
+            "error_message": "We're experiencing some technical difficulties. Please try again later or contact support if the problem persists.",
+        },
+    }
+
+    error_info = error_details.get(
+        error_code,
+        {
+            "error_title": f"{error_code} Error",
+            "error_subtitle": "An unexpected error occurred.",
+            "error_message": "We're sorry, but something went wrong on our end. Please try again later.",
+        },
+    )
+
+    return (
+        render_template(
+            "error_page.html",
+            error_title=error_info["error_title"],
+            error_subtitle=error_info["error_subtitle"],
+            error_message=error_info["error_message"],
+            redirect_url=request.args.get("redirect_url", "/"),
+            redirect_text=request.args.get("redirect_text", "Back to Home"),
+        ),
+        error_code,
+    )
+
+
+# Register the error handler for all HTTP exceptions
+@app.errorhandler(HTTPException)
+def http_error_handler(e):
+    return handle_error(e)
+
+
+# Register a catch-all error handler for any other exceptions
+@app.errorhandler(Exception)
+def internal_error_handler(e):
+    return handle_error(e)
+
+
+@app.route("/error")
+def custom_error():
+    """Route to handle custom errors and redirects from other routes."""
+    error_title = request.args.get("error_title", "Error")
+    error_subtitle = request.args.get("error_subtitle", "Something went wrong")
+    error_message = request.args.get("error_message", "An unexpected error occurred.")
+    redirect_url = request.args.get("redirect_url", "/")
+    redirect_text = request.args.get("redirect_text", "Return Home 🏡")
+
+    return render_template(
+        "error_page.html",
+        error_title=error_title,
+        error_subtitle=error_subtitle,
+        error_message=error_message,
+        redirect_url=redirect_url,
+        redirect_text=redirect_text,
+    )
+
+
 ##############################################################################
 
 
@@ -1683,12 +1730,6 @@ def init_default_session():
     session.modified = True
 
 
-# # load user data into session before each request
-# def update_session():
-#         if session.new: #new session if new session or session dependencies are modified in a route, the route will indicate that it's a new session
-#             load_session()
-
-
 @app.before_request
 def load_session():
     """Update the session with user values if user else populates with default values"""
@@ -1697,25 +1738,19 @@ def load_session():
     if not active_authenticated_user() and session.new == True:
         return init_default_session()
     else:
-        user_id = current_user.id if active_authenticated_user() else None
+        user_id = (
+            current_user.id
+            if (
+                active_authenticated_user()
+                and (session.new == True or session.modified == True)
+            )
+            else None
+        )
         user_session_data = get_user_data(user_id=user_id)
         if user_session_data:
             # update session with state_country, animal_types, curr_location, distance
             session.update(user_session_data)
 
-
-# Initialize global variables before each request
-# @app.before_request
-# def get_app_data():
-#     """Function that runs before each request to refresh global variables and grab initial API data if none
-
-#     Returns:
-#         _type_: _description_
-#     """
-#     # update global variables
-#     with app.app_context():
-#         if session.modified == True:
-#             update_global_variables(session=session, g=g)
 
 animal_colors = {
     "dog": "primary",

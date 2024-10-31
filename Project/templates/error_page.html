@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block body_class %}error_page{% endblock body_class %}
+
+{% block content %}
+<div class="d-flex flex-column min-vh-100">
+    <div class="flex-grow-1 d-flex align-items-center justify-content-center">
+        <div class="error-media-container">
+            <div class="error-hero container">
+                <h1 class="shimmer">{{ error_title }}</h1>
+                <h2>{{ error_subtitle }}</h2>
+
+                <!-- Animal media element -->
+                <div class="error-media py-1 px-2">
+
+                    <img class="hoverable-animal-type-cards animal-image" 
+                         src="{{ error_media_link or url_for('static', filename='images/graphics/pets-iconixar.png') }}" 
+                         alt="Cute animal">
+                </div>
+
+                <p>{{ error_message }}</p>
+                <a href="{{ redirect_url }}" class="btn btn-light">{{ redirect_text or "Return Home" }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='animateHoverableCard.js') }}"></script>
+
+<script>
+    //This script will redirect the user to the URL specified in the redirect_url variable after a delay 
+    setTimeout(function() {
+      window.location.href = "{{ redirect_url }}";
+    }, 600000000); //600,000,000 = 10 min
+  </script>
+
+{% endblock scripts %}

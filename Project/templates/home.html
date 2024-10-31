@@ -71,7 +71,7 @@
           </a>
         </div>
         {% else %}
-        <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for('static', filename='unsplash-photo-3.jpg') }}');">
+        <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for('static', filename='/images/graphics/pets-iconixar.png') }}');">
           <a href="{{ url_for('signup') }}" class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none">
             <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold animated-action-text">Even More Animals</h3>
             <p class="animated-cta-text">Browse pets from over 14,500 shelters and rescues from PetFinder</p>
@@ -83,51 +83,7 @@
   </div>
   
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const cards = document.querySelectorAll('.hoverable-animal-type-cards');
-        
-        cards.forEach(card => {
-            card.addEventListener('mousemove', handleMouseMove);
-            card.addEventListener('mouseleave', handleMouseLeave);
-            card.addEventListener('mouseenter', handleMouseEnter);
-        });
     
-        function handleMouseMove(e) {
-            const card = e.currentTarget;
-            const cardRect = card.getBoundingClientRect();
-            const cardCenterX = cardRect.left + cardRect.width / 2;
-            const cardCenterY = cardRect.top + cardRect.height / 2;
-            
-            const mouseX = e.clientX - cardCenterX;
-            const mouseY = e.clientY - cardCenterY;
-  
-            const rotateValue = 60;
-            
-            const rotateX = (mouseY / cardRect.height) * rotateValue;
-            const rotateY = -(mouseX / cardRect.width) * rotateValue;
-            
-            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        }
-    
-        function handleMouseLeave(e) {
-            const card = e.currentTarget;
-            card.style.transform = 'rotateX(0) rotateY(0)';
-            card.style.border = 'none';
-            const h3 = card.querySelector('h3');
-            if (h3) {
-                h3.style.color = 'white';
-            }
-        }
-    
-        function handleMouseEnter(e) {
-            const card = e.currentTarget;
-            card.style.border = '3px solid #f4ab0e';
-            const h3 = card.querySelector('h3');
-            if (h3) {
-                h3.style.color = '#f4ab0e';
-            }
-        }
-    });
   </script>
   </div>
 
@@ -238,6 +194,7 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="{{ url_for('static', filename='animateHoverableCard.js') }}"></script>
 <script src="{{ url_for('static', filename='home-ui.js') }}"></script> {# animal h3.animated-action-text and p.animated-cta-text #}
 {% if page_scripts %}
 {% for script in page_scripts %}

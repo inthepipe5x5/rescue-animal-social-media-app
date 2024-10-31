@@ -93,7 +93,6 @@ class PetFinderPetPyAPI:
         if not self.access_token:
             self._get_access_token()
 
-
     def _get_access_token(self):
         """Instance method to request a new access token from Petfinder API
 
@@ -106,16 +105,18 @@ class PetFinderPetPyAPI:
         current_time = int(time.time())
 
         # Check if valid token is stored in os.environ
-        os_key = os.environ.get('ACCESS_TOKEN', None)
-        os_key_expiration = os.environ.get('TOKEN_EXPIRATION', None)
-        
+        os_key = os.environ.get("ACCESS_TOKEN", None)
+        os_key_expiration = os.environ.get("TOKEN_EXPIRATION", None)
+
         if (os_key and os_key_expiration) and current_time < os_key_expiration:
             self.access_token = os_key
             self.token_expiration = os_key_expiration
             return os_key
-        
+
         # Check if instance has a valid token
-        if (self.access_token and self.token_expiration) and current_time < self.token_expiration:
+        if (
+            self.access_token and self.token_expiration
+        ) and current_time < self.token_expiration:
             return self.access_token
 
         # If not, request a new token
@@ -174,7 +175,7 @@ class PetFinderPetPyAPI:
             # Handle multiple values for the same parameter
             formatted_params = {}
             for key, value in params.items():
-                if isinstance(value, list):
+                if isinstance(value, list) and key.lower() != "type":
                     formatted_params[key] = ",".join(map(str, value))
                 else:
                     formatted_params[key] = value
@@ -263,22 +264,23 @@ class PetFinderPetPyAPI:
                 ),
                 "success_flag": False,
             }
+
     def _get_animal_types(self, *types):
         """
         Make a GET request to Petfinder API /types route.
         If types are provided, request specific animal types.
         """
         base_url = "https://api.petfinder.com/v2/types"
-        
+
         if not types:
             # If no types are specified, query all types
-            return self._get_request('types', request_url=base_url)
+            return self._get_request("types", request_url=base_url)
         else:
             # If types are specified, query each type individually
             results = []
             for animal_type in types:
                 type_url = f"{base_url}/{animal_type}"
-                result = self._get_request('type', request_url=type_url)
+                result = self._get_request("type", request_url=type_url)
                 results.append(result)
             return results
 
@@ -288,15 +290,15 @@ class PetFinderPetPyAPI:
         If animal_type is provided, request breeds for that specific type.
         """
         base_url = "https://api.petfinder.com/v2/types"
-        
+
         if not animal_type:
             # If no animal_type is specified, return an error or all types (depending on API behavior)
-            return self._get_request('types', request_url=base_url)
+            return self._get_request("types", request_url=base_url)
         else:
             # If animal_type is specified, query breeds for that type
             breeds_url = f"{base_url}/{animal_type}/breeds"
-            return self._get_request('breeds', request_url=breeds_url)
-    
+            return self._get_request("breeds", request_url=breeds_url)
+
     def _get_organizations(self, org_id=None, **params):
         """
         Make a GET request to Petfinder API /organizations route.
@@ -304,14 +306,14 @@ class PetFinderPetPyAPI:
         Additional parameters can be passed as keyword arguments.
         """
         base_url = "https://api.petfinder.com/v2/organizations"
-        
+
         if org_id:
             # If org_id is specified, query that specific organization
             request_url = f"{base_url}/{org_id}"
-            return self._get_request('organization', request_url=request_url, **params)
+            return self._get_request("organization", request_url=request_url, **params)
         else:
             # If no org_id is specified, query all organizations with optional params
-            return self._get_request('organizations', request_url=base_url, **params)
+            return self._get_request("organizations", request_url=base_url, **params)
 
     def _get_animals(self, animal_id=None, **params):
         """
@@ -320,15 +322,15 @@ class PetFinderPetPyAPI:
         Additional parameters can be passed as keyword arguments.
         """
         base_url = "https://api.petfinder.com/v2/animals"
-        
+
         if animal_id:
             # If animal_id is specified, query that specific animal
             request_url = f"{base_url}/{animal_id}"
-            return self._get_request('animal', request_url=request_url, **params)
+            return self._get_request("animal", request_url=request_url, **params)
         else:
             # If no animal_id is specified, query all animals with optional params
-            return self._get_request('animals', request_url=base_url, **params)
-                
+            return self._get_request("animals", request_url=base_url, **params)
+
     def create_filter_conditions(self, preferences):
         """
         Create filter conditions based on a nested object of boolean or list values.
@@ -491,7 +493,7 @@ class PetFinderPetPyAPI:
             prefs_obj (dict): user preferences
 
         Returns:
-            dict: search parameters
+            flattened_params (dict): search parameters or empty {}
         """
         # if prefs_obj is falsy, return empty object
         if not prefs_obj:
@@ -539,10 +541,12 @@ class PetFinderPetPyAPI:
 
         # Filter prefs_obj to remove any 'keys' that include an excluded value
         for key, value in prefs_obj.items():
-            if isinstance(value, (str, bool)):
+            if isinstance(value, (str, bool)):  # handle booleans & string booleans
                 if value not in excluded_values:
                     mapped_search_params[key] = value
-            elif isinstance(value, list):
+            elif isinstance(
+                value, (list, set, tuple)
+            ):  # handle dynamic preferences in an iterable format
                 filtered_list = [item for item in value if item not in excluded_values]
                 if filtered_list:
                     mapped_search_params[key] = filtered_list
@@ -568,16 +572,23 @@ class PetFinderPetPyAPI:
             mapped_search_params if mapped_search_params else init_params_copy
         )
 
-        # Ensure proper query string encoding (flatten any complex structures)
+        # Ensure proper query string encoding (flatten any complex structures) but exclude type/types/species as API does not accept multiples of those
         flattened_params = {
-            key: ",".join(value) if isinstance(value, list) else value
+            key: (
+                ",".join(value)
+                if (isinstance(value, list) and key not in ("type", "types", "species"))
+                else value
+            )
             for key, value in search_params.items()
         }
 
         # # TODO: REMOVE LATER
         # # Debugging for visualization of params
-        print(flattened_params, "being passed as params to /animals API call")
-
+        print(
+            flattened_params,
+            "=> flattened pre_processed_params being passed as params to /animals API call",
+        )
+        # flattened params should be a dict of strs, bool, and 1 list (which is type/types/species)
         return flattened_params
 
     def filter_results_list(self, filter_conditions, results_list):
@@ -669,211 +680,163 @@ class PetFinderPetPyAPI:
             animal_groups[str(animal_type.lower())].append(animal)
 
         return animal_groups
-
+    
     @sleep_and_retry
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)
     def animal_pagination_generator(
-        self, init_params, target_page, favorites=[], user_preferences_dict={}
-    ):
-        """Generator for paginating through animal results."""
-
-        # Preprocess animal preferences => reduce to "real" preferences that are not "any"/False
-        params = self.preprocess_preferences(
-            init_params_copy=init_params.copy(), prefs_obj=user_preferences_dict
-        )
-
-        page = init_params.get("page", 1)
-        bad_keys = set()
-
-        while True:
-            # Fetch results
-            print(
-                f"Making API call with params: {params}"
-            )  # REMOVE LATER AFTER DEBUGGING IS DONE
-            response = self._get_request(
-                request_url="https://api.petfinder.com/v2/animals", params=params
-            )
-
-            if response is None:  # Handle None response from API
-                print("Received None response from API.")
-                break
-
-            # Check if response is None or not a dict
-            if not isinstance(response, dict):
-                print(
-                    f"Invalid response received in ANIMAL_PAGINATION_GENERATOR(): {response}"
-                )  # for debugging purposes
-                break  # exit the while loop if response is invalid
-
-            # Check for response code or errors in the API response
-            if str(response.get("status_code", ""))[0] != "2":
-                print(
-                    f"Non-200 response from API: {response} - {response.get('response_code')}"
-                )
-                break
-
-            # Get the results and pagination data
-            results = response.get(
-                "results", []
-            )  # throwing the 'NoneType' object has no attribute 'get'
-            pagination = response.get("pagination", {})
-
-            # if empty results array but successful GET => params is too strict
-            if not results and str(response.get("response_code"))[0] == "2":
-                # Try loosening search filters
-                bad_keys.update(
-                    {
-                        key
-                        for key, value in user_preferences_dict.items()
-                        if value not in ["state", "country"]
-                    }
-                )
-
-                # Fetch with less strict params
-                new_prefs = {
-                    key: value
-                    for key, value in user_preferences_dict.items()
-                    if key not in bad_keys
-                }
-                new_params = self.preprocess_preferences(
-                    init_params_copy=init_params.copy(), prefs_obj=new_prefs
-                )
-
-                # Retry with new params
-                response = self._get_request(
-                    request_url="https://api.petfinder.com/v2/animals",
-                    params=new_params,
-                )
-                print(f"RETRY API Response: {response.status_code} - {response.text}")
-
-            # Filter results based on favorites
-            if favorites and results:
-                results = self.filter_favorites_by_id(
-                    results=results,
-                    favorites=favorites,
-                    user_state=params.get("state"),
-                    is_animal=True,
-                )
-
-            elif (
-                results
-            ):  # elif so that this results is truthy check is done after filtering out by favorites
-                # update the results key in response
-                response["results"] = results
-                # update the page key in response
-                response["page"] = page
-
-                if target_page is None or page == target_page:
-                    yield response  # Yield the filtered results
-
-            # Stop if no more pages to fetch
-            total_pages = pagination.get("total_pages")
-            if (
-                page >= total_pages
-                or (target_page is not None and page >= target_page)
-                or not total_pages
-            ):
-                break
-
-            # Increment the page number
-            page += 1
-
-    def get_mapped_animals_by_type(
         self,
+        animal_types,
+        next_urls,
         init_params,
-        favorites,
-        results_per_page=6,
-        user_preferences_dict={},
+        flattened_animal_preferences,
+        exclude_ids=set(),
+        target_count=10,
+    ):
+        """
+        Generator to fetch paginated animal results across multiple animal types.
+
+        Args:
+            animal_types (list): List of animal types to fetch results for.
+            next_urls (dict): Dictionary containing next URLs for each animal type.
+            init_params (dict): Initial parameters for the API request.
+            flattened_animal_preferences (dict): Animal preferences to include in API requests.
+            exclude_ids (set): Set of IDs to exclude (e.g., favorites or seen results).
+            target_count (int): The number of results to yield.
+
+        Yields:
+            list: Filtered animal data from the API, excluding results in exclude_ids.
+            dict: The updated next_urls dictionary for tracking pagination.
+        """
+        yielded_results = []
+        all_empty = False  # Start with False to initiate API requests on the first run
+
+        # Combine initial parameters with animal preferences if provided
+        params = init_params.copy()
+        if flattened_animal_preferences:
+            params.update(flattened_animal_preferences)
+
+        # Initial fetch if next_urls are empty (first request scenario)
+        if not any(next_urls.values()):
+            for animal_type in animal_types:
+                # Set animal type in parameters
+                params["type"] = animal_type
+                request_url = "https://api.petfinder.com/v2/animals"
+                response_data = self._get_request(
+                    endpoint="animals", request_url=request_url, params=params
+                )
+
+                if response_data:
+                    next_urls[animal_type] = response_data.get("pagination", {}).get("next", None)
+                    results = response_data.get("animals", [])
+                    filtered_results = self.filter_results_by_ids(
+                        results, exclude_ids, is_animal=True
+                    )
+                    yielded_results.extend(filtered_results)
+
+                    if len(yielded_results) >= target_count:
+                        yield yielded_results, next_urls
+                        return
+
+        # Continue fetching until target_count is met or all pages are exhausted
+        while len(yielded_results) < target_count:
+            all_empty = True  # Reset all_empty each iteration
+
+            for animal_type in animal_types:
+                next_url = next_urls.get(animal_type)
+
+                if not next_url:
+                    continue  # Skip this type if no next URL is available (exhausted)
+
+                # Set the request URL based on the next_url fragment
+                request_url = self.BASE_API_URL + "/" + next_url
+
+                # Fetch data from the API
+                response_data = self._get_request(
+                    endpoint="animals", request_url=request_url, params=params
+                )
+
+                if not response_data:
+                    next_urls[animal_type] = None  # Mark as exhausted if no response received
+                    continue
+
+                # Update next URL for the animal type
+                next_urls[animal_type] = response_data.get("pagination", {}).get("next", None)
+                if next_urls[animal_type]:  # Check if any animal_type has pages left
+                    all_empty = False
+
+                # Filter and accumulate results
+                results = response_data.get("animals", [])
+                filtered_results = self.filter_results_by_ids(
+                    results, exclude_ids, is_animal=True
+                )
+                yielded_results.extend(filtered_results)
+
+                # Yield if target count is reached
+                if len(yielded_results) >= target_count:
+                    yield yielded_results, next_urls
+                    return
+
+            # Break the loop if no more pages are available across all animal types
+            if all_empty:
+                break
+
+        # Yield remaining results if target count wasn't met
+        yield yielded_results, next_urls
+    
+    def filter_parse_animal_results(
+        self,
+        results,
         filter_prefs={},
     ):
-        """function for generating PetFinder API results that are filtered and parsed/formatted."""
+        """
+        Filters and parses a list of animal results based on user preferences.
 
-        pagination = self.animal_pagination_generator(
-            init_params=init_params,
-            favorites=favorites,
-            user_preferences_dict=user_preferences_dict,
-            target_page=init_params.get("page", 1),
-        )
-        try:
-            page_data = next(pagination)
-            print("generated API results=", page_data["pagination"])
+        Args:
+            results (list): List of animal result dictionaries to filter and parse.
+            filter_prefs (dict): User preferences for filtering.
 
-        except StopIteration:
-            # Handle case where the requested page doesn't exist
-            # Handle case where no results are found
-            return {
-                "filtered": [],
-                "pagination": {},
-                "results": locals.get("page_data") if "page_data" in locals() else [],
-                "success_flag": False,
-                "api_page": init_params.get("page", 1),
-                "bad_keys": [],
-                "message": "No results found",
-            }
+        Returns:
+            tuple: (filtered results list, success flag)
+        """
+        # Early exit if results list is empty or invalid
+        if not results or not isinstance(results, list):
+            return [], False
 
         # Split results by animal type
-        split_dict_of_results = self.split_animals_by_type(
-            animals=page_data.get("results", [])
-        )
-
+        split_dict_of_results = self.split_animals_by_type(animals=results)
+        
         filtered_results = []
         filtering_success = []
-        combined_bad_keys = set()  # Use set to avoid duplicates
 
-        # Iterate over each animal type and apply filters
+        # Apply filters for each animal type
         for animal_type, type_specific_filter_conditions in filter_prefs.items():
-            type_specific_result_list = split_dict_of_results.get(
-                animal_type.lower(), []
-            )
+            type_specific_result_list = split_dict_of_results.get(animal_type.lower(), [])
 
-            # Filter results for this animal type
+            # Apply type-specific filters
             animal_type_filtering = self.filter_results_list(
                 filter_conditions=type_specific_filter_conditions,
                 results_list=type_specific_result_list,
             )
 
-            # Logging for debugging
-            print(
-                "animal filtering",
-                {
-                    key: value
-                    for key, value in animal_type_filtering.items()
-                    if key != "results"
-                },
-            )
-
-            # Combine bad_keys from each animal type filtering
-            combined_bad_keys.update(animal_type_filtering.get("bad_keys", []))
-
-            # Accumulate filtered results and update filtering success flag
+            # Accumulate filtered results and success flags
             filtered_results += animal_type_filtering["results"]
-
-            # Add the success_flags to the list (True if filtering was successful)
             filtering_success.append(animal_type_filtering.get("success_flag", False))
 
-        # Determine if filtering was successful for any animal type
+        # Determine if filtering was successful for any type
         final_filtering_success = any(filtering_success)
 
-        # If no filtered results, fallback to initial unfiltered results
-        if not filtered_results:
-            parsed_and_filtered = parse_multi_animal(
-                animal_list=page_data["results"]
-            )  # Fallback to unfiltered parsing
+        # Fallback to initial unfiltered results if all items were filtered out
+        if not filtered_results or not final_filtering_success:
+            return {"results": [], "success_flag": False}
         else:
-            # Parse filtered results
+            # Parse only the filtered results
             parsed_and_filtered = parse_multi_animal(animal_list=filtered_results)
 
-        # Return the current page results with combined flags and parsed results
-        return {
-            "filtered": final_filtering_success,
-            "pagination": page_data.get("pagination"),
-            "results": parsed_and_filtered,
-            "success_flag": final_filtering_success
-            and bool(parsed_and_filtered),  # Ensure non-empty results
-            "api_page": page_data.get("page"),  # return API page number
-            "bad_keys": list(combined_bad_keys),  # Convert set to list for return
-        }
+        # Return parsed results list and the final success flag
+        return parsed_and_filtered, final_filtering_success and bool(parsed_and_filtered)
 
+
+    # TODO: not used, REMOVE LATER?
     def animals_df_to_org_animal_count_dict(self, animals_df):
         """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.
 
@@ -958,63 +921,45 @@ class PetFinderPetPyAPI:
 
         return output_object
 
-    def filter_favorites_by_id(results, favorites, user_state=None, is_animal=True):
+    def filter_results_by_ids(results, exclude_ids, user_state=None, is_animal=True):
         """
-        Filters out results (either animals or organizations) that have IDs present in the user's favorites list.
+        Filters out results (either animals or organizations) that have IDs present in the exclude_ids set.
 
         Args:
             results (list): List of animal/organization objects from the API.
-            favorites (list): Sorted list of favorite animal or organization IDs.
+            exclude_ids (set): Set of IDs to exclude (e.g., favorites or seen results).
             user_state (str): User's state abbreviation (optional, for organization filtering).
             is_animal (bool): Flag to indicate whether filtering is for animals or organizations.
 
         Returns:
-            list: Filtered results excluding those present in the favorites list or,
+            list: Filtered results excluding those present in the exclude_ids set or,
                 for organizations, those outside the user's state.
         """
-
-        def binary_search(sorted_list, target):
-            """Helper function to perform binary search on a sorted list."""
-            low, high = 0, len(sorted_list) - 1
-            while low <= high:
-                mid = (low + high) // 2
-                if sorted_list[mid] == target:
-                    return True
-                elif sorted_list[mid] < target:
-                    low = mid + 1
-                else:
-                    high = mid - 1
-            return False
-
         filtered_results = []
-        favorites.sort()  # Ensure the favorites list is sorted for binary search
 
         for result in results:
-            if is_animal:
-                # Animal filtering logic
-                animal_id = result.get("id")
-                if isinstance(animal_id, int) and binary_search(favorites, animal_id):
-                    continue  # Skip if the animal ID is in the favorites list
-            else:
-                # Organization filtering logic
-                org_id = result.get("id")
-                if isinstance(org_id, str) and user_state:
-                    state_part = org_id[:2]  # Extract the state part from the org ID
-                    number_part = org_id[2:]  # Extract the integer part
+            result_id = result.get("id")
 
-                    if state_part != user_state:
-                        continue  # Skip organizations not matching the user's state
+            # Skip if the ID is in exclude_ids
+            if result_id in exclude_ids:
+                continue
 
-                    try:
-                        org_number = int(
-                            number_part
-                        )  # Convert the number part to an integer
-                        if binary_search(favorites, org_number):
-                            continue  # Skip if the organization number is in the favorites list
-                    except ValueError:
-                        continue  # If the org ID number part isn't valid, skip it
+            # Additional filtering for organizations by state
+            if not is_animal and user_state:
+                state_part, number_part = result_id[:2], result_id[2:]
 
-            # If the result isn't filtered out, add it to the filtered list
+                if state_part != user_state:
+                    continue
+
+                # Ensure number_part is an integer if needed for exclude_ids matching
+                try:
+                    org_number = int(number_part)
+                    if org_number in exclude_ids:
+                        continue
+                except ValueError:
+                    continue
+
+            # If result isn't filtered out, add it to filtered results
             filtered_results.append(result)
 
         return filtered_results
