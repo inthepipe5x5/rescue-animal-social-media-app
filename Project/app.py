@@ -29,8 +29,8 @@ from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 from dotenv import load_dotenv  # type: ignore
 import os
 import pycountry
-import requests
 from time import sleep
+import json
 
 # from functools import wraps #TODO: to protect certain API routes
 from flask_bcrypt import Bcrypt
@@ -145,6 +145,7 @@ login_manager.login_view = "login"
 # Inject Custom Jinja filters Here
 custom_filters_dict = {
     "format_kebob_case": Parse.format_kebob_case,
+    "prettify_animal_types": Parse.prettify_animal_types,
 }
 for function_key, function in custom_filters_dict.items():
     app.jinja_env.filters[function_key] = function
@@ -659,6 +660,8 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
+# TODO: this has been made redundant by /models.py/User.serialize(), need to take the docstring and update that one
+
 
 def get_user_data(user_id):
     """
@@ -682,52 +685,56 @@ def get_user_data(user_id):
         If the user with the given user_id does not exist in the database,
         the function may return None or raise an exception (implementation-dependent).
     """
-    
-    if user_id:
-        result = (
-            db.session.query(
-                User.id,
-                User.animal_types,
-                UserLocation.city,
-                UserLocation.state,
-                UserLocation.country,
-                UserTravelPreferences.distance_filter_preference,
-            )
-            .join(UserLocation)
-            .join(UserTravelPreferences)
-            .filter(User.id == user_id)
-            .first()
-        )
-        # debugging
-        if result:
-            print(f"User ID: {result.id}")
-            print(f"Animal Types: {result.animal_types}")
-            print(f"State: {result.state}")
-            print(f"Country: {result.country}")
-            print(f"Distance Filter Preference: {result.distance_filter_preference}")
 
-            current_location = (
-                db.session.query(UserLocation)
-                .filter(UserLocation.user_id == user_id)
-                .first()
-            )
+    if user_id:
+        user = load_user(user_id=user_id)
+
+        # result = (
+        #     db.session.query(
+        #         User.id,
+        #         User.animal_types,
+        #         UserLocation.city,
+        #         UserLocation.state,
+        #         UserLocation.country,
+        #         UserTravelPreferences.distance_filter_preference,
+        #     )
+        #     .join(UserLocation)
+        #     .join(UserTravelPreferences)
+        #     .filter(User.id == user_id)
+        #     .first()
+        # )
+        # # debugging
+        # if result:
+        #     print(f"User ID: {result.id}")
+        #     print(f"Animal Types: {result.animal_types}")
+        #     print(f"State: {result.state}")
+        #     print(f"Country: {result.country}")
+        #     print(f"Distance Filter Preference: {result.distance_filter_preference}")
+
+        #     current_location = (
+        #         db.session.query(UserLocation)
+        #         .filter(UserLocation.user_id == user_id)
+        #         .first()
+        #     )
+        if user:
+            data = user.serialize()
 
             return {
-                "CURR_USER_KEY": result.id,
-                "ANIMAL_TYPES": result.animal_types,
-                "CITY_STATE": f"{result.city+', '+result.state}",
-                "STATE_COUNTRY": f"{result.state+', '+result.country}",
-                "DISTANCE_PREF": result.distance_filter_preference,
+                "CURR_USER_KEY": data.id or None,
+                "ANIMAL_TYPES": data.animal_types,
+                "CITY_STATE": f"{data.location.city+', '+data.location.state}",
+                "STATE_COUNTRY": f"{data.state+', '+data.country}",
+                "DISTANCE_PREF": data.get("distance_pref"),
                 "CURR_LOCATION": (
-                    current_location.get_location_info()
-                    if current_location
+                    data.get_location_info()
+                    if data
                     else default_session_keys["CURR_LOCATION"]
                 ),
             }
     # handle no results
     print("No User data found, default output returned")
     default_output = default_session_keys.copy()
-    default_output["STATE_COUNTRY"] = get_location(no_geocode=True)
+    default_output["STATE_COUNTRY"] = get_location(no_geocode=False)
     return default_output
 
 
@@ -790,13 +797,13 @@ def get_location(no_geocode=False):
 
         if no_geocode:
             return (
-                f"{user_location.city},{user_location.state}"
-                if user_location.city and user_location.state
+                f"{user_location.city}, {user_location.state} {user_location.postal_code}"
+                if user_location.city and user_location.state and user_location.postal_code
                 else user_location.get_location_info()
             )  # return city/state/str eg. for UI rendering purposes
         else:
             return (
-                user_location.get_location_info()
+                user_location.geolocation or user_location.get_location_info()
             )  # returns first truthy location column
     # handle anon user
     else:
@@ -848,8 +855,8 @@ def create_init_params(type="animal"):
     if active_authenticated_user():
         user = load_user(user_id=current_user.id)
         user_location = (
-            user.location
-            if user
+            user.location.get_location_info()
+            if user and user.location
             else db.session.query(UserLocation)
             .filter_by(user_id=current_user.id)
             .first()
@@ -857,7 +864,11 @@ def create_init_params(type="animal"):
 
         # Get user-specific data or defaults
         species = get_species_preferences(user)
-        location_str = get_location(user_location)
+        # prettify the animal types for the API to accept it
+        species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
+
+        # get location
+        location_str = user_location
         distance_pref = (
             current_user.travel_preference.distance_filter_preference
             if current_user.travel_preference
@@ -874,6 +885,8 @@ def create_init_params(type="animal"):
         species = session.get("ANIMAL_TYPES") or default_session_keys.get(
             "ANIMAL_TYPES", "dog"
         )
+        # prettify the animal types for the API to accept it
+        species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
         location_str = session.get("CURR_LOCATION") or os.environ.get(
             "CURR_LOCATION", "43.6429,-79.3889"
         )
@@ -925,30 +938,41 @@ def create_init_params(type="animal"):
 
 
 # Helper function to retrieve user preferences for animals
-def get_user_animal_preferences(user_id=None, species_list=["dog"]):
+def get_user_animal_preferences(species_list=None):
     """
     Fetches user preferences for each species or returns an empty dictionary.
     Args:
-        user_id (int): ID of the current user.
         species_list (list): List of species to query preferences for.
     Returns:
         dict: Dictionary of user preferences keyed by species type.
+              {'dog': { 'preference_name': 'preference_data', ... }, ...}
     """
-    if not user_id:
-        if active_authenticated_user():
-            user_id = current_user.id
-        else:
-            return None
+    if not species_list:
+        species_list = (
+            current_user.animal_types
+            if active_authenticated_user()
+            else session.get("ANIMAL_TYPES", ["dog"])
+        )
 
-    user_prefs_query = UserAnimalPreferences.get_all_user_animal_preferences(
-        u_id=user_id
-    )
+    # Get user preferences or set prefs to None if user is not authenticated
+    prefs = {
+        key: value
+        for key, value in (
+            current_user._get_current_object().animal_prefs
+            if active_authenticated_user() and current_user.user_animal_preferences
+            else {animal_type: None for animal_type in species_list}
+        ).items()
+        if key.lower() in species_list
+    }
 
-    return (
-        {species: user_prefs_query for species in species_list}
-        if user_prefs_query
-        else None
-    )
+    # handle bad keys
+    # API requires 'color' but returns key 'colors'
+    for species_pref in prefs:
+        if "color" in prefs[species_pref].keys():
+            prefs[species_pref]["colors"] = prefs[species_pref]["color"]
+            del prefs[species_pref]["color"]
+
+    return prefs
 
 
 # helper function to combine location & animal_preference_filters
@@ -988,11 +1012,11 @@ def create_user_preference_filters():
                 # Create animal preference filters
                 animal_filter = api.create_filter_conditions(preferences=preferences)
 
-                # Combine animal and location filters without nesting under the same key
-                filters[animal_type] = {
-                    **animal_filter,  # Animal filters for the specific type
-                    **location_filters,  # Location filters (state, country)
-                }
+                # # Combine animal and location filters without nesting under the same key
+                # filters[animal_type] = {
+                #     **animal_filter,  # Animal filters for the specific type
+                #     **location_filters,  # Location filters (state, country)
+                # }
         else:
             filters = location_filters
 
@@ -1003,37 +1027,56 @@ def create_user_preference_filters():
 def discover_animals():
     """Route to fetch and display paginated animal data, with error handling and fallback UI in case of API downtime."""
 
-    if active_authenticated_user():
-        user_data = get_user_data(current_user.id) 
-    
-    target_count = int(request.args.get("count", 9))  # Number of animals per page
-    
-    #grab VIEWED_CONTENT_LIST and user favorites
-    user_favorites = set([fav.id for fav in current_user._get_current_object().favorites] if active_authenticated_user() else [])
-    viewed_content = session.get("VIEWED_CONTENT_LIST", [])
-    #combined viewed_content and user_favorites to create list of ids to exclude
-    exclude_ids = viewed_content.extend(list(user_favorites))
-        
-    
-
+    init_params = create_init_params(type="animals")
+    target_count = int(
+        request.args.get("limit") or init_params.get("limit", 9)
+    )  # Number of animals per page
     # Fetch user preferences
-    animal_types = request.args.get("animal_type") or init_params.get('type') or session.get('ANIMAL_TYPES', ['dog'])
-    animal_prefs = get_user_animal_preferences()
+    animal_types = (
+        request.args.get("animal_type")
+        or init_params.get("type")
+        or session.get("ANIMAL_TYPES", ["dog"])
+    )
+
+    # grab VIEWED_CONTENT_LIST and user favorites
+    user_favorites = (
+        current_user._get_current_object().get_all_favorites
+        if active_authenticated_user()
+        else []
+    )
+    viewed_content = session.get("VIEWED_CONTENT_LIST", [])
+    # combined viewed_content and user_favorites to create list of ids to exclude
+    exclude_ids = viewed_content.extend(list(user_favorites)) or []
+
+    flattened_animal_preferences = (
+        api.preprocess_preferences(
+            init_params=init_params.copy(),
+            prefs_obj=get_user_animal_preferences(
+                species_list=animal_types
+            ),
+        )
+        if active_authenticated_user()
+        else {animal_type: None for animal_type in animal_types}
+    )
+
     # Ensure animal_types is a list, even if a single type is provided as a string
     if isinstance(animal_types, str):
         animal_types = [animal_types]
     elif isinstance(animal_types, (list, set, tuple)):
         animal_types = animal_types
-    
-    init_params=create_init_params(type="animals")
-    
+
     next_urls = session.get(
         "next_urls", {animal_type: None for animal_type in animal_types}
     )
 
     # Initialize generator
     generator = api.animal_pagination_generator(
-        animal_types=animal_types, target_count=target_count, init_params=init_params, next_urls=next_urls, exclude_ids=exclude_ids
+        animal_types=animal_types,
+        target_count=target_count,
+        init_params=init_params,
+        next_urls=next_urls,
+        exclude_ids=exclude_ids,
+        flattened_animal_preferences=flattened_animal_preferences,
     )
     render_content = []
     no_api_content = False
@@ -1057,10 +1100,12 @@ def discover_animals():
 
             # If filtering was successful, exit loop
             if success_flag:
-                #add ids of result objects to VIEWED_CONTENT_LIST in session
-                session.update("VIEWED_CONTENT_LIST", [result.id for result in filtered_results])
+                # add ids of result objects to VIEWED_CONTENT_LIST in session
+                session.update(
+                    "VIEWED_CONTENT_LIST", [result.id for result in filtered_results]
+                )
                 if next_urls:
-                    session.update('next_urls', next_urls)        
+                    session.update("next_urls", next_urls)
                 break
 
         # No content available message
@@ -1073,8 +1118,8 @@ def discover_animals():
             # Attempt to get a fresh set of animals without filters
             init_params = {"limit": target_count}  # Set basic params as needed
             try:
-                backup_results = api.get_request(
-                    "animals", f"{api.API_BASE_URL}/animals", params=init_params
+                backup_results = api._get_request(
+                    "animals", f"{api.BASE_API_URL}/animals", params=init_params
                 )
                 if not backup_results:
                     # Redirect to the custom error route if API returns no data
@@ -1123,6 +1168,14 @@ def discover_animals():
                 error_message="Our system encountered an issue loading animals. Please try refreshing the page or come back later.",
             )
         )
+
+
+@app.route("/data/animal_types")
+def get_animal_types():
+    """Endpoint to retrieve animal types from session or os.environ."""
+    types_key = "API_ANIMAL_TYPES"
+    type_list = session.get(types_key) or json.loads(os.environ.get(types_key, "[]"))
+    return jsonify({"types": type_list})
 
 
 @app.route("/data/<country>/state", methods=["GET"])
@@ -1731,6 +1784,25 @@ def init_default_session():
 
 
 @app.before_request
+def seed_animal_info():
+    """Make API call for animal types information and save it to session and environment."""
+    types_key = "API_ANIMAL_TYPES"
+
+    # Retrieve type list from session or environment
+    type_list = (
+        session.get(types_key) or json.loads(os.environ.get(types_key, "[]")) or None
+    )
+
+    if not type_list and types_key not in session and types_key not in os.environ:
+        # make API call if
+        type_list = api.seed_animal_types()
+
+        # Store the type_list in session and environment
+        session[types_key] = type_list
+        os.environ[types_key] = json.dumps(type_list)
+
+
+@app.before_request
 def load_session():
     """Update the session with user values if user else populates with default values"""
 
@@ -1746,7 +1818,7 @@ def load_session():
             )
             else None
         )
-        user_session_data = get_user_data(user_id=user_id)
+        user_session_data = current_user._get_current_object().serialize()
         if user_session_data:
             # update session with state_country, animal_types, curr_location, distance
             session.update(user_session_data)
@@ -1801,6 +1873,7 @@ def inject_global_vars():
             else None
         ),
         "user_auth_status": active_authenticated_user(),
+        "default_prettified_animal_types": Parse.get_default_prettified_animal_types,
     }
 
 

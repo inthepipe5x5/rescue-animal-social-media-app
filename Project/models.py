@@ -189,12 +189,12 @@ class UserLocation(db.Model):
     """Table to store user location information"""
 
     __tablename__ = "user_location"
-
+    #Primary Key
     id = db.Column(db.Integer, primary_key=True)
+    #User
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True)
-    # user_preferences_id = db.Column(
-    #     db.Integer, db.ForeignKey("user_preferences.id"), nullable=False
-    # )
+    
+    #Data Columns
     country = db.Column(db.String(2), nullable=False, default="CA")
     state = db.Column(db.String(2), nullable=False, default="ON")
     postal_code = db.Column(db.String(7))
@@ -234,7 +234,7 @@ class UserLocation(db.Model):
                         else pycountry.subdivisions.search_fuzzy(state)[0].code
                     )
                     # return f"{city},{state},{country}" #REMOVE LATER - it's producing "Toronto,ON,CA"
-                    return f"{state},{country}"
+                    return f"{state}, {country}"
                 elif state:
                     return f"{state},{country}"
                 else:
@@ -368,7 +368,7 @@ class User(db.Model, UserMixin):
 
     animal_types = db.Column(
         "animal_types", ARRAY(db.String), server_default=db.text("ARRAY['dog']")
-    )  # Must be one of 6 potential values: "dog", "cat", "rabbit", "small-furry", "horse", "bird", "scales-fins-other", or "barnyard". Default='dog'
+    )  # Must be one of 8 potential values: "dog", "cat", "rabbit", "small-furry", "horse", "bird", "scales-fins-other", or "barnyard". Default='dog'
 
     registration_date = db.Column(db.DateTime, server_default=func.now())
     # to store IDs of animals followed by
@@ -396,6 +396,7 @@ class User(db.Model, UserMixin):
 
     favorites = db.relationship("UserFavorites", backref="user", lazy="dynamic")
 
+    @property
     def get_all_favorites(self):
         """Get all favorites for this user"""
         favorites = (
@@ -403,7 +404,7 @@ class User(db.Model, UserMixin):
             .with_entities(UserFavorites.favorite_id)
             .all()
         )
-        return {fav.favorite_id for fav in favorites}
+        return list({fav.favorite_id for fav in favorites})
 
     def get_favorite(self, favorite_id):
         """Get a specific favorite for this user and increment its counter"""
@@ -476,12 +477,67 @@ class User(db.Model, UserMixin):
         else:
             print(f"Favorite {favorite_id} not found for user {self.id}")
 
+    @property
+    def animal_prefs(self):
+        """Returns user animal preferences in a serialized python dict if truthy user animal preferences else seeds
+        
+        Returns: 
+            animal prefs (dict): serialized user animal preferences
+        """
+        # Get user preferences or query db
+        prefs = self.user_animal_preferences or (
+                db.session.query(UserAnimalPreferences)
+                .filter(UserAnimalPreferences.user_id == self.id)
+                .all()
+            )
+        
+        if prefs:
+            # Group preferences by species, creating a dictionary where each species key has a list of preferences
+            dict_of_preferences_by_species = {}
+            if prefs:
+                for pref in prefs:
+                    dict_of_preferences_by_species.setdefault(pref.species, []).append(pref)
+
+            # Serialize each preference object in the dictionary
+            animal_prefs = {}
+            for animal_type, preferences_list in dict_of_preferences_by_species.items():
+                animal_prefs[animal_type] = {
+                    pref.user_preference_name: pref.user_preference_data
+                    for pref in preferences_list
+                }
+            
+            #return serialized dict
+            return animal_prefs
+        #handle if no animal preferences 
+        else:
+            #seed preferences
+            return UserAnimalPreferences.seed_user_pref(user_id=self.id)
+            
     def serialize(self):
+        """Serialize this ORM model class into a python dict
+
+        Returns:
+            obj (dict): serialized dict of this user columns
+        """
+
+        
         obj = {
-            "username": self.username,
             "id": self.id,
-            "image_url": self.image_url,
             "animal_types": self.animal_types,
+            "rescue_interaction_type": self.rescue_action_type,
+            "bio": self.bio,
+            "favorites": self.get_all_favorites or [],
+            "location": {
+                "CURR_LOCATION": self.location.get_location_info(),
+                "city": self.location.city,   
+                "state": self.location.state,   
+                "country": self.location.country,   
+                "geolocation": self.location.geolocation,   
+            } or None,
+            "distance_pref": UserTravelPreferences._get_distance_filter_param(
+                user_id=self.id
+            ),
+            "animal_pref_dict": self.animal_prefs or {ani_type: None for ani_type in self.animal_types}
         }
         return obj
 
@@ -609,11 +665,11 @@ class UserAnimalPreferences(db.Model):
                 # add result to out if matches user_id and species
                 if preference.user_id == u_id and preference.species == animal_type:
                     # parse JSON value to python values
-                    key = preference.user_preference_name
+                    key = preference.user_preference_name if key != 'color' else "colors"
                     value = preference.user_preference_data
                     out[key] = value
             # handle bad keys
-            if "color" in results:
+            if "color" in [result.keys() for result in results.values()]:
                 results["colors"] = results["color"]
                 del results["color"]
             return {
@@ -638,7 +694,11 @@ class UserAnimalPreferences(db.Model):
             print(results)
             # Group preferences by animal_type
             output = {
-                type: [result for result in results if result.species.lower() == type.lower()]
+                type: [
+                    result
+                    for result in results
+                    if result.species.lower() == type.lower()
+                ]
                 for type in user.animal_types
             }
             return output
@@ -692,25 +752,29 @@ class UserAnimalPreferences(db.Model):
                 "personality",
                 "age",
             ]
-        
+
         pref_list = []
 
         for animal in all_animal_types:
             for pref in default_bool_prefs:
-                pref_list.append({
-                    "species": animal,
-                    "user_preference_name": pref,
-                    "user_preference_data": False,
-                    "user_id": user_id
-                })
-            
+                pref_obj = pref_obj_template.copy()
+                pref_obj["user_preference_name"] = pref
+                pref_obj["user_preference_data"] = False
+                
+                pref_list.append(
+                    pref_obj
+                )
+                
+
             for pref in default_attr_prefs:
-                pref_list.append({
-                    "species": animal,
-                    "user_preference_name": pref,
-                    "user_preference_data": "any",
-                    "user_id": user_id
-                })
+                pref_obj = pref_obj_template.copy()
+                pref_obj["user_preference_name"] = pref
+                pref_obj["user_preference_data"] = "any"
+                
+                pref_list.append(
+                    pref_obj
+                )
+
 
         # Bulk insert the data into the database
         if pref_list:
@@ -718,7 +782,7 @@ class UserAnimalPreferences(db.Model):
             db.session.commit()
         else:
             db.session.rollback()
-
+        print(f"Seeded animal preferences for User:{user_id} {pref_list}")
         return pref_list
 
     @classmethod

@@ -4,17 +4,15 @@ from dateutil import parser
 import time
 import pandas as pd
 from flask import json
-from ratelimit import limits, RateLimitException
+from ratelimit import limits, RateLimitException, sleep_and_retry
 from petpy import Petfinder
 import requests
 from json import JSONDecodeError
-from package.parse import parse_multi_animal
+from package.parse import Parse, parse_multi_animal
 
 # from ..models import User, UserAnimalPreferences  # , #UserPreferences
 
 load_dotenv()
-from ratelimit import limits, sleep_and_retry
-
 
 class PetFinderPetPyAPI:
     """
@@ -108,7 +106,7 @@ class PetFinderPetPyAPI:
         os_key = os.environ.get("ACCESS_TOKEN", None)
         os_key_expiration = os.environ.get("TOKEN_EXPIRATION", None)
 
-        if (os_key and os_key_expiration) and current_time < os_key_expiration:
+        if (os_key and os_key_expiration) and current_time < int(os_key_expiration):
             self.access_token = os_key
             self.token_expiration = os_key_expiration
             return os_key
@@ -153,7 +151,7 @@ class PetFinderPetPyAPI:
         self,
         endpoint="animals",
         request_url="https://api.petfinder.com/v2/animals",
-        **params,
+        params={},
     ):
         """Create a url to make an API request based off passed in params object.
 
@@ -164,6 +162,15 @@ class PetFinderPetPyAPI:
             category (str): category of API to be called on eg. animal, animals, organization, organizations
             action(str): what REST request to make on API eg. 'get' = GET request
             params (OBJECT {str:str}): params Python OBJECT will be iterated on to create the key:value string queries to the url separated by question marks eg. `?{parameter_1}={value_1}`
+        
+        Returns:
+            {
+                 "access_token": access_token,
+                 "results": result.get(endpoint, []),
+                 "pagination": result.get("pagination", {}),
+                 "success_flag": bool(result.get(endpoint)),
+                 "status_code": response.status_code,
+             }
         """
         # handle if no params passed in
         params = {} if not params else params
@@ -171,27 +178,32 @@ class PetFinderPetPyAPI:
         # Obtain the current access token within the self._get_access_token() instead of helper petpy_api class
         access_token = self._get_access_token()
 
-        if params:
-            # Handle multiple values for the same parameter
-            formatted_params = {}
-            for key, value in params.items():
-                if isinstance(value, list) and key.lower() != "type":
-                    formatted_params[key] = ",".join(map(str, value))
-                else:
-                    formatted_params[key] = value
-            # set params to formatted_params after joining strings
-            params = formatted_params
-
-        # Make a request to the specified endpoint with the access token
-        headers = {"Authorization": f"Bearer {access_token}"}
         try:
-            response = requests.get(request_url, headers=headers, params=params)
-            print(
-                f"_GET_REQUEST() @ {request_url} Params: {params} Headers: {headers} Response: {response.status_code}"
-            )
-            print(
-                f"_GET_REQUEST()RESPONSE @ {response.url} Params: {params} Status: {response.status_code}"
-            )
+            if params:
+                # Handle multiple values for the same parameter
+                formatted_params = {}
+                for key, value in params.items():
+                    if isinstance(value, list) and key.lower() != "type":
+                        formatted_params[key] = ",".join(map(str, value))
+                    else:
+                        formatted_params[key] = value
+                # set params to formatted_params after joining strings & making sure params is not nested dict
+                params = formatted_params.get('params', {}) if 'params' in formatted_params else formatted_params
+
+            # Make a request to the specified endpoint with the access token
+            headers = {"Authorization": f"Bearer {access_token}"}
+            if isinstance(params, dict):
+                print(
+                    f"_GET_REQUEST() @ {request_url} Params: <type dict:{params}> Headers: {headers}"
+                )
+
+                # Make the GET request with a flat dictionary of params
+                response = requests.get(request_url, params=params, headers=headers)
+
+                # Check and print response status code for debugging
+                print(f"Response Status: {response.status_code}")
+            else:
+                raise TypeError("Params must be a dictionary")
 
             # Check for a successful response
             response.raise_for_status()
@@ -213,7 +225,7 @@ class PetFinderPetPyAPI:
             # return output
 
         except Exception as e:
-            print(f"endpoint, request_url, params=> { request_url, params}")
+            print(f"_get_request function error: [request_url, params]=> { request_url, params}")
             print(f"_get_request ERROR=> ERROR: {e}")
 
             # If the response is unavailable or invalid, the nested try/exception falls back on empty values for results and pagination.
@@ -270,26 +282,61 @@ class PetFinderPetPyAPI:
         Make a GET request to Petfinder API /types route.
         If types are provided, request specific animal types.
         """
-        base_url = "https://api.petfinder.com/v2/types"
+        base_url = self.BASE_API_URL + "/types"
 
-        if not types:
+        if not types or types.lower() == 'all':
             # If no types are specified, query all types
-            return self._get_request("types", request_url=base_url)
+            result = self._get_request("types", request_url=base_url)
         else:
             # If types are specified, query each type individually
-            results = []
-            for animal_type in types:
-                type_url = f"{base_url}/{animal_type}"
-                result = self._get_request("type", request_url=type_url)
-                results.append(result)
-            return results
+            if isinstance(types, (list, tuple, set)):
+                results = []
+                for animal_type in types:
+                    type_url = f"{base_url}/{animal_type}"
+                    response = self._get_request("type", request_url=type_url)
+                    result = response.get('results')
+                    results.append(result)
+                return results
+            elif isinstance(types, str):
+                url = type_url+f"/{types}"
+                result = self._get_request("type", request_url=url)
+        
+        
+        return result
+    def seed_animal_types(self):
+        """Util function that returns a list of animal types to be seeded in Flask session and os.environ
+        """
+        default_prettified_list = Parse.get_default_prettified_animal_types()  
+        
+        try:
+            response = self._get_animal_types(types='all')
+            response_status = response.get("status_code", 500)
+            req_results = response.get("results", [])
 
-    def _get_breeds(self, animal_type=None):
+            if response_status in [200, 201]:
+                # Extract type names from the response
+                type_list = [
+                    animal_type.get("name")
+                    for animal_type in req_results
+                ]
+            else:
+                # Use default list if API call fails
+                type_list = default_prettified_list
+
+        except Exception as e:
+            # Use default list if an exception occurs
+            type_list = default_prettified_list
+            print(f"Error seeding animal info: {e}")
+        
+        return type_list or default_prettified_list
+
+
+    def _get_breeds(self, animal_type="dog"):
         """
         Make a GET request to Petfinder API /breeds route.
         If animal_type is provided, request breeds for that specific type.
         """
-        base_url = "https://api.petfinder.com/v2/types"
+        base_url = self.BASE_API_URL+ "/breeds"
 
         if not animal_type:
             # If no animal_type is specified, return an error or all types (depending on API behavior)
@@ -484,12 +531,12 @@ class PetFinderPetPyAPI:
 
         return filter_conditions
 
-    def preprocess_preferences(self, init_params_copy, prefs_obj):
+    def preprocess_preferences(self, init_params, prefs_obj):
         """helper function to preprocess user prefs_obj and reduce if they include any values in excluded_values (ie. "any"/False)
         use this to create search params mapped to PetPy animals function parameter requirements
 
         Args:
-            init_params_copy (_type_): copy of init search params
+            init_params (_type_): copy of init search params
             prefs_obj (dict): user preferences
 
         Returns:
@@ -497,7 +544,7 @@ class PetFinderPetPyAPI:
         """
         # if prefs_obj is falsy, return empty object
         if not prefs_obj:
-            return init_params_copy if init_params_copy else {}
+            return init_params if init_params else {}
         # prefs that only have true/false/None possibilities
         boolean_prefs = {
             bool_key: False for bool_key in self.environment_keys + self.attribute_keys
@@ -537,7 +584,7 @@ class PetFinderPetPyAPI:
             del prefs_obj["colors"]
 
         # Initialize search params
-        mapped_search_params = init_params_copy.copy()
+        mapped_search_params = init_params.copy()
 
         # Filter prefs_obj to remove any 'keys' that include an excluded value
         for key, value in prefs_obj.items():
@@ -568,9 +615,7 @@ class PetFinderPetPyAPI:
                     mapped_search_params[key] = filtered_dict
 
         # Check for empty search params, and return original if none were added
-        search_params = (
-            mapped_search_params if mapped_search_params else init_params_copy
-        )
+        search_params = mapped_search_params if mapped_search_params else init_params
 
         # Ensure proper query string encoding (flatten any complex structures) but exclude type/types/species as API does not accept multiples of those
         flattened_params = {
@@ -680,7 +725,7 @@ class PetFinderPetPyAPI:
             animal_groups[str(animal_type.lower())].append(animal)
 
         return animal_groups
-    
+
     @sleep_and_retry
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)
     def animal_pagination_generator(
@@ -718,15 +763,21 @@ class PetFinderPetPyAPI:
         # Initial fetch if next_urls are empty (first request scenario)
         if not any(next_urls.values()):
             for animal_type in animal_types:
-                # Set animal type in parameters
-                params["type"] = animal_type
+                # Set animal type in parameters and prettify the type for the API to accept it
+                params["type"] = Parse.prettify_animal_types(animal_types=animal_type)
                 request_url = "https://api.petfinder.com/v2/animals"
-                response_data = self._get_request(
-                    endpoint="animals", request_url=request_url, params=params
-                )
+                response_data = self._get_request("animals", request_url, params)
 
                 if response_data:
-                    next_urls[animal_type] = response_data.get("pagination", {}).get("next", None)
+                    returned_next_url = (
+                        response_data.get("pagination")["_links"]["next"]["href"][3:]
+                        or None
+                    )
+                    next_urls[animal_type] = (
+                        self.BASE_API_URL + str(returned_next_url)
+                        if returned_next_url
+                        else None
+                    )
                     results = response_data.get("animals", [])
                     filtered_results = self.filter_results_by_ids(
                         results, exclude_ids, is_animal=True
@@ -756,11 +807,22 @@ class PetFinderPetPyAPI:
                 )
 
                 if not response_data:
-                    next_urls[animal_type] = None  # Mark as exhausted if no response received
+                    next_urls[animal_type] = (
+                        None  # Mark as exhausted if no response received
+                    )
                     continue
 
                 # Update next URL for the animal type
-                next_urls[animal_type] = response_data.get("pagination", {}).get("next", None)
+                returned_next_url = (
+                    response_data.get("pagination")["_links"]["next"]["href"][3:]
+                    or None
+                )
+                next_urls[animal_type] = (
+                    self.BASE_API_URL + str(returned_next_url)
+                    if returned_next_url
+                    else None
+                )
+
                 if next_urls[animal_type]:  # Check if any animal_type has pages left
                     all_empty = False
 
@@ -782,7 +844,7 @@ class PetFinderPetPyAPI:
 
         # Yield remaining results if target count wasn't met
         yield yielded_results, next_urls
-    
+
     def filter_parse_animal_results(
         self,
         results,
@@ -804,13 +866,15 @@ class PetFinderPetPyAPI:
 
         # Split results by animal type
         split_dict_of_results = self.split_animals_by_type(animals=results)
-        
+
         filtered_results = []
         filtering_success = []
 
         # Apply filters for each animal type
         for animal_type, type_specific_filter_conditions in filter_prefs.items():
-            type_specific_result_list = split_dict_of_results.get(animal_type.lower(), [])
+            type_specific_result_list = split_dict_of_results.get(
+                animal_type.lower(), []
+            )
 
             # Apply type-specific filters
             animal_type_filtering = self.filter_results_list(
@@ -833,8 +897,9 @@ class PetFinderPetPyAPI:
             parsed_and_filtered = parse_multi_animal(animal_list=filtered_results)
 
         # Return parsed results list and the final success flag
-        return parsed_and_filtered, final_filtering_success and bool(parsed_and_filtered)
-
+        return parsed_and_filtered, final_filtering_success and bool(
+            parsed_and_filtered
+        )
 
     # TODO: not used, REMOVE LATER?
     def animals_df_to_org_animal_count_dict(self, animals_df):

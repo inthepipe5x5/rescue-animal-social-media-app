@@ -13,6 +13,8 @@ from copy import deepcopy
 from collections.abc import Iterable
 from flask import url_for
 import traceback
+from difflib import get_close_matches
+import os
 
 
 class ParsingError(Exception):
@@ -70,11 +72,13 @@ class Parse:
         "DESCRIPTION": "parse_description",
         "BIO": "parse_description",
         "name": "parse_scription",
+        "type":"prettify_animal_type",
     }
     parsed = None  # parsed output
     parsed_keys = set()  # set of keys filtered
     success_flag = False
 
+    
     # def __init__(self, type=None):
     #     """Initialize the Parse object, taking in a dictionary and an optional type."""
 
@@ -84,10 +88,37 @@ class Parse:
     #     self.success_flag = False
 
     # self.parsed_types_tuples = self.get_parsed_types_types()
+    # Define mapping as a class attribute
+    
+    PRETTIFIED_MAPPING = {
+        "dog": "Dog",
+        "cat": "Cat",
+        "rabbit": "Rabbit",
+        "small-furry": "Small & Furry",
+        "horse": "Horse",
+        "bird": "Bird",
+        "scales-fins-other": "Scales, Fins & Other",
+        "barnyard": "Barnyard"
+    }
+
+    @classmethod
+    def get_default_prettified_animal_types(cls):
+        """Return the list of default prettified animal types."""
+        
+        api_type_key = "API_ANIMAL_TYPES"
+        default_prettified_animal_types = cls.PRETTIFIED_MAPPING.values()
+        
+        if api_type_key in os.environ:
+            types_list = json.loads(os.environ.get(api_type_key))
+            return list(types_list or default_prettified_animal_types)
+        
+        #return default
+        return list(default_prettified_animal_types)
 
     @property
     def meta_data(self):
-        """Return metadata associated with the parsed object."""
+        """Return metadata associated with the parsed object, eg. for debugging
+        """
         return {
             "type": self.type,
             "parsed_keys": list(self.parsed_keys),
@@ -156,7 +187,45 @@ class Parse:
     #############################################################################################################################################################################################
     # UTIL FUNCTIONS
     #############################################################################################################################################################################################
+    @classmethod
+    def prettify_animal_types(cls, animal_types, fuzzy_match=True):
+        """
+        Convert a list of lowercase, hyphenated animal type strings to prettified names.
 
+        Args:
+            animal_types (list): List of lowercase, hyphenated animal type names.
+            fuzzy_match (bool): Whether to use fuzzy matching if exact match not found.
+
+        Returns:
+            list: List of prettified animal type names in the same order as input.
+        """
+        prettified_types = []
+        if isinstance(animal_types, (list, set, tuple)):
+            for animal_type in animal_types:
+                # Try exact match first
+                prettified = cls.PRETTIFIED_MAPPING.get(animal_type.lower())
+                
+                if prettified is None and fuzzy_match:
+                    # If no exact match and fuzzy matching is enabled, try fuzzy matching
+                    close_matches = get_close_matches(animal_type.lower(), cls.get_default_prettified_animal_types(), n=1, cutoff=0.6)
+                    if close_matches:
+                        prettified = cls.PRETTIFIED_MAPPING[close_matches[0]]
+
+                prettified_types.append(prettified if prettified else animal_type.capitalize())
+            
+            #return the first value if prettified types == 1
+            return str(prettified_types[0]) if len(prettified_types) == 1 else prettified_types
+        elif isinstance(animal_types, str):
+            prettified = cls.PRETTIFIED_MAPPING.get(animal_types.lower())
+            if prettified is None and fuzzy_match:
+                close_matches = get_close_matches(animal_type.lower(), cls.get_default_prettified_animal_types(), n=1, cutoff=0.6)
+                if close_matches:
+                    prettified = close_matches[0] if close_matches[0] == cls.PRETTIFIED_MAPPING.get(animal_types.lower()) else cls.PRETTIFIED_MAPPING.get(animal_types.lower())
+            
+            return prettified or animal_types.capitalize()
+        else:
+            raise TypeError(f"Wrong type passed in for 'animal_types' param, expected str or iterable, got: type({animal_types}) = {type(animal_types)}")
+        
     def return_original(self):
         """Function to return original data object"""
         return self.original_data
