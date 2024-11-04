@@ -69,8 +69,18 @@ from package.helper import (
     add_animal_types_to_g,
 )
 from config import config, Config
-from package.PetFinderAPI import PetFinderPetPyAPI
+from package.PetFinderAPI import PetFinderAPI
 from package.parse import Parse
+
+# import custom exceptions
+from package.api_exceptions import (
+    PetFinderInvalidCredentialsError,
+    PetFinderAccessDeniedError,
+    PetFinderInvalidParametersError,
+    PetFinderUnexpectedServerError,
+    PetFinderLocationError
+)
+
 
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -151,7 +161,7 @@ for function_key, function in custom_filters_dict.items():
     app.jinja_env.filters[function_key] = function
 
 # api instance of helper class
-api = PetFinderPetPyAPI()
+api =PetFinderAPI()
 
 
 # # petpy instance
@@ -1023,6 +1033,46 @@ def create_user_preference_filters():
         return filters
 
 
+
+#TODO: new version of discover_animals after updating generator logic to use custom exceptions
+# @app.route("/discover/animals")
+# def discover_animals():
+#     try:
+#         user_params = request.args.to_dict()  # Capture query params
+#         user_location_data = get_user_location_data()  # Get location data, e.g., from DB
+#         result = petfinder_api.fetch_animals(user_params, user_location_data)
+#         return render_template("animals.html", animals=result["results"])
+#     except PetFinderInvalidCredentialsError as e:
+#         error_info = {
+#             "error_title": "Authorization Error",
+#             "error_subtitle": "Invalid Credentials",
+#             "error_message": str(e),
+#             "redirect_url": "/",
+#             "redirect_text": "Back to Home",
+#         }
+#         return render_template("error.html", **error_info)
+#     except PetFinderInvalidParametersError as e:
+#         error_info = {
+#             "error_title": "Invalid Parameters",
+#             "error_subtitle": "One or more parameters were incorrect.",
+#             "error_message": f"Invalid parameters: {', '.join(e.invalid_params)}",
+#             "redirect_url": "/discover/animals",
+#             "redirect_text": "Retry Search",
+#         }
+#         return render_template("error.html", **error_info)
+#     except PetFinderUnexpectedServerError as e:
+#         error_info = {
+#             "error_title": "Server Error",
+#             "error_subtitle": "Unexpected error from PetFinder API",
+#             "error_message": str(e),
+#             "redirect_url": "/",
+#             "redirect_text": "Back to Home",
+#         }
+#         return render_template("error.html", **error_info)
+#     except Exception as e:
+#         return redirect("/", code=302) #why redirect and 302 status? 
+
+
 @app.route("/discover/animals", methods=["GET"])
 def discover_animals():
     """Route to fetch and display paginated animal data, with error handling and fallback UI in case of API downtime."""
@@ -1407,7 +1457,7 @@ def orgs_data():
     #     country = get_anon_preference(key="country", session=session, g=g)
     #     state = get_anon_preference(key="state", session=session, g=g)
 
-    # api = PetFinderPetPyAPI()
+    # api =PetFinderAPI()
     # orgs_search_args = {"country": country, "state": state, "sort": "distance"}
     # if "org_id" in request.args:
     #     orgs_search_args["id"] = request.args["org_id"]
@@ -1543,7 +1593,7 @@ def signup_user():
             # seed animal_preferences for the user
             UserAnimalPreferences.seed_user_pref(user_id=user.id)
 
-            # init_orgs = PetFinderPetPyAPI.get_orgs_df()
+            # init_orgs =PetFinderAPI.get_orgs_df()
         except IntegrityError:
             flash("Username already taken", "danger")
             db.session.rollback()
@@ -1692,26 +1742,36 @@ def handle_error(e):
             "error_title": "400 Bad Request",
             "error_subtitle": "Oops! That's an invalid request.",
             "error_message": "The server couldn't understand your request. Please check your input and try again.",
+            "redirect_url": "/",
+            "redirect_text":"Back to Home",
         },
         401: {
             "error_title": "401 Unauthorized",
             "error_subtitle": "Access Denied",
             "error_message": "You don't have permission to access this resource. Please log in or check your credentials.",
+            "redirect_url": "/login",
+            "redirect_text":"Login",
         },
         403: {
             "error_title": "403 Forbidden",
             "error_subtitle": "Access Restricted",
             "error_message": "You don't have permission to access this resource.",
+            "redirect_url": "/",
+            "redirect_text":"Back to Home",
         },
         404: {
             "error_title": "404 Not Found",
             "error_subtitle": "Oops! Page not found.",
             "error_message": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
+            "redirect_url": "/",
+            "redirect_text":"Back to Home",
         },
         500: {
             "error_title": "500 Internal Server Error",
             "error_subtitle": "Oops! Something went wrong.",
             "error_message": "We're experiencing some technical difficulties. Please try again later or contact support if the problem persists.",
+            "redirect_url": "/",
+            "redirect_text":"Back to Home",
         },
     }
 
@@ -1721,6 +1781,8 @@ def handle_error(e):
             "error_title": f"{error_code} Error",
             "error_subtitle": "An unexpected error occurred.",
             "error_message": "We're sorry, but something went wrong on our end. Please try again later.",
+            "redirect_url": "/",
+            "redirect_text":"Back to Home",
         },
     )
 
@@ -1730,8 +1792,8 @@ def handle_error(e):
             error_title=error_info["error_title"],
             error_subtitle=error_info["error_subtitle"],
             error_message=error_info["error_message"],
-            redirect_url=request.args.get("redirect_url", "/"),
-            redirect_text=request.args.get("redirect_text", "Back to Home"),
+            redirect_url=request.args.get("redirect_url", error_info['redirect_url']),
+            redirect_text=request.args.get("redirect_text", error_info['redirect_text']),
         ),
         error_code,
     )

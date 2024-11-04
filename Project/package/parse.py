@@ -71,7 +71,7 @@ class Parse:
         "Bio": "parse_description",
         "DESCRIPTION": "parse_description",
         "BIO": "parse_description",
-        "name": "parse_scription",
+        "name": "parse_description",
         "type":"prettify_animal_type",
     }
     parsed = None  # parsed output

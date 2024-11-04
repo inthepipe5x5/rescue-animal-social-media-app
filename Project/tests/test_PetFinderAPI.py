@@ -1,13 +1,13 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone, timedelta
-from package.PetFinderAPI import PetFinderPetPyAPI
+from package.PetFinderAPI import PetFinderAPI
 from package.helper import get_anon_preference, get_user_preference
 
 class TestPetFinderPetPyAPI(unittest.TestCase):
 
     def setUp(self):
-        self.api = PetFinderPetPyAPI(get_anon_preference_func=get_anon_preference, get_user_preference_func=get_user_preference)
+        self.api =PetFinderAPI(get_anon_preference_func=get_anon_preference, get_user_preference_func=get_user_preference)
 
 
     def test_parse_breed(self):

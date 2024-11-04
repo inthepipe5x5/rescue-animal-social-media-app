@@ -1,20 +1,51 @@
+# from petpy import Petfinder
 import os
 from dotenv import load_dotenv
-from dateutil import parser
 import time
 import pandas as pd
 from flask import json
-from ratelimit import limits, RateLimitException, sleep_and_retry
-from petpy import Petfinder
+import logging
 import requests
+from urllib.parse import urlparse
+
+from ratelimit import (
+    limits,
+    RateLimitException,
+    sleep_and_retry,
+)
+from backoff import on_exception, expo
+
 from json import JSONDecodeError
+
+from collections.abc import Iterable
+
 from package.parse import Parse, parse_multi_animal
 
-# from ..models import User, UserAnimalPreferences  # , #UserPreferences
+from package.api_exceptions import (
+    PetFinderAPIError,
+    PetFinderInvalidCredentialsError,
+    PetFinderAccessDeniedError,
+    PetFinderResourceNotFoundError,
+    PetFinderInvalidMethod,
+    PetFinderUnexpectedServerError,
+    PetFinderInvalidParametersError,
+    PetFinderLocationError,
+)
+
+# Configure logging
+logging.basicConfig(level="INFO")
+logger = logging.getLogger(__name__)
+
 
 load_dotenv()
 
-class PetFinderPetPyAPI:
+# Define limit for generator function to make API calls as PetFinder limits to 1000 calls per day
+API_CALLS_PER_DAY = 1000
+TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
+MAX_TRIES = 10  # Maximum number of retries for handling RateLimitException
+
+
+class PetFinderAPI:
     """
     API class with methods to store access PetFinder API and help functions to map user preference data to API search parameters
     """
@@ -22,10 +53,6 @@ class PetFinderPetPyAPI:
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
-
-    # Define limit for generator function to make API calls as PetFinder limits to 1000 calls per day
-    API_CALLS_PER_DAY = 1000
-    TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
 
     # store default user_preference
     default_options_obj = {
@@ -49,16 +76,14 @@ class PetFinderPetPyAPI:
         "scales-fins-other",
         "barnyard",
     ]
+
     animal_emojis = {
-        "dog": "🐶",
-        "cat": "🐱",
-        "rabbit": "🐰",
-        "small-furry": "🐹",
-        "horse": "🐴",
-        "bird": "🐦",
-        "scales-fins-other": "🦎",
-        "barnyard": "🐄",
+        animal: emoji
+        for animal, emoji in zip(
+            animal_types, ["🐶", "🐱", "🐰", "🐹", "🐴", "🐦", "🦎", "🐄"]
+        )
     }
+
     # user prefs that map to search params
     attribute_keys = [
         "spayed_neutered",
@@ -82,15 +107,162 @@ class PetFinderPetPyAPI:
         "personality",
         "age",
     ]
-    _petpy_api_instance = None
+    # Initialize a set to keep track of invalid parameters across calls
+    bad_keys_set = set()
 
     def __init__(self, *args, **kwargs):
+
         self.access_token = os.environ.get("ACCESS_TOKEN", None)
         self.token_expiration = os.environ.get("TOKEN_EXPIRATION", None)
 
-        if not self.access_token:
+        if not self.access_token or self._find_init_value(
+            keys=["access_token", "TOKEN", "token"], args=args, kwargs=kwargs
+        ):
             self._get_access_token()
+        else:
+            self.access_token = (
+                self._find_init_value(
+                    keys=["access_token", "TOKEN", "token"], args=args, kwargs=kwargs
+                )
+                or self._get_access_token()
+            )
+            self.token_expiration = (
+                self._find_init_value(
+                    keys=["expiration", "EXPIRATION", "token_expiration"],
+                    args=args,
+                    kwargs=kwargs,
+                )
+                or self._get_access_token()
+            )
 
+        self.bad_keys_set = (
+            self._find_init_value(
+                keys=["BAD_KEYS", "bad_keys", "invalid-params", "bad-params"],
+                args=args,
+                kwargs=kwargs,
+            )
+            or self.bad_keys_set
+            or set()
+        )
+
+    ###########################    # Helper functions for error handling ############################################################################################################
+    def handle_error_response(error):
+        """Create a structured error response from an exception instance."""
+        return {
+            "error_title": getattr(error, "error_title", "Error"),
+            "error_subtitle": getattr(error, "error_subtitle", ""),
+            "error_message": getattr(
+                error, "error_message", "An error occurred. Please try again later."
+            ),
+            "redirect_url": getattr(error, "redirect_url", "/"),
+            "redirect_text": getattr(error, "redirect_text", "Back to Home"),
+        }
+
+    def handle_invalid_parameters_error(self, response, params):
+        """
+        Handles ERR-00002: Invalid parameters.
+        Logs invalid parameters, adds them to a tracking set, and retries the request
+        without invalid parameters.
+        Args:
+            response (dict): API error response data.
+            params (dict): Original request parameters.
+        Returns:
+            dict: Response of retried request or error if retry fails.
+        """
+        # Extract the list of invalid parameters
+        invalid_params_info = response.get("invalid-params", [])
+        original_request_url = response.request.url or self.BASE_API_URL + "/animals"
+        original_request_endpoint = urlparse(original_request_url).path
+
+        # Collect invalid parameters and log each one
+        for param_info in invalid_params_info:
+            bad_param = param_info.get("path")
+            self.bad_keys_set.add(bad_param)  # Add to tracking set
+
+            self.log_error(
+                f"Invalid parameter '{bad_param}': {param_info.get('message')}", 400
+            )
+
+            # Remove invalid parameters from the original request parameters
+            params.pop(bad_param, None)
+
+        # Retry the request with corrected parameters
+        try:
+            logger.info("Retrying request with corrected parameters...")
+            corrected_response = self.request_with_retry(
+                original_request_endpoint, original_request_url, params
+            )
+            return corrected_response
+        except Exception as retry_error:
+            logger.error(f"Retry failed: {retry_error}")
+            return {"error": "Retry failed", "details": str(retry_error)}
+
+    # helper logger
+    def log_error(self, message, status_code=None):
+        """Logs error messages with optional status code."""
+        logger.error(f"{status_code if status_code else ''} {message}")
+
+    def log_and_raise_for_status(self, response):
+        """
+        Checks the response for known errors, logs, and raises appropriate exceptions.
+
+        Args:
+            response (Response): The response object from the API.
+
+        Raises:
+            PetFinderLocationError: If there is an error related to the 'location' field.
+            PetFinderInvalidParametersError: If there is an error with invalid query parameters.
+            PetFinderInvalidCredentialsError: If the credentials are invalid.
+            PetFinderAccessDeniedError: If access is denied.
+            PetFinderResourceNotFoundError: If the resource is not found.
+            PetFinderUnexpectedServerError: For server-side errors.
+        """
+        json_response = response.json()
+        error_type = json_response.get("type", "").split("/")[-1]
+
+        # Handle 400 errors with invalid parameters
+        if response.status_code == 400:
+            if "invalid-params" in json_response or error_type == "ERR-00002":
+                invalid_params = json_response.get("invalid-params", [])
+                bad_keys = set()
+                error_messages = []
+
+                for invalid_param in invalid_params:
+                    bad_key = invalid_param.get("path")
+                    error_message = invalid_param.get("message", "Invalid parameter.")
+                    param_location = invalid_param.get("in")
+
+                    if bad_key:
+                        bad_keys.add(bad_key)
+
+                    # If the invalid param is a location issue, raise PetFinderLocationError
+                    if bad_key == "location" and param_location == "query":
+                        raise PetFinderLocationError(f"Location error: {error_message}")
+
+                    # Otherwise, collect messages for invalid query parameters
+                    elif param_location == "query":
+                        error_messages.append(f"{bad_key}: {error_message}")
+
+                # If there are invalid query parameters, raise PetFinderInvalidParametersError
+                if error_messages:
+                    raise PetFinderInvalidParametersError(
+                        invalid_params=bad_keys, message="; ".join(error_messages)
+                    )
+
+        # Handle other specific status codes
+        elif response.status_code == 401 or error_type == "ERR-401":
+            raise PetFinderInvalidCredentialsError()
+        elif response.status_code == 403:
+            raise PetFinderAccessDeniedError()
+        elif response.status_code == 404:
+            raise PetFinderResourceNotFoundError()
+        elif response.status_code >= 500:
+            raise PetFinderUnexpectedServerError()
+        else:
+            response.raise_for_status()
+
+    @sleep_and_retry
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)
     def _get_access_token(self):
         """Instance method to request a new access token from Petfinder API
 
@@ -100,6 +272,12 @@ class PetFinderPetPyAPI:
         Returns:
             access_token: PetFinder API access token
         """
+        # turn token_expiration into int if truthy
+        self.token_expiration = (
+            int(self.token_expiration) if self.token_expiration else None
+        )
+
+        # get current time
         current_time = int(time.time())
 
         # Check if valid token is stored in os.environ
@@ -112,9 +290,9 @@ class PetFinderPetPyAPI:
             return os_key
 
         # Check if instance has a valid token
-        if (
-            self.access_token and self.token_expiration
-        ) and current_time < self.token_expiration:
+        if (self.access_token and self.token_expiration) and current_time < int(
+            self.token_expiration
+        ):
             return self.access_token
 
         # If not, request a new token
@@ -147,11 +325,13 @@ class PetFinderPetPyAPI:
                 )
         raise Exception(f"Failed to get access token after multiple attempts.")
 
+    ### GET Request Functions #################################################################################################################################################################
+
     def _get_request(
         self,
-        endpoint="animals",
-        request_url="https://api.petfinder.com/v2/animals",
-        params={},
+        request_url,
+        endpoint,
+        params=None,
     ):
         """Create a url to make an API request based off passed in params object.
 
@@ -162,121 +342,141 @@ class PetFinderPetPyAPI:
             category (str): category of API to be called on eg. animal, animals, organization, organizations
             action(str): what REST request to make on API eg. 'get' = GET request
             params (OBJECT {str:str}): params Python OBJECT will be iterated on to create the key:value string queries to the url separated by question marks eg. `?{parameter_1}={value_1}`
-        
+
         Returns:
-            {
-                 "access_token": access_token,
-                 "results": result.get(endpoint, []),
-                 "pagination": result.get("pagination", {}),
-                 "success_flag": bool(result.get(endpoint)),
-                 "status_code": response.status_code,
-             }
+            Response (object) requests Response object - to be handled in wrapper function or generator function
         """
-        # handle if no params passed in
-        params = {} if not params else params
+        # handle if no params passed in, else format any list params within
+        endpoint = endpoint if endpoint else "animals"
+        request_url = request_url if request_url else f"{self.BASE_API_URL}/{endpoint}"
+
+        params = self.format_list_params(params or {})
 
         # Obtain the current access token within the self._get_access_token() instead of helper petpy_api class
         access_token = self._get_access_token()
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        try:
-            if params:
-                # Handle multiple values for the same parameter
-                formatted_params = {}
-                for key, value in params.items():
-                    if isinstance(value, list) and key.lower() != "type":
-                        formatted_params[key] = ",".join(map(str, value))
-                    else:
-                        formatted_params[key] = value
-                # set params to formatted_params after joining strings & making sure params is not nested dict
-                params = formatted_params.get('params', {}) if 'params' in formatted_params else formatted_params
+        logger.info(
+            f"_GET_REQUEST() @ {request_url} Params: <type ={type(params)}:{params}> Headers: {headers}"
+        )
 
-            # Make a request to the specified endpoint with the access token
-            headers = {"Authorization": f"Bearer {access_token}"}
-            if isinstance(params, dict):
-                print(
-                    f"_GET_REQUEST() @ {request_url} Params: <type dict:{params}> Headers: {headers}"
-                )
+        # Make the GET request with the headers and params
+        response = requests.get(request_url, params=params, headers=headers)
+        return response
 
-                # Make the GET request with a flat dictionary of params
-                response = requests.get(request_url, params=params, headers=headers)
-
-                # Check and print response status code for debugging
-                print(f"Response Status: {response.status_code}")
+    def format_list_params(self, params):
+        """Validate and format parameters before making API requests."""
+        formatted_params = {}
+        for key, value in params.items():
+            if isinstance(value, list):
+                formatted_params[key] = ",".join(map(str, value))
             else:
-                raise TypeError("Params must be a dictionary")
+                formatted_params[key] = value
+        return formatted_params
 
-            # Check for a successful response
-            response.raise_for_status()
-            result = response.json()
-            status_code = response.status_code
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # MAX_TRIES = max num of exponential retries before raising error
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
+    def request_with_retry(
+        self, endpoint, request_url, params=default_options_obj, max_retries=MAX_TRIES
+    ):
+        """
 
-            result["status_code"] = status_code
-            result["results"] = result.get(endpoint, [])
-            del result[endpoint]
-            return result
-            # output = {
-            #     "access_token": access_token,
-            #     "results": result.get(endpoint, []),
-            #     "pagination": result.get("pagination", {}),
-            #     "success_flag": bool(result.get(endpoint)),
-            #     "status_code": response.status_code,
-            # }
-            # print("get request status", output["status_code"])
-            # return output
+        Higher Order Wrapper function Wrap the request in a retry mechanism for handling rate limits and temporary issues.
 
-        except Exception as e:
-            print(f"_get_request function error: [request_url, params]=> { request_url, params}")
-            print(f"_get_request ERROR=> ERROR: {e}")
+        This function sends a request to an endpoint with the option to retry a specified number of
+        times.
 
-            # If the response is unavailable or invalid, the nested try/exception falls back on empty values for results and pagination.
+        :param method: The `method` parameter in the `request_with_retry` function represents the HTTP
+        method (e.g., GET, POST, PUT, DELETE) that will be used for the request. It specifies the type
+        of action the client wants to perform on the specified resource
+        :param endpoint: The `endpoint` parameter typically refers to the specific API endpoint or URL
+        path that you want to send the request to. It is a string that specifies the location where the
+        request should be directed within the API. For example, if you are working with a RESTful API,
+        the endpoint could be something
+        :param request_url: The `request_url` parameter typically refers to the URL where the HTTP
+        request will be sent. It is the specific address of the resource or service that the client
+        wants to interact with. This URL includes the protocol (e.g., http, https), domain name, and any
+        additional path or query parameters
+        :param params: The `params` parameter in the `request_with_retry` method is used to pass any
+        additional parameters or data that need to be included in the request to the specified
+        `endpoint`. These parameters could be query parameters, form data, or any other data required by
+        the API endpoint to process the request accurately
+        :param max_retries: The `max_retries` parameter specifies the maximum number of times the
+        request will be retried in case of a failure or error. It allows the request to be retried
+        multiple times before giving up
+        """
+        if not params:
+            raise TypeError(f"Expected 'params' as dict, received type: {type(params)}")
+
+        for attempt in range(max_retries):
             try:
-                # Try extracting JSON from response if possible
-                response = response if "response" in locals() else {}
-            except Exception:
-                # Use locals() handle the absence of result or response
-                # FYI Lin => locals() is a built-in Python function that returns a dictionary of the local variables in the current scope, allowing you to check if a variable exists before using it.
-                return {
-                    "message": str(e),
-                    "results": (
-                        result.get("results", []) if "result" in locals() else []
-                    ),
-                    "pagination": (
-                        result.get("pagination", {}) if "result" in locals() else {}
-                    ),
-                    "status_code": (
-                        response.status_code if "response" in locals() else 500
-                    ),
-                    "success_flag": False,
-                }
+                response = self._get_request(
+                    endpoint=endpoint,
+                    request_url=request_url or f"{self.BASE_API_URL}/{endpoint}",
+                    params=params,
+                )
+                self.log_and_raise_for_status(response)
+                return response.json()
 
-        except JSONDecodeError as e:
-            print("response was not in JSON")
-            if "response" in locals():
-                return response
-            else:
-                return {"message": e, "status_code": 500}
+            except PetFinderInvalidParametersError as e:
+                # Handle invalid parameters: drop invalid keys and retry
+                self.handle_invalid_parameters_error(response=response, params=params)
+                
+                
+                
+                # if e.invalid_params:
+                #     for param in e.invalid_params:
+                #         params.pop(param, None)  # Drop bad keys
+                #     continue  # Retry with the modified parameters
+                # else:
+                #     raise  # Reraise if no invalid params are identified
 
-        except requests.exceptions.RequestException as e:
-            print(f"endpoint, request_url, params=> {request_url, params}")
-            print(f"_get_request RequestException ERROR=> {e}")
+            except PetFinderLocationError as e:
+                # Handle location errors specifically (retry with alternative location data)
+                if "location" in params:
+                    location_dict = params.get("location", {})
 
-            error_response = {}
-            if hasattr(e, "response") and e.response is not None:
-                try:
-                    error_response = e.response.json()
-                except ValueError:
-                    error_response = {"text": e.response.text}
+                    next_location, updated_locations = self.get_alternative_locations(
+                        location_dict=location_dict
+                    )
+                    while next_location and updated_locations:
+                        location_dict = updated_locations
+                        next_location, updated_locations = (
+                            self.get_alternative_locations(location_dict=location_dict)
+                        )
 
-            return {
-                "message": str(e),
-                "results": error_response.get(endpoint, []),
-                "pagination": error_response.get("pagination", {}),
-                "status_code": (
-                    e.response.status_code if hasattr(e, "response") else 500
-                ),
-                "success_flag": False,
-            }
+                        if not next_location or not updated_locations:
+                            print("No more locations to try")
+                            break
+                        # retry with different location param
+                        else:
+                            params["location"] = (
+                                next_location  # Replace with new location
+                            )
+                            response = self._get_request(
+                                endpoint,
+                                f"{self.BASE_API_URL}/{endpoint}",
+                                params=params,
+                            )
+                            self.log_and_raise_for_status(response)
+                            return response.json()  # If successful, return the result
+                else:
+                    # return dict to redirect
+                    return PetFinderLocationError(
+                        error_title="Error determining location",
+                        error_subtitle="Please set your location",
+                        error_message="Can't determine your location to locate content local to you. Please enter your location and consider enabling geolocation for more accurate results.",
+                        redirect_url="/users/location",
+                    ).error_info()
 
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # MAX_TRIES = max num of exponential retries before raising error
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def _get_animal_types(self, *types):
         """
         Make a GET request to Petfinder API /types route.
@@ -284,7 +484,7 @@ class PetFinderPetPyAPI:
         """
         base_url = self.BASE_API_URL + "/types"
 
-        if not types or types.lower() == 'all':
+        if not types or types.lower() == "all":
             # If no types are specified, query all types
             result = self._get_request("types", request_url=base_url)
         else:
@@ -293,32 +493,31 @@ class PetFinderPetPyAPI:
                 results = []
                 for animal_type in types:
                     type_url = f"{base_url}/{animal_type}"
-                    response = self._get_request("type", request_url=type_url)
-                    result = response.get('results')
+                    response = self.request_with_retry("type", request_url=type_url)
+                    result = response.get("results")
                     results.append(result)
                 return results
             elif isinstance(types, str):
-                url = type_url+f"/{types}"
+                url = type_url + f"/{types}"
                 result = self._get_request("type", request_url=url)
-        
-        
+
         return result
+
+    @sleep_and_retry
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)
     def seed_animal_types(self):
-        """Util function that returns a list of animal types to be seeded in Flask session and os.environ
-        """
-        default_prettified_list = Parse.get_default_prettified_animal_types()  
-        
+        """Util function that returns a list of animal types to be seeded in Flask session and os.environ"""
+        default_prettified_list = Parse.get_default_prettified_animal_types()
+
         try:
-            response = self._get_animal_types(types='all')
+            response = self._get_animal_types(types="all")
             response_status = response.get("status_code", 500)
             req_results = response.get("results", [])
 
             if response_status in [200, 201]:
                 # Extract type names from the response
-                type_list = [
-                    animal_type.get("name")
-                    for animal_type in req_results
-                ]
+                type_list = [animal_type.get("name") for animal_type in req_results]
             else:
                 # Use default list if API call fails
                 type_list = default_prettified_list
@@ -327,16 +526,20 @@ class PetFinderPetPyAPI:
             # Use default list if an exception occurs
             type_list = default_prettified_list
             print(f"Error seeding animal info: {e}")
-        
+
         return type_list or default_prettified_list
 
-
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # MAX_TRIES = max num of exponential retries before raising error
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def _get_breeds(self, animal_type="dog"):
         """
         Make a GET request to Petfinder API /breeds route.
         If animal_type is provided, request breeds for that specific type.
         """
-        base_url = self.BASE_API_URL+ "/breeds"
+        base_url = self.BASE_API_URL + "/breeds"
 
         if not animal_type:
             # If no animal_type is specified, return an error or all types (depending on API behavior)
@@ -346,6 +549,11 @@ class PetFinderPetPyAPI:
             breeds_url = f"{base_url}/{animal_type}/breeds"
             return self._get_request("breeds", request_url=breeds_url)
 
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # MAX_TRIES = max num of exponential retries before raising error
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def _get_organizations(self, org_id=None, **params):
         """
         Make a GET request to Petfinder API /organizations route.
@@ -362,6 +570,11 @@ class PetFinderPetPyAPI:
             # If no org_id is specified, query all organizations with optional params
             return self._get_request("organizations", request_url=base_url, **params)
 
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # MAX_TRIES = max num of exponential retries before raising error
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def _get_animals(self, animal_id=None, **params):
         """
         Make a GET request to Petfinder API /animals route.
@@ -709,7 +922,7 @@ class PetFinderPetPyAPI:
         animals found in the input list `animals`, and the values are lists of animals of that type.
 
         Example use:
-        animal_list = PetFinderPetPyAPI._get_request(url="/animals")
+        animal_list =PetFinderAPI._get_request(url="/animals")
 
         split_list_by_animal_type = split_animals_by_type(animals=animal_list)
 
@@ -726,8 +939,11 @@ class PetFinderPetPyAPI:
 
         return animal_groups
 
-    @sleep_and_retry
-    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # MAX_TRIES = max num of exponential retries before raising error
+    @limits(calls=50, period=1)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def animal_pagination_generator(
         self,
         animal_types,
@@ -845,6 +1061,7 @@ class PetFinderPetPyAPI:
         # Yield remaining results if target count wasn't met
         yield yielded_results, next_urls
 
+    ### FILTER FUNCTIONS ##################################################################################################################
     def filter_parse_animal_results(
         self,
         results,
@@ -900,33 +1117,6 @@ class PetFinderPetPyAPI:
         return parsed_and_filtered, final_filtering_success and bool(
             parsed_and_filtered
         )
-
-    # TODO: not used, REMOVE LATER?
-    def animals_df_to_org_animal_count_dict(self, animals_df):
-        """Function to group animals DataFrame by 'organization_id' and count the number of animals in each group, sorted by count in descending order, and return the result as a dictionary.
-
-        Args:
-            animals_df (DataFrame): pandas DataFrame of animals API results
-        """
-
-        # Group by 'organization_id' and count the number of animals in each group
-        organization_counts = (
-            animals_df.groupby("organization_id")
-            .size()
-            .reset_index(name="animal_count")
-        )
-
-        # Sort the groups by the count of animals in descending order
-        organization_counts_sorted = organization_counts.sort_values(
-            by="animal_count", ascending=False
-        )
-
-        # Convert the sorted DataFrame to a dictionary
-        org_animal_count_dict = organization_counts_sorted.set_index("organization_id")[
-            "animal_count"
-        ].to_dict()
-
-        return org_animal_count_dict
 
     def find_highest_lowest(self, ani_objects, key="date_delta"):
         """
@@ -1028,3 +1218,132 @@ class PetFinderPetPyAPI:
             filtered_results.append(result)
 
         return filtered_results
+
+    def _find_init_value(self, keys, args, kwargs):
+        """
+        The `_find_init_value` function processes keys to find a value in kwargs or the first dictionary in args.
+
+        :param keys: The `keys` parameter in the `_find_init_value` method is used to specify the keys that you
+        want to search for in the `args` and `kwargs` parameters. These keys can be provided as a single
+        string or as an iterable (e.g., list, tuple) of strings. The
+        :param args: The `args` parameter in the `_find_init_value` method is expected to be a tuple containing
+        the positional arguments passed to the method. In this method, it is checked whether the first
+        element of `args` is a dictionary, and if it is, the method looks for the keys in that dictionary
+        :param kwargs: Keyword arguments passed to the function
+        :return: The `_find_init_value` method returns the value associated with the specified keys in the
+        `kwargs` dictionary or the first dictionary in the `args` list. If the keys are not found in either
+        `kwargs` or the first dictionary in `args`, it returns `None`.
+        """
+
+        processed_keys = self.process_keys(keys)
+
+        # Check in kwargs
+        for key in processed_keys:
+            if key in kwargs:
+                return kwargs[key]
+
+        # Check in args if it's a dictionary
+        if args and isinstance(args[0], dict):
+            for key in processed_keys:
+                if key in args[0]:
+                    return args[0][key]
+
+        return None
+
+    def process_keys(self, keys):
+        """
+        The function `process_keys` takes a string or an iterable of keys and returns a list of lowercase
+        keys.
+
+        :param keys: The `keys` parameter in the `process_keys` function can be either a string or an
+        iterable (e.g., list, tuple, set). The function processes the keys by converting them to lowercase
+        and returning a list of lowercase keys. If the input `keys` is a string, it converts
+        :return: The function `process_keys` is returning a list of lowercase keys. If the input `keys` is a
+        string, it converts the string to lowercase and returns a list containing that lowercase string. If
+        the input `keys` is an iterable (e.g., list, tuple), it converts each element to lowercase and
+        returns a list of lowercase elements. If the input `keys` is neither a string
+        """
+        if isinstance(keys, str):
+            return [keys.lower()]
+        elif isinstance(keys, Iterable):
+            return [key.lower() for key in keys]
+        else:
+            raise ValueError("Keys must be a string or an iterable")
+
+    ### LOCATION PARAM HELPER FUNCTIONS ############################
+
+    def get_next_location(self, location_dict):
+        """
+        Selects the next value from a location dictionary to retry a GET request
+        with a different location parameter.
+
+        :param location_dict: A dictionary containing location information
+        :return: The next location value to use, or None if no more options are available
+        """
+        priority_order = [
+            "geolocation",
+            "postal_code",
+            ("city", "state"),
+            ("state", "country"),
+            "country",
+        ]
+
+        for item in priority_order:
+            if isinstance(item, tuple):
+                if all(location_dict.get(key) for key in item):
+                    return f"{location_dict[item[0]]}, {location_dict[item[1]]}"
+            else:
+                value = location_dict.get(item)
+                if value:
+                    return value
+
+        return None
+
+    def detect_location_param(self, location_string):
+        """
+        Detects the type of location parameter from a given string.
+
+        :param location_string: A string representing a location
+        :return: The detected location parameter type(s)
+        """
+        if "," in location_string:
+            parts = location_string.split(",")
+            if len(parts) == 2 and all(
+                part.strip().replace(".", "").isdigit() for part in parts
+            ):
+                return ["geolocation"]
+            elif len(parts) == 2 and all(len(part.strip()) == 2 for part in parts):
+                return ["state", "country"]
+            else:
+                return ["city", "state"]
+        elif location_string.isdigit() or (
+            location_string[:1].isalpha() and location_string[1:].isdigit()
+        ):
+            return ["postal_code"]
+        elif len(location_string) == 2 and location_string.isalpha():
+            return ["country"]
+        else:
+            return ["city"]
+
+    def get_alternative_locations(self, location_dict):
+        """
+        Gets the next location to try, updates the location dictionary by removing
+        the used location parameter, and returns the next location to try.
+
+        :param location_dict: A dictionary containing location information
+        :return: A tuple containing the next location to try and the updated dictionary
+        """
+        next_location = self.get_next_location(location_dict)
+        if next_location is None:
+            return None, location_dict
+
+        param_types = self.detect_location_param(next_location)
+
+        # Create a copy of the dictionary to avoid modifying the original
+        updated_dict = location_dict.copy()
+
+        # Remove the used location parameter(s) from the dictionary
+        for param_type in param_types:
+            updated_dict.pop(param_type, None)
+
+        return next_location, updated_dict
