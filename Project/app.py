@@ -78,9 +78,8 @@ from package.api_exceptions import (
     PetFinderAccessDeniedError,
     PetFinderInvalidParametersError,
     PetFinderUnexpectedServerError,
-    PetFinderLocationError
+    PetFinderLocationError,
 )
-
 
 
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -161,7 +160,7 @@ for function_key, function in custom_filters_dict.items():
     app.jinja_env.filters[function_key] = function
 
 # api instance of helper class
-api =PetFinderAPI()
+api = PetFinderAPI()
 
 
 # # petpy instance
@@ -382,7 +381,7 @@ def show_user(user_id):
     )
 
 
-@login_required
+# available to both anon and users but only user location is saved to db
 @app.route("/users/location", methods=["GET", "POST"])
 def form_user_location():
     app.logger.info(
@@ -416,6 +415,13 @@ def form_user_location():
 
             app.logger.info(f"Location saved: {form.data}")
             flash("Location updated successfully!", "success")
+            
+            viewed_content = session.get('VIEWED_CONTENT_LIST', []) 
+            #load session
+            load_session()
+            #keep viewed content in session
+            session['VIEWED_CONTENT_LIST'] = viewed_content
+            
             return redirect(url_for("show_user", user_id=current_user.id))
 
         return render_template(
@@ -433,7 +439,6 @@ def form_user_location():
         flash(
             "An error occurred while updating your location. Please try again.", "error"
         )
-        # return redirect(url_for("show_user", user_id=current_user.id))
 
 
 @login_required
@@ -808,7 +813,9 @@ def get_location(no_geocode=False):
         if no_geocode:
             return (
                 f"{user_location.city}, {user_location.state} {user_location.postal_code}"
-                if user_location.city and user_location.state and user_location.postal_code
+                if user_location.city
+                and user_location.state
+                and user_location.postal_code
                 else user_location.get_location_info()
             )  # return city/state/str eg. for UI rendering purposes
         else:
@@ -1033,93 +1040,59 @@ def create_user_preference_filters():
         return filters
 
 
-
-#TODO: new version of discover_animals after updating generator logic to use custom exceptions
-# @app.route("/discover/animals")
-# def discover_animals():
-#     try:
-#         user_params = request.args.to_dict()  # Capture query params
-#         user_location_data = get_user_location_data()  # Get location data, e.g., from DB
-#         result = petfinder_api.fetch_animals(user_params, user_location_data)
-#         return render_template("animals.html", animals=result["results"])
-#     except PetFinderInvalidCredentialsError as e:
-#         error_info = {
-#             "error_title": "Authorization Error",
-#             "error_subtitle": "Invalid Credentials",
-#             "error_message": str(e),
-#             "redirect_url": "/",
-#             "redirect_text": "Back to Home",
-#         }
-#         return render_template("error.html", **error_info)
-#     except PetFinderInvalidParametersError as e:
-#         error_info = {
-#             "error_title": "Invalid Parameters",
-#             "error_subtitle": "One or more parameters were incorrect.",
-#             "error_message": f"Invalid parameters: {', '.join(e.invalid_params)}",
-#             "redirect_url": "/discover/animals",
-#             "redirect_text": "Retry Search",
-#         }
-#         return render_template("error.html", **error_info)
-#     except PetFinderUnexpectedServerError as e:
-#         error_info = {
-#             "error_title": "Server Error",
-#             "error_subtitle": "Unexpected error from PetFinder API",
-#             "error_message": str(e),
-#             "redirect_url": "/",
-#             "redirect_text": "Back to Home",
-#         }
-#         return render_template("error.html", **error_info)
-#     except Exception as e:
-#         return redirect("/", code=302) #why redirect and 302 status? 
-
-
 @app.route("/discover/animals", methods=["GET"])
 def discover_animals():
     """Route to fetch and display paginated animal data, with error handling and fallback UI in case of API downtime."""
 
+    user = current_user._get_current_object() if active_authenticated_user() else None
+
+    # Determine user location
+    location_data = None
+    if user:
+        # Get location from user's serialized data
+        location_data = user.serialize().get("location")
+    else:
+        # Anonymous user, pull location from session
+        location_data = {
+            "city": session.get("city"),
+            "state": session.get("state"),
+            "postal_code": session.get("postal_code"),
+            "geolocation": session.get("geolocation"),
+        } or default_session_keys.get("LOCATION")
+
     init_params = create_init_params(type="animals")
-    target_count = int(
-        request.args.get("limit") or init_params.get("limit", 9)
-    )  # Number of animals per page
-    # Fetch user preferences
     animal_types = (
         request.args.get("animal_type")
         or init_params.get("type")
+        or user.get("animal_types")
         or session.get("ANIMAL_TYPES", ["dog"])
     )
+    target_count = int(
+        request.args.get("limit") or init_params.get("limit", 9)
+    )  # Number of animals per page
 
-    # grab VIEWED_CONTENT_LIST and user favorites
-    user_favorites = (
-        current_user._get_current_object().get_all_favorites
-        if active_authenticated_user()
-        else []
-    )
+    # Prepare exclude_ids for viewed or favorited animals
+    user_favorites = user.get_all_favorites if user else []
     viewed_content = session.get("VIEWED_CONTENT_LIST", [])
-    # combined viewed_content and user_favorites to create list of ids to exclude
-    exclude_ids = viewed_content.extend(list(user_favorites)) or []
+    exclude_ids = set(viewed_content + user_favorites)
 
+    # Flatten user preferences for API request
     flattened_animal_preferences = (
         api.preprocess_preferences(
             init_params=init_params.copy(),
-            prefs_obj=get_user_animal_preferences(
-                species_list=animal_types
-            ),
+            prefs_obj=get_user_animal_preferences(species_list=animal_types),
         )
-        if active_authenticated_user()
+        if user
         else {animal_type: None for animal_type in animal_types}
     )
 
-    # Ensure animal_types is a list, even if a single type is provided as a string
-    if isinstance(animal_types, str):
-        animal_types = [animal_types]
-    elif isinstance(animal_types, (list, set, tuple)):
-        animal_types = animal_types
-
+    # Ensure animal_types is always a list
+    animal_types = [animal_types] if isinstance(animal_types, str) else animal_types
     next_urls = session.get(
         "next_urls", {animal_type: None for animal_type in animal_types}
     )
 
-    # Initialize generator
+    # Initialize generator with new parameters, including location
     generator = api.animal_pagination_generator(
         animal_types=animal_types,
         target_count=target_count,
@@ -1127,12 +1100,23 @@ def discover_animals():
         next_urls=next_urls,
         exclude_ids=exclude_ids,
         flattened_animal_preferences=flattened_animal_preferences,
+        location_dict=location_data, 
     )
+
     render_content = []
     no_api_content = False
 
     try:
-        # Generate paginated data until target count is met
+        for data in generator:
+            if "error" in data:
+                # Flash the error message
+                flash(f"Error fetching data for {data['animal_type']}: {data['error']}", "error")
+                # Optionally, append partial results if desired
+                render_content.extend(data.get("partial_results", []))
+            else:
+                # Accumulate full results
+                render_content.extend(data)
+            
         while len(render_content) < target_count:
             results, next_urls = next(generator)
             session["next_urls"] = next_urls  # Save updated next URLs in session
@@ -1141,38 +1125,37 @@ def discover_animals():
                 no_api_content = True
                 break  # Exit if generator returns no content
 
-            # Apply user filters and parse results
+            # Filter and parse results
             filters = create_user_preference_filters()
             filtered_results, success_flag = api.filter_parse_animal_results(
                 results, filter_prefs=filters
             )
             render_content.extend(filtered_results)
 
-            # If filtering was successful, exit loop
+            # Add viewed content to session if successful
             if success_flag:
-                # add ids of result objects to VIEWED_CONTENT_LIST in session
-                session.update(
-                    "VIEWED_CONTENT_LIST", [result.id for result in filtered_results]
+                session["VIEWED_CONTENT_LIST"] = list(
+                    set(
+                        session.get("VIEWED_CONTENT_LIST", [])
+                        + [result["id"] for result in filtered_results]
+                    )
                 )
-                if next_urls:
-                    session.update("next_urls", next_urls)
                 break
 
-        # No content available message
+        # No content message
         if no_api_content:
             flash(
                 "No animals found matching your filters. Adjust filters or try again later!",
                 "warning",
             )
+            init_params = {"limit": target_count}
 
-            # Attempt to get a fresh set of animals without filters
-            init_params = {"limit": target_count}  # Set basic params as needed
+            # Attempt backup API call if no content
             try:
                 backup_results = api._get_request(
                     "animals", f"{api.BASE_API_URL}/animals", params=init_params
                 )
                 if not backup_results:
-                    # Redirect to the custom error route if API returns no data
                     return redirect(
                         url_for(
                             "custom_error",
@@ -1181,10 +1164,7 @@ def discover_animals():
                             error_message="PetFinder's API is temporarily down. Please try again later.",
                         )
                     )
-
-                # If backup data is found, parse and return as JSON or HTML
                 render_content = backup_results.get("animals", [])
-
             except Exception as api_error:
                 app.logger.error(f"API Backup Call Failed: {api_error}")
                 return redirect(
@@ -1196,20 +1176,16 @@ def discover_animals():
                     )
                 )
 
-        # Return JSON for AJAX requests (e.g., "load more" button) or render HTML
+        # Respond with JSON for AJAX or render HTML
         if request.is_json:
             return jsonify(
                 {"results": render_content, "success_flag": bool(render_content)}
             )
 
-        # Render template with animal data
         return render_template("results.html", animals=render_content)
 
     except Exception as e:
-        # Log the error with detailed information
         app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
-
-        # Redirect to the error page with custom error details
         return redirect(
             url_for(
                 "custom_error",
@@ -1743,35 +1719,35 @@ def handle_error(e):
             "error_subtitle": "Oops! That's an invalid request.",
             "error_message": "The server couldn't understand your request. Please check your input and try again.",
             "redirect_url": "/",
-            "redirect_text":"Back to Home",
+            "redirect_text": "Back to Home",
         },
         401: {
             "error_title": "401 Unauthorized",
             "error_subtitle": "Access Denied",
             "error_message": "You don't have permission to access this resource. Please log in or check your credentials.",
             "redirect_url": "/login",
-            "redirect_text":"Login",
+            "redirect_text": "Login",
         },
         403: {
             "error_title": "403 Forbidden",
             "error_subtitle": "Access Restricted",
             "error_message": "You don't have permission to access this resource.",
             "redirect_url": "/",
-            "redirect_text":"Back to Home",
+            "redirect_text": "Back to Home",
         },
         404: {
             "error_title": "404 Not Found",
             "error_subtitle": "Oops! Page not found.",
             "error_message": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
             "redirect_url": "/",
-            "redirect_text":"Back to Home",
+            "redirect_text": "Back to Home",
         },
         500: {
             "error_title": "500 Internal Server Error",
             "error_subtitle": "Oops! Something went wrong.",
             "error_message": "We're experiencing some technical difficulties. Please try again later or contact support if the problem persists.",
             "redirect_url": "/",
-            "redirect_text":"Back to Home",
+            "redirect_text": "Back to Home",
         },
     }
 
@@ -1782,7 +1758,7 @@ def handle_error(e):
             "error_subtitle": "An unexpected error occurred.",
             "error_message": "We're sorry, but something went wrong on our end. Please try again later.",
             "redirect_url": "/",
-            "redirect_text":"Back to Home",
+            "redirect_text": "Back to Home",
         },
     )
 
@@ -1792,8 +1768,10 @@ def handle_error(e):
             error_title=error_info["error_title"],
             error_subtitle=error_info["error_subtitle"],
             error_message=error_info["error_message"],
-            redirect_url=request.args.get("redirect_url", error_info['redirect_url']),
-            redirect_text=request.args.get("redirect_text", error_info['redirect_text']),
+            redirect_url=request.args.get("redirect_url", error_info["redirect_url"]),
+            redirect_text=request.args.get(
+                "redirect_text", error_info["redirect_text"]
+            ),
         ),
         error_code,
     )

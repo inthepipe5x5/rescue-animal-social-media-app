@@ -6,7 +6,7 @@ import pandas as pd
 from flask import json
 import logging
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from ratelimit import (
     limits,
@@ -217,47 +217,64 @@ class PetFinderAPI:
             PetFinderResourceNotFoundError: If the resource is not found.
             PetFinderUnexpectedServerError: For server-side errors.
         """
+        if response.status_code == 200:
+            return
+
         json_response = response.json()
         error_type = json_response.get("type", "").split("/")[-1]
 
+        (
+            self.log_error(
+                f" GET REQUEST @ {response.url} => status {response.status_code} error type => {error_type}"
+            )
+            if error_type
+            else self.log_error(
+                f" GET REQUEST @ {response.url} => status {response.status_code}"
+            )
+        )
+
         # Handle 400 errors with invalid parameters
         if response.status_code == 400:
-            if "invalid-params" in json_response or error_type == "ERR-00002":
-                invalid_params = json_response.get("invalid-params", [])
-                bad_keys = set()
-                error_messages = []
+            invalid_params = json_response.get("invalid-params", [])
+            bad_keys = set()
+            error_messages = []
 
-                for invalid_param in invalid_params:
-                    bad_key = invalid_param.get("path")
-                    error_message = invalid_param.get("message", "Invalid parameter.")
-                    param_location = invalid_param.get("in")
+            for invalid_param in invalid_params:
+                bad_key = invalid_param.get("path")
+                error_message = invalid_param.get("message", "Invalid parameter.")
+                param_location = invalid_param.get("in")
 
-                    if bad_key:
-                        bad_keys.add(bad_key)
+                if bad_key:
+                    bad_keys.add(bad_key)
 
-                    # If the invalid param is a location issue, raise PetFinderLocationError
-                    if bad_key == "location" and param_location == "query":
-                        raise PetFinderLocationError(f"Location error: {error_message}")
-
-                    # Otherwise, collect messages for invalid query parameters
-                    elif param_location == "query":
-                        error_messages.append(f"{bad_key}: {error_message}")
-
-                # If there are invalid query parameters, raise PetFinderInvalidParametersError
-                if error_messages:
-                    raise PetFinderInvalidParametersError(
-                        invalid_params=bad_keys, message="; ".join(error_messages)
+                # Raise a location error if the invalid param relates to location in query
+                if bad_key == "location" and param_location == "query":
+                    raise PetFinderLocationError(
+                        error_message=f"Location error: {error_message}"
                     )
 
-        # Handle other specific status codes
-        elif response.status_code == 401 or error_type == "ERR-401":
-            raise PetFinderInvalidCredentialsError()
-        elif response.status_code == 403:
-            raise PetFinderAccessDeniedError()
-        elif response.status_code == 404:
-            raise PetFinderResourceNotFoundError()
-        elif response.status_code >= 500:
-            raise PetFinderUnexpectedServerError()
+                # Collect messages for other invalid query parameters
+                elif param_location == "query":
+                    error_messages.append(f"{bad_key}: {error_message}")
+
+            # Raise InvalidParametersError if any bad query parameters were found
+            if error_messages:
+                raise PetFinderInvalidParametersError(
+                    invalid_params=bad_keys, error_message="; ".join(error_messages)
+                )
+
+        # Handle other specific status codes with a dictionary mapping
+        status_code_errors = {
+            401: PetFinderInvalidCredentialsError(),
+            403: PetFinderAccessDeniedError(),
+            404: PetFinderResourceNotFoundError(),
+            500: PetFinderUnexpectedServerError(),
+            503: PetFinderUnexpectedServerError(),
+        }
+
+        # Raise error for specific status codes or default raise_for_status
+        if response.status_code in status_code_errors:
+            raise status_code_errors[response.status_code]
         else:
             response.raise_for_status()
 
@@ -272,10 +289,10 @@ class PetFinderAPI:
         Returns:
             access_token: PetFinder API access token
         """
-        # turn token_expiration into int if truthy
-        self.token_expiration = (
-            int(self.token_expiration) if self.token_expiration and not isinstance(self.token_expiration, int) else None
-        )
+        # # turn token_expiration into int if truthy
+        # self.token_expiration = (
+        #     int(self.token_expiration) if self.token_expiration else None
+        # )
 
         # get current time
         current_time = int(time.time())
@@ -309,7 +326,9 @@ class PetFinderAPI:
             if response.status_code == 200:
                 token_info = response.json()
                 self.access_token = token_info["access_token"]
-                self.token_expiration = current_time + token_info["expires_in"]
+                self.token_expiration = int(current_time) + int(
+                    token_info["expires_in"]
+                )
 
                 # save token & token_expiration to env variables
                 os.environ["ACCESS_TOKEN"] = str(self.access_token)
@@ -368,29 +387,38 @@ class PetFinderAPI:
         """Validate and format parameters before making API requests."""
         formatted_params = {}
         for key, value in params.items():
-            if isinstance(value, list):
+            if isinstance(value, list) and key.lower() not in [
+                "type",
+                "types",
+                "animal_type",
+                "animal_types",
+            ]:
                 formatted_params[key] = ",".join(map(str, value))
             else:
                 formatted_params[key] = value
         return formatted_params
 
-    @on_exception(expo, RateLimitException, max_tries=MAX_TRIES)  # Exponential backoff retries
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # Exponential backoff retries
     @limits(calls=50, period=1)  # Limit of 50 calls per second
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
-    def request_with_retry(self, endpoint, request_url, params=default_options_obj, max_retries=MAX_TRIES):
+    def request_with_retry(
+        self, endpoint, request_url, params=default_options_obj, max_retries=MAX_TRIES
+    ):
         """
         Higher-order wrapper function that wraps the request in a retry mechanism to handle rate limits and temporary issues.
 
         This function sends a request to an endpoint with the option to retry a specified number of times.
-        
+
         :param endpoint: The specific API endpoint path.
         :param request_url: Full URL for the API request.
         :param params: Dictionary of query parameters or data for the request.
         :param max_retries: Maximum retry attempts before raising an error.
-        
+
         returns:
         (response.json(), response.status_code)(tuple)
-        
+
         """
         if not isinstance(params, dict):
             raise TypeError(f"Expected 'params' as dict, received type: {type(params)}")
@@ -402,12 +430,16 @@ class PetFinderAPI:
                     request_url=request_url or f"{self.BASE_API_URL}/{endpoint}",
                     params=params,
                 )
-                self.log_and_raise_for_status(response)  # Raise any appropriate errors based on response
-                return response.json(), response.status_code  # Return if successful
+                self.log_and_raise_for_status(
+                    response
+                )  # Raise any appropriate errors based on response
+                return response.json()  # Return if successful
 
             except PetFinderInvalidParametersError as e:
                 # Handle invalid parameters by removing problematic keys and retrying
-                invalid_params = e.invalid_params or []  # Retrieve invalid params from error, if available
+                invalid_params = (
+                    e.invalid_params or []
+                )  # Retrieve invalid params from error, if available
                 for param in invalid_params:
                     params.pop(param, None)  # Remove invalid key
                 continue  # Retry request with modified parameters
@@ -416,8 +448,10 @@ class PetFinderAPI:
                 # Handle location errors by cycling through alternative locations
                 location_dict = params.get("location", {})
                 while location_dict:
-                    next_location, location_dict = self.get_alternative_locations(location_dict)
-                    
+                    next_location, location_dict = self.get_alternative_locations(
+                        location_dict
+                    )
+
                     if not next_location:
                         # All location alternatives have been exhausted; redirect user to enter location
                         return PetFinderLocationError(
@@ -427,7 +461,7 @@ class PetFinderAPI:
                                 "Can't determine your location for local content. "
                                 "Please enter your location or enable geolocation for more accurate results."
                             ),
-                            redirect_url="/users/location"
+                            redirect_url="/users/location",
                         ).error_info()
 
                     # Update params with the new location and retry request
@@ -445,7 +479,6 @@ class PetFinderAPI:
 
         # If max retries without success, raise a final error
         raise Exception(f"Request to {endpoint} failed after {max_retries} retries.")
-
 
     @on_exception(
         expo, RateLimitException, max_tries=MAX_TRIES
@@ -914,7 +947,9 @@ class PetFinderAPI:
 
         return animal_groups
 
-    @on_exception(expo, RateLimitException, max_tries=MAX_TRIES)  # Exponential backoff retries
+    @on_exception(
+        expo, RateLimitException, max_tries=MAX_TRIES
+    )  # Exponential backoff retries
     @limits(calls=50, period=1)  # Limit of 50 calls per second
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def animal_pagination_generator(
@@ -950,37 +985,50 @@ class PetFinderAPI:
         params = init_params.copy()
         if flattened_animal_preferences:
             params.update(flattened_animal_preferences)
-        
-        if location_dict or isinstance(params.get('location'), (dict, object)):
-            #set params['location'] properly
+
+        if location_dict or isinstance(params.get("location"), (dict, object)):
+            # set params['location'] properly
             params["location"] = self.get_next_location(location_dict=location_dict)
 
         # Initial fetch if next_urls are empty (first request scenario)
         if not any(next_urls.values()):
-            for animal_type in animal_types:
-                # Set animal type in parameters and prettify the type for the API to accept it
-                params["type"] = Parse.prettify_animal_types(animal_types=animal_type)
-                request_url = f"{self.BASE_API_URL}/animals"
-                response_data = self.request_with_retry("animals", request_url, params=params)
+            try:
+                for animal_type in animal_types:
+                    # Set animal type in parameters and prettify the type for the API to accept it
+                    params["type"] = Parse.prettify_animal_types(animal_types=animal_type)
+                    request_url = f"{self.BASE_API_URL}/animals"
+                    response_data = self.request_with_retry(
+                        "animals", request_url, params=params
+                    )
 
-                if response_data:
-                    # Update next URL for pagination tracking
-                    returned_next_url = (
-                        response_data.get("pagination", {}).get("_links", {}).get("next", {}).get("href", "")[3:]
-                    )
-                    next_urls[animal_type] = (
-                        f"{self.BASE_API_URL}{returned_next_url}" if returned_next_url else None
-                    )
-                    results = response_data.get("animals", [])
-                    filtered_results = self.filter_results_by_ids(
-                        results, exclude_ids, is_animal=True
-                    )
-                    yielded_results.extend(filtered_results)
+                    if response_data:
+                        # Update next URL for pagination tracking
+                        returned_next_url = (
+                            response_data.get("pagination", {})
+                            .get("_links", {})
+                            .get("next", {})
+                            .get("href", "")[3:]
+                        )
+                        next_urls[animal_type] = (
+                            urljoin(self.BASE_API_URL, returned_next_url)
+                            if returned_next_url
+                            else None
+                        )
+                        
 
-                    # Yield results if target count is reached
-                    if len(yielded_results) >= target_count:
-                        yield yielded_results, next_urls
-                        return
+                        filtered_results = self.filter_results_by_ids(
+                            response_data.get("animals", []), exclude_ids, is_animal=True
+                        )
+                        yielded_results.extend(filtered_results)
+
+                        # Yield results if target count is reached
+                        if len(yielded_results) >= target_count:
+                            yield yielded_results, next_urls
+                            return
+            except Exception as e:
+                # Log the error, yield whatever we have, and break the loop for this animal type
+                self.log_error(f"Error fetching data for {animal_type}, yielding partial results{[filtered.values() for filtered in filtered_results]}: {e}")
+                yield {"error": str(e), "animal_type": animal_type, "partial_results": filtered_results}
 
         # Continue fetching until target_count is met or all pages are exhausted
         while len(yielded_results) < target_count:
@@ -994,21 +1042,26 @@ class PetFinderAPI:
 
                 # Fetch data from the API using request_with_retry
                 response_data = self.request_with_retry(
-                    endpoint="animals",
-                    request_url=next_url,
-                    params=params
+                    endpoint="animals", request_url=next_url, params=params
                 )
 
                 if not response_data:
-                    next_urls[animal_type] = None  # Mark as exhausted if no response received
+                    next_urls[animal_type] = (
+                        None  # Mark as exhausted if no response received
+                    )
                     continue
 
                 # Update next URL for pagination tracking
                 returned_next_url = (
-                    response_data.get("pagination", {}).get("_links", {}).get("next", {}).get("href", "")[3:]
+                    response_data.get("pagination", {})
+                    .get("_links", {})
+                    .get("next", {})
+                    .get("href", "")[3:]
                 )
                 next_urls[animal_type] = (
-                    f"{self.BASE_API_URL}{returned_next_url}" if returned_next_url else None
+                    f"{self.BASE_API_URL}{returned_next_url}"
+                    if returned_next_url
+                    else None
                 )
 
                 # Check if any animal_type has pages left to determine whether to exit
@@ -1033,7 +1086,6 @@ class PetFinderAPI:
 
         # Yield remaining results if target count wasn't met
         yield yielded_results, next_urls
-
 
     ### FILTER FUNCTIONS ##################################################################################################################
     def filter_parse_animal_results(
