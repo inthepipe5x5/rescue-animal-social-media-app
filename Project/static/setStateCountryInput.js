@@ -19,9 +19,17 @@ document.addEventListener("DOMContentLoaded", function () {
         clearStateOptions();
 
         if (data.results.length > 0) {
-          data.results.forEach((subdivision) => {
+          // Sort the results alphabetically by name
+          data.results.sort((a, b) => a.name.localeCompare(b.name));
+          
+          data.results.forEach((subdivision, index) => {
             const option = new Option(subdivision.name, subdivision.code);
             stateSelect.add(option);
+            
+            // Select the first option by default
+            if (index === 0) {
+              option.selected = true;
+            }
           });
           stateSelect.disabled = false;
         } else {
@@ -40,9 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function clearStateOptions() {
       stateSelect.innerHTML = "";
-      let = defaultCanadianValue = countrySelect.value === "CA" ? "ON" : "";
-      const defaultOption = new Option("Select a state", defaultCanadianValue);
-      stateSelect.add(defaultOption);
+      // Remove the default option as we'll be selecting the first state automatically
     }
 
     // Initial update of state options

@@ -381,7 +381,7 @@ def show_user(user_id):
     )
 
 
-# available to both anon and users but only user location is saved to db
+# Form route available to both anon and users but only user location is saved to db
 @app.route("/users/location", methods=["GET", "POST"])
 def form_user_location():
     app.logger.info(

@@ -119,7 +119,7 @@ class StateCountryForm(ModelForm):
         for state in pycountry.subdivisions.get(country_code="CA")
     ]
     state = SelectField(
-        "State/Province - eg. 'ON'",
+        "Select Your State/Province - eg.'ON'",
         validators=[Length(min=2, max=2), DataRequired(), ValidState()],
         default="ON",
         choices=us_states + canada_states,
