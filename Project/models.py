@@ -195,9 +195,9 @@ class UserLocation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True)
     
     #Data Columns
-    country = db.Column(db.String(2), nullable=False, default="CA")
-    state = db.Column(db.String(2), nullable=False, default="ON")
-    postal_code = db.Column(db.String(7))
+    country = db.Column(db.String(2), nullable=False, default="CA") #2 letter STR abbreviation
+    state = db.Column(db.String(2), nullable=False, default="ON") #2 letter STR abbreviation
+    postal_code = db.Column(db.String(7)) 
     geolocation = db.Column(db.String(100))
     city = db.Column(db.String(150))
 
@@ -316,6 +316,20 @@ class UserLocation(db.Model):
         else:
             return "Unknown Location"
 
+    def __serialize__(self):
+        """
+        The function `__serialize__` returns a dictionary containing location information attributes of an
+        object or None.
+        :return: The code snippet is defining a `__serialize__` method for a class. The method returns a
+        dictionary containing the following keys and values:
+        """
+        return {
+                "CURR_LOCATION": self.get_location_info(),
+                "city": self.city,   
+                "state": self.state,   
+                "country": self.country,   
+                "geolocation": self.geolocation,   
+            } or None,
 
 class User(db.Model, UserMixin):
     """User in the system."""

@@ -63,8 +63,6 @@ class PetFinderAPI:
             "dog"
         ],  # 8 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
         "sort": "distance",
-        "return_df": False,
-        # "custom": False
     }
     animal_types = [
         "dog",
@@ -334,7 +332,7 @@ class PetFinderAPI:
                 os.environ["ACCESS_TOKEN"] = str(self.access_token)
                 os.environ["TOKEN_EXPIRATION"] = str(self.token_expiration)
 
-                print("new access_token received PetFinderAPI and api instance updated")
+                print(f"new access_token received PetFinderAPI and api instance updated {self.access_token}")
                 return self.access_token
             elif response.status_code == 500:
                 time.sleep(2)  # Sleep for 2 seconds before retrying
