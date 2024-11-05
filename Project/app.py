@@ -1126,6 +1126,80 @@ def discover_specific_animal_type(animal_type):
         app.logger.error(f"{request.url} error: {e}")
 
 
+@app.route('/test/animals', method=['GET'])
+def discover_location_animals():
+    """ TEST ROUTE TO TEST DIFFERENT COMBINATIONS OF PARAMS ACCEPTED BY PETFINDER API LOCATION PARAMS """
+    
+    import itertools
+
+    try:
+        def fetch_data(location_str)
+            params = {"location": location_str}
+            response = api.request_with_retry(request_url=urljoin(api.BASE_API_URL, 'animals', params=params, endpoint=animals))
+        
+            data = api.log_and_raise_for_status(response) if response else None
+            return data, response.status_code
+        
+        def generate_location_combinations(options_dict):
+            """_summary_
+
+            Args:
+                options_dict (dict of str): where the keys are the location options and the values are the corresponding string representations.
+
+            Returns:
+                combinations: (dict) of  a dictionary where each key is a combination of option names (joined by underscores), and each value is a string of the corresponding option values (joined by commas).
+            """
+            options = list(options_dict.keys())
+            combinations = {}
+
+            # Generate all possible combinations
+            for r in range(1, len(options) + 1):
+                for combo in itertools.combinations(options, r):
+                    key = '_'.join(combo)
+                    value = ','.join(options_dict[option] for option in combo)
+                    combinations[key] = value
+
+            # Add specific examples if they exist in the options
+            if 'country' in options:
+                combinations['country'] = options_dict['country']
+            if 'city' in options and 'state' in options:
+                combinations['city_state'] = f"{options_dict['city']},{options_dict['state']}"
+            if 'state' in options and 'country' in options:
+                combinations['state_country'] = f"{options_dict['state']},{options_dict['country']}"
+
+            return combinations
+            """
+            geolocation: coordinates
+            postalcode: zip
+            city: cityname
+            state: statename
+            country: countryname
+            geolocation_postalcode: coordinates,zip
+            geolocation_city: coordinates,cityname
+            ...EX OUTPUT:...
+            city_state: cityname,statename
+            state_country: statename,countryname
+            geolocation_postalcode_city_state_country: coordinates,zip,cityname,statename,countryname
+
+            """
+        location_dict = get_location()
+        location_combinations = generate_location_combinations()
+        
+        successful_combinations=[]
+        unsuccessful_combinations=[]
+        
+        for key, value in location_combinations:
+            time.sleep(3)
+            req = fetch_data(value)
+            unsuccessful_combinations.append({key:value}) if req.status_code not in [200, 201, '200', '201'] else successful_combinations.append({key:value})
+            
+        return jsonify({"successful_combinations": successful_combinations, "unsuccessful_combinations": unsuccessful_combinations})
+    
+    except Exception as e:
+        app.logger.error(f"{request.url} error: {e}")
+
+
+
 @app.route("/response/animal_types")
 def get_animal_types():
     """Endpoint to retrieve animal types from session or os.environ."""
