@@ -1,0 +1,15 @@
+{% block content %}
+{% from 'results/macros.html' import render_skeleton_cards %}
+{{ render_skeleton_cards(skeleton_count=6) }}
+
+{% endblock %} 
+
+
+{% block scripts %} {{ super() }}
+<script>
+  setTimeout(function () {
+    window.location.href = "{{ redirect_url }}";
+  }, {{ redirect_interval }});
+</script>
+
+{% endblock %}
