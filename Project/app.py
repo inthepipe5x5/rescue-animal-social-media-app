@@ -1154,6 +1154,7 @@ def discover_animals():
             )
         )
 
+
 @app.route("/discover/animals/<animal_type>")
 def discover_specific_animal_type(animal_type):
     types_key = "API_ANIMAL_TYPES"
@@ -1164,17 +1165,21 @@ def discover_specific_animal_type(animal_type):
         # Make request to seed animal_types
         seed_animal_info()
         # Retry request to route
-        return redirect(url_for("discover_specific_animal_type", animal_type=animal_type))
+        return redirect(
+            url_for("discover_specific_animal_type", animal_type=animal_type)
+        )
 
     prettified_animal_type = api.prettify_animal_type(animal_type)
 
     if (animal_type, prettified_animal_type) not in types_list:
-        return redirect(url_for(
-            "custom_error",
-            error_subtitle="Invalid Animal Type",
-            error_title="Something went wrong...",
-            error_message=f"Woops, we can't find that kind of animal to rescue...yet! {api.animal_emojis}"
-        ))
+        return redirect(
+            url_for(
+                "custom_error",
+                error_subtitle="Invalid Animal Type",
+                error_title="Something went wrong...",
+                error_message=f"Woops, we can't find that kind of animal to rescue...yet! {api.animal_emojis}",
+            )
+        )
 
     try:
         params = {
@@ -1195,17 +1200,16 @@ def discover_specific_animal_type(animal_type):
         app.logger.error(f"{request.url} error: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred."}), 500
 
-@app.route('/test/animals')
+
+@app.route("/test/animals")
 def test_animals():
     """Endpoint to retrieve data from PetFinder /animals route"""
     response = api.request_with_retry(
-            request_url=urljoin(api.BASE_API_URL, "animals"),
-            params={},
-            endpoint="animals"
-        )
+        request_url=urljoin(api.BASE_API_URL, "animals"), params={}, endpoint="animals"
+    )
     data = response.json() or []
     return jsonify({"response": data})
-    
+
 
 @app.route("/test/animals/locations")
 def test_location_animals():
@@ -1216,7 +1220,7 @@ def test_location_animals():
         response = api.request_with_retry(
             request_url=urljoin(api.BASE_API_URL, "animals"),
             params=params,
-            endpoint="animals"
+            endpoint="animals",
         )
 
         data = api.log_and_raise_for_status(response) if response else None
@@ -1245,7 +1249,6 @@ def test_location_animals():
             }
         )
 
-
     except Exception as e:
         app.logger.error(f"{request.url} error: {e}", exc_info=1)
         if "successful_combinations" in locals():
@@ -1261,6 +1264,23 @@ def test_location_animals():
                 ),
             }
         )
+
+
+@app.route("loading")
+def loading_route():
+    """Route to render loading
+
+    Returns:
+        renders view with skeleton loading cards and then directs after 5 seconds
+    """
+    redirect_url = request.args.get("redirect_url") or url_for("home")
+    redirect_interval = request.args.get("redirect_interval") or 5000
+
+    return render_template(
+        url_for("templates", filename="loading_view.html"),
+        redirect_url=redirect_url,
+        redirect_interval=redirect_interval,
+    )
 
 
 @app.route("/data/animal_types", methods=["GET"])
