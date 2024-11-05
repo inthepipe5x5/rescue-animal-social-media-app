@@ -2,6 +2,8 @@
 
 {% from "results/macros.html" import render_animal_hero_cards %}
 
+{% block aside %}{% endblock  %}
+
 {% block content %}
 <div class="row">
   {% if favorites %}
@@ -143,7 +145,7 @@
           </p>
           {# <a href="#" class="btn btn-primary"> Primary button </a> #}
           <button
-            class="btn btn-link nav-link"
+            class="btn btn-primary"
             data-toggle="modal"
             data-bs-target="#animalTypesModal"
           >
@@ -194,11 +196,14 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='animateHoverableCard.js') }}"></script>
-<script src="{{ url_for('static', filename='home-ui.js') }}"></script> {# animal h3.animated-action-text and p.animated-cta-text #}
 {% if page_scripts %}
 {% for script in page_scripts %}
   <script src="{{ script }}"></script>
 {% endfor %}
+
+{#Additional scripts specific to this view#}
+
+<script src="{{ url_for('static', filename='animateHoverableCard.js') }}"></script>
+<script src="{{ url_for('static', filename='home-ui.js') }}"></script> {# animal h3.animated-action-text and p.animated-cta-text #}
 {% endif %}
 {% endblock %}

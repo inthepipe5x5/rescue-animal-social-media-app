@@ -1017,7 +1017,7 @@ class PetFinderAPI:
                         
 
                         filtered_results = self.filter_results_by_ids(
-                            response_data.get("animals", []), exclude_ids, is_animal=True
+                            response_data.get("animals"), exclude_ids, is_animal=True
                         )
                         yielded_results.extend(filtered_results)
 
@@ -1027,7 +1027,7 @@ class PetFinderAPI:
                             return
             except Exception as e:
                 # Log the error, yield whatever we have, and break the loop for this animal type
-                self.log_error(f"Error fetching data for {animal_type}, yielding partial results{[filtered.values() for filtered in filtered_results]}: {e}")
+                self.log_error(f"Error fetching data for {animal_type}, yielding partial results{filtered_results}: {e}")
                 yield {"error": str(e), "animal_type": animal_type, "partial_results": filtered_results}
 
         # Continue fetching until target_count is met or all pages are exhausted
