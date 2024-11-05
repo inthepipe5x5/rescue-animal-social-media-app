@@ -31,6 +31,8 @@ import os
 import pycountry
 from time import sleep
 import json
+from urllib.parse import urljoin
+import requests
 
 # from functools import wraps #TODO: to protect certain API routes
 from flask_bcrypt import Bcrypt
@@ -77,8 +79,8 @@ from package.api_exceptions import (
     PetFinderInvalidCredentialsError,
     PetFinderAccessDeniedError,
     PetFinderInvalidParametersError,
-    PetFinderUnexpectedServerError,
     PetFinderLocationError,
+    PetFinderUnexpectedServerError,
 )
 
 
@@ -383,7 +385,7 @@ def show_user(user_id):
 
 # Form route available to both anon and users but only user location is saved to db
 @app.route("/users/location", methods=["GET", "POST"])
-def form_user_location():
+def update_user_location():
     app.logger.info(
         f"Request method: {request.method}, Current user.location: {current_user.location if (active_authenticated_user() and current_user.location) else 'No Saved Location'}"
     )
@@ -415,13 +417,18 @@ def form_user_location():
 
             app.logger.info(f"Location saved: {form.data}")
             flash("Location updated successfully!", "success")
-            
-            viewed_content = session.get('VIEWED_CONTENT_LIST', []) 
-            #load session
+
+            # update session logic
+            location_dict = save_location_to_session(location_dict=location.serialize())
+            if request.is_json:
+                return jsonify({"location": location_dict})
+
+            viewed_content = session.get("VIEWED_CONTENT_LIST", [])
+            # load session
             load_session()
-            #keep viewed content in session
-            session['VIEWED_CONTENT_LIST'] = viewed_content
-            
+            # keep viewed content in session
+            session["VIEWED_CONTENT_LIST"] = viewed_content
+
             return redirect(url_for("show_user", user_id=current_user.id))
 
         return render_template(
@@ -434,7 +441,7 @@ def form_user_location():
             ],
         )
     except Exception as e:
-        app.logger.error(f"Error in form_user_location: {str(e)}")
+        app.logger.error(f"Error in update_user_location: {str(e)}")
         db.session.rollback()
         flash(
             "An error occurred while updating your location. Please try again.", "error"
@@ -450,7 +457,7 @@ def user_travel_preferences():
 
     if not current_user.location:
         flash("Please set your location details first", "warning")
-        return redirect(url_for("form_user_location"))
+        return redirect(url_for("update_user_location"))
 
     if travel_preferences:
         form = UserTravelForm(obj=travel_preferences)
@@ -620,10 +627,43 @@ def update_animal_types():
         return jsonify({"animal_types": animal_types}), 200
 
 
+def save_location_to_session(location_dict):
+    """Function to save location to session as a dict
+
+    Args:
+        location_dict (dict): dict of location values to use
+
+    Returns:
+        location_dict: dict of location values to use
+    """
+    # key to use to store in session
+    LOCATION_SESSION_KEY = "location"
+    if not location_dict:
+        raise TypeError(
+            f"Expected location_dict:<dict>: {location_dict} => passed into {__name__}"
+        )
+    else:
+        current_location = (
+            location_dict.get(LOCATION_SESSION_KEY, None)
+            if LOCATION_SESSION_KEY in location_dict
+            else api.get_next_location(location_dict=location_dict)
+        )
+        location_dict.setdefault("CURR_LOCATION", current_location)
+        # update session
+        session[LOCATION_SESSION_KEY] = location_dict
+        # update current location
+        session.setdefault(LOCATION_SESSION_KEY, current_location)
+
+        return location_dict
+
+
 @login_required
 @app.route("/users/profile", methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
+    # TODO write this to accept a dict of values to update on the current user
+    if request.method == "POST" and request.body:
+        pass
 
     if not active_authenticated_user():
         flash("Access unauthorized.", "danger")
@@ -675,8 +715,6 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
 
-# TODO: this has been made redundant by /models.py/User.serialize(), need to take the docstring and update that one
-
 
 # Helper function to retrieve PetFinder API status query param based on rescue actions
 def get_rescue_action_mapped_to_animal_status():
@@ -705,6 +743,7 @@ def get_rescue_action_mapped_to_animal_status():
 
     # If no current_user or no rescue_action_type is provided, return the default status
     return default_animal_status
+
 
 # TODO: I can move this to the User ORM class in models.py and call from `current_user._get_current_object`` instead
 # Helper function to get the location or default location
@@ -743,7 +782,9 @@ def get_location(no_geocode=False):
             #     else user_location.get_location_info()
             # )  # return city/state/str eg. for UI rendering purposes
 
-            return api.get_next_location(user_location.serialize())  # return city/state/str eg. for UI rendering purposes
+            return api.get_next_location(
+                user_location.serialize()
+            )  # return city/state/str eg. for UI rendering purposes
         else:
             return (
                 user_location.geolocation or user_location.get_location_info()
@@ -752,10 +793,12 @@ def get_location(no_geocode=False):
     else:
         if no_geocode:
             location_dict = {}
-            for key, default_location_value in default_session_keys["DEFAULT_LOCATION"].items():
+            for key, default_location_value in default_session_keys[
+                "DEFAULT_LOCATION"
+            ].items():
                 location_dict[key] = session.get(key) or default_location_value
-                
-            return api.get_next_location(location_dict) 
+
+            return api.get_next_location(location_dict)
 
 
 def create_init_params(req_type="animal"):
@@ -781,16 +824,20 @@ def create_init_params(req_type="animal"):
     # If the user is authenticated and active
     if active_authenticated_user():
         user = current_user._get_current_object().serialize()
-        user_location = user.get('location') or user.location.serialize()
+        user_location = user.get("location") or user.location.serialize()
 
         # Get user-specific data or defaults
-        species = user.animal_types or get_species_preferences(user)
+        species = user.animal_types
+        if not species:
+            flash("Please select what type of animals you're looking for")
+            return redirect("")
+
         # prettify the animal types for the API to accept it
         species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
 
-        # get location str from serializedlocation dict
+        # get location str from serialized location dict
         location_str = api.get_next_location(user_location)
-        
+
         distance_pref = (
             user.distance_pref
             if user and user.distance_pref
@@ -801,8 +848,11 @@ def create_init_params(req_type="animal"):
                 or 100
             )
         )
-        
-        status = user.get('rescue_interaction_type') or get_rescue_action_mapped_to_animal_status()
+
+        status = (
+            user.get("rescue_interaction_type")
+            or get_rescue_action_mapped_to_animal_status()
+        )
     else:
         # Non-authenticated user, default settings
         species = session.get("ANIMAL_TYPES") or default_session_keys.get(
@@ -1006,7 +1056,7 @@ def discover_animals():
         next_urls=next_urls,
         exclude_ids=exclude_ids,
         flattened_animal_preferences=flattened_animal_preferences,
-        location_dict=location_data, 
+        location_dict=location_data,
     )
 
     render_content = []
@@ -1016,13 +1066,16 @@ def discover_animals():
         for data in generator:
             if "error" in data:
                 # Flash the error message
-                flash(f"Error fetching data for {data['animal_type']}: {data['error']}", "error")
+                flash(
+                    f"Error fetching data for {data['animal_type']}: {data['error']}",
+                    "error",
+                )
                 # Optionally, append partial results if desired
                 render_content.extend(data.get("partial_results", []))
             else:
                 # Accumulate full results
                 render_content.extend(data)
-            
+
         while len(render_content) < target_count:
             results, next_urls = next(generator)
             session["next_urls"] = next_urls  # Save updated next URLs in session
@@ -1101,110 +1154,128 @@ def discover_animals():
             )
         )
 
-@app.route('/discover/animals/<animal_type>', method=['GET'])
+@app.route("/discover/animals/<animal_type>")
 def discover_specific_animal_type(animal_type):
-    types_key="API_ANIMAL_TYPES"
-    type_list = session.get(types_key) or json.loads(os.environ.get(types_key, None))
-    #validate animal_type
-    if not types_list or types_key in session:
-        #make request to seed animal_types
-        requests.get(url_for('seed_animal_types'))
-        #retry request to route
-        return redirect(url_for('discover_specific_animal_type', animal_type=animal_type))
-    else:
-        if (animal_type, api.prettify_animal_type(animal_type), api.animal_types) not in type_list:
-            return redirect(url_for('custom_error', error_subtitle="Invalid Animal Type", error_title="Something went wrong...",error_message=f"Woops, we can't find that kind of animal to rescue...yet! {api.animal_emojis}"))
+    types_key = "API_ANIMAL_TYPES"
+    types_list = session.get(types_key) or json.loads(os.environ.get(types_key, "[]"))
+
+    # Validate animal_type
+    if not types_list:
+        # Make request to seed animal_types
+        seed_animal_info()
+        # Retry request to route
+        return redirect(url_for("discover_specific_animal_type", animal_type=animal_type))
+
+    prettified_animal_type = api.prettify_animal_type(animal_type)
+
+    if (animal_type, prettified_animal_type) not in types_list:
+        return redirect(url_for(
+            "custom_error",
+            error_subtitle="Invalid Animal Type",
+            error_title="Something went wrong...",
+            error_message=f"Woops, we can't find that kind of animal to rescue...yet! {api.animal_emojis}"
+        ))
 
     try:
-        params = {'type': api.prettify_animal_type(animal_type), "location": get_location()}
-        response = api.request_with_retry(request_url=urljoin(api.BASE_API_URL, 'animals', params=params, endpoint=animals))
-        
+        params = {
+            "type": prettified_animal_type,
+            "location": get_location(),
+        }
+
+        response = api.request_with_retry(
+            endpoint="animals",
+            request_url=urljoin(api.BASE_API_URL, "animals"),
+            params=params,
+        )
+
         data = api.log_and_raise_for_status(response) if response else None
-        
+
         return jsonify({"results": data})
     except Exception as e:
-        app.logger.error(f"{request.url} error: {e}")
+        app.logger.error(f"{request.url} error: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred."}), 500
 
-
-@app.route('/test/animals', method=['GET'])
-def discover_location_animals():
-    """ TEST ROUTE TO TEST DIFFERENT COMBINATIONS OF PARAMS ACCEPTED BY PETFINDER API LOCATION PARAMS """
+@app.route('/test/animals')
+def test_animals():
+    """Endpoint to retrieve data from PetFinder /animals route"""
+    response = api._get_request(
+            request_url=urljoin(api.BASE_API_URL, "animals"),
+            params={},
+            endpoint="animals"
+        )
+    data = response.json() or []
+    return jsonify({"response": data})
     
-    import itertools
 
+@app.route("/test/animals/locations")
+def test_location_animals():
+    """TEST ROUTE TO TEST DIFFERENT COMBINATIONS OF PARAMS ACCEPTED BY PETFINDER API LOCATION PARAMS"""
+
+    def fetch_data(location_str):
+        params = {"location": location_str}
+        response = api.request_with_retry(
+            request_url=urljoin(api.BASE_API_URL, "animals"),
+            params=params,
+            endpoint="animals"
+        )
+
+        data = api.log_and_raise_for_status(response) if response else None
+        return data, response.status_code if response else None
+
+    location_dict = session.get("location", {}) or default_session_keys.get(
+        "DEFAULT_LOCATION"
+    )
+    location_combinations = api.generate_location_combinations(location_dict)
+
+    successful_combinations = []
+    unsuccessful_combinations = []
     try:
-        def fetch_data(location_str)
-            params = {"location": location_str}
-            response = api.request_with_retry(request_url=urljoin(api.BASE_API_URL, 'animals', params=params, endpoint=animals))
-        
-            data = api.log_and_raise_for_status(response) if response else None
-            return data, response.status_code
-        
-        def generate_location_combinations(options_dict):
-            """_summary_
+        for key, value in location_combinations.items():
+            sleep(3)
+            data, status_code = fetch_data(value)
+            if status_code in [200, 201] and data:
+                successful_combinations.append({key: value})
+            else:
+                unsuccessful_combinations.append({key: value})
 
-            Args:
-                options_dict (dict of str): where the keys are the location options and the values are the corresponding string representations.
+        return jsonify(
+            {
+                "successful_combinations": successful_combinations,
+                "unsuccessful_combinations": unsuccessful_combinations,
+            }
+        )
 
-            Returns:
-                combinations: (dict) of  a dictionary where each key is a combination of option names (joined by underscores), and each value is a string of the corresponding option values (joined by commas).
-            """
-            options = list(options_dict.keys())
-            combinations = {}
 
-            # Generate all possible combinations
-            for r in range(1, len(options) + 1):
-                for combo in itertools.combinations(options, r):
-                    key = '_'.join(combo)
-                    value = ','.join(options_dict[option] for option in combo)
-                    combinations[key] = value
-
-            # Add specific examples if they exist in the options
-            if 'country' in options:
-                combinations['country'] = options_dict['country']
-            if 'city' in options and 'state' in options:
-                combinations['city_state'] = f"{options_dict['city']},{options_dict['state']}"
-            if 'state' in options and 'country' in options:
-                combinations['state_country'] = f"{options_dict['state']},{options_dict['country']}"
-
-            return combinations
-            """
-            geolocation: coordinates
-            postalcode: zip
-            city: cityname
-            state: statename
-            country: countryname
-            geolocation_postalcode: coordinates,zip
-            geolocation_city: coordinates,cityname
-            ...EX OUTPUT:...
-            city_state: cityname,statename
-            state_country: statename,countryname
-            geolocation_postalcode_city_state_country: coordinates,zip,cityname,statename,countryname
-
-            """
-        location_dict = get_location()
-        location_combinations = generate_location_combinations()
-        
-        successful_combinations=[]
-        unsuccessful_combinations=[]
-        
-        for key, value in location_combinations:
-            time.sleep(3)
-            req = fetch_data(value)
-            unsuccessful_combinations.append({key:value}) if req.status_code not in [200, 201, '200', '201'] else successful_combinations.append({key:value})
-            
-        return jsonify({"successful_combinations": successful_combinations, "unsuccessful_combinations": unsuccessful_combinations})
-    
     except Exception as e:
-        app.logger.error(f"{request.url} error: {e}")
+        app.logger.error(f"{request.url} error: {e}", exc_info=1)
+        if "successful_combinations" in locals():
+            successful_combinations = locals().get("successful_combinations", None)
+            unsuccessful_combinations = locals().get("unsuccessful_combinations", None)
+        return jsonify(
+            {
+                "successful_combinations": (
+                    successful_combinations if successful_combinations else []
+                ),
+                "unsuccessful_combinations": (
+                    unsuccessful_combinations if unsuccessful_combinations else []
+                ),
+            }
+        )
 
 
-
-@app.route("/response/animal_types")
+@app.route("/data/animal_types", methods=["GET"])
 def get_animal_types():
     """Endpoint to retrieve animal types from session or os.environ."""
-    types_key = "API_ANIMAL_TYPES"
-    type_list = session.get(types_key) or json.loads(os.environ.get(types_key, "[]"))
+    types_session_key = "API_ANIMAL_TYPES"
+    # handle if request is to refresh saved animal_types
+    if request.args and ("api", "API", "seed", "SEED", "new", "NEW") in request.args:
+        type_list = seed_animal_info()
+    # handle if
+    else:
+        type_list = session.get(types_session_key) or json.loads(
+            os.environ.get(types_session_key, "[]")
+        )
+
     return jsonify({"types": type_list})
 
 
@@ -1586,7 +1657,7 @@ def signup_user():
             "Please consider enabling geolocation in the browser to help us return more accurate results relative to your location",
             "warning",
         )
-        return redirect(url_for("form_user_location"))
+        return redirect(url_for("update_user_location"))
 
     else:
 

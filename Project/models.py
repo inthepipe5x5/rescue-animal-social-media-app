@@ -316,11 +316,11 @@ class UserLocation(db.Model):
         else:
             return "Unknown Location"
 
-    def __serialize__(self):
+    def serialize(self):
         """
-        The function `__serialize__` returns a dictionary containing location information attributes of an
+        The function `serialize` returns a dictionary containing location information attributes of an
         object or None.
-        :return: The code snippet is defining a `__serialize__` method for a class. The method returns a
+        :return: The code snippet is defining a `serialize` method for a class. The method returns a
         dictionary containing the following keys and values:
         """
         return {
@@ -547,7 +547,7 @@ class User(db.Model, UserMixin):
                 "state": self.location.state,   
                 "country": self.location.country,   
                 "geolocation": self.location.geolocation,   
-            } or None,
+            } or UserLocation().serialize(),
             "distance_pref": UserTravelPreferences._get_distance_filter_param(
                 user_id=self.id
             ),

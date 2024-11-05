@@ -7,6 +7,7 @@ from flask import json
 import logging
 import requests
 from urllib.parse import urlparse, urljoin
+from itertools import combinations
 
 from ratelimit import (
     limits,
@@ -415,7 +416,7 @@ class PetFinderAPI:
         :param max_retries: Maximum retry attempts before raising an error.
 
         returns:
-        (response.json(), response.status_code)(tuple)
+            tuple: (response.json(), response.status_code)(tuple)
 
         """
         if not isinstance(params, dict):
@@ -1371,3 +1372,42 @@ class PetFinderAPI:
             updated_dict.pop(param_type, None)
 
         return next_location, updated_dict
+    
+    def generate_location_combinations(self, location_dict):
+        """
+        Generate unique combinations of location options.
+
+        Args:
+            location_dict (dict of str): where the keys are the location options and the values are the corresponding string representations.
+
+        Returns:
+            list of tuples: A list where each tuple contains (key, value) pairs. 
+                            The key is a combination of option names (joined by underscores), 
+                            and the value is a string of the corresponding option values (joined by commas).
+        """
+        options = list(location_dict.keys())
+        unique_combinations = set()
+
+        # Generate all possible unique combinations
+        for r in range(1, len(options) + 1):
+            for combo in combinations(options, r):
+                key = "_".join(sorted(combo))  # Sort to ensure uniqueness
+                value = ",".join(location_dict[option] for option in sorted(combo))
+                unique_combinations.add((key, value))
+
+        # Convert set to list for easier handling
+        result_combinations = list(unique_combinations)
+
+        # Add specific examples if they don't already exist
+        specific_combos = [
+            ("country", location_dict.get("country", "")),
+            ("city_state", f"{location_dict.get('city', '')},{location_dict.get('state', '')}"),
+            ("city_state_postal_code", f"{location_dict.get('city', '')},{location_dict.get('state', '')},{location_dict.get('postal_code', '')}"),
+            ("state_country", f"{location_dict.get('state', '')},{location_dict.get('country', '')}")
+        ]
+
+        for combo in specific_combos:
+            if combo not in result_combinations and all(combo[1].split(',')):
+                result_combinations.append(combo)
+
+        return result_combinations
