@@ -806,7 +806,7 @@ def create_init_params(req_type="animal"):
     else:
         # Non-authenticated user, default settings
         species = session.get("ANIMAL_TYPES") or default_session_keys.get(
-            "ANIMAL_TYPES", ["dog"]
+            "ANIMAL_TYPES", "dog"
         )
         # prettify the animal types for the API to accept it
         species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
@@ -1101,8 +1101,32 @@ def discover_animals():
             )
         )
 
+@app.route('/discover/animals/<animal_type>', method=['GET'])
+def discover_specific_animal_type(animal_type):
+    types_key="API_ANIMAL_TYPES"
+    type_list = session.get(types_key) or json.loads(os.environ.get(types_key, None))
+    #validate animal_type
+    if not types_list or types_key in session:
+        #make request to seed animal_types
+        requests.get(url_for('seed_animal_types'))
+        #retry request to route
+        return redirect(url_for('discover_specific_animal_type', animal_type=animal_type))
+    else:
+        if (animal_type, api.prettify_animal_type(animal_type), api.animal_types) not in type_list:
+            return redirect(url_for('custom_error', error_subtitle="Invalid Animal Type", error_title="Something went wrong...",error_message=f"Woops, we can't find that kind of animal to rescue...yet! {api.animal_emojis}"))
 
-@app.route("/data/animal_types")
+    try:
+        params = {'type': api.prettify_animal_type(animal_type), "location": get_location()}
+        response = api.request_with_retry(request_url=urljoin(api.BASE_API_URL, 'animals', params=params, endpoint=animals))
+        
+        data = api.log_and_raise_for_status(response) if response else None
+        
+        return jsonify({"results": data})
+    except Exception as e:
+        app.logger.error(f"{request.url} error: {e}")
+
+
+@app.route("/response/animal_types")
 def get_animal_types():
     """Endpoint to retrieve animal types from session or os.environ."""
     types_key = "API_ANIMAL_TYPES"
