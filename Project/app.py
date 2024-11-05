@@ -678,81 +678,6 @@ IMAGE_FOLDER = os.path.join("static", "images", "graphics")
 # TODO: this has been made redundant by /models.py/User.serialize(), need to take the docstring and update that one
 
 
-def get_user_data(user_id):
-    """
-    Retrieves user information from the database based on the provided user ID.
-
-    This function fetches data including animal types, location, and travel
-    preferences for the specified user.
-
-    Args:
-        user_id (int): The unique identifier of the user.
-
-    Returns:
-        dict: A dictionary containing user information with the following keys:
-            - user_id (int): The user's unique identifier.
-            - animal_types (list): Types of animals associated with the user.
-            - location (dict): User's location details including city, state, and country.
-            - distance_filter (int): User's preferred distance filter setting.
-            - current_location (dict): User's current location if available, or a default location.
-
-    Note:
-        If the user with the given user_id does not exist in the database,
-        the function may return None or raise an exception (implementation-dependent).
-    """
-
-    if user_id:
-        user = load_user(user_id=user_id)
-
-        # result = (
-        #     db.session.query(
-        #         User.id,
-        #         User.animal_types,
-        #         UserLocation.city,
-        #         UserLocation.state,
-        #         UserLocation.country,
-        #         UserTravelPreferences.distance_filter_preference,
-        #     )
-        #     .join(UserLocation)
-        #     .join(UserTravelPreferences)
-        #     .filter(User.id == user_id)
-        #     .first()
-        # )
-        # # debugging
-        # if result:
-        #     print(f"User ID: {result.id}")
-        #     print(f"Animal Types: {result.animal_types}")
-        #     print(f"State: {result.state}")
-        #     print(f"Country: {result.country}")
-        #     print(f"Distance Filter Preference: {result.distance_filter_preference}")
-
-        #     current_location = (
-        #         db.session.query(UserLocation)
-        #         .filter(UserLocation.user_id == user_id)
-        #         .first()
-        #     )
-        if user:
-            data = user.serialize()
-
-            return {
-                "CURR_USER_KEY": data.id or None,
-                "ANIMAL_TYPES": data.animal_types,
-                "CITY_STATE": f"{data.location.city+', '+data.location.state}",
-                "STATE_COUNTRY": f"{data.state+', '+data.country}",
-                "DISTANCE_PREF": data.get("distance_pref"),
-                "CURR_LOCATION": (
-                    data.get_location_info()
-                    if data
-                    else default_session_keys["CURR_LOCATION"]
-                ),
-            }
-    # handle no results
-    print("No User data found, default output returned")
-    default_output = default_session_keys.copy()
-    default_output["STATE_COUNTRY"] = get_location(no_geocode=False)
-    return default_output
-
-
 # Helper function to retrieve PetFinder API status query param based on rescue actions
 def get_rescue_action_mapped_to_animal_status():
     """
@@ -780,7 +705,6 @@ def get_rescue_action_mapped_to_animal_status():
 
     # If no current_user or no rescue_action_type is provided, return the default status
     return default_animal_status
-
 
 # TODO: I can move this to the User ORM class in models.py and call from `current_user._get_current_object`` instead
 # Helper function to get the location or default location
@@ -811,13 +735,15 @@ def get_location(no_geocode=False):
             db.session.commit()
 
         if no_geocode:
-            return (
-                f"{user_location.city}, {user_location.state} {user_location.postal_code}"
-                if user_location.city
-                and user_location.state
-                and user_location.postal_code
-                else user_location.get_location_info()
-            )  # return city/state/str eg. for UI rendering purposes
+            #     return (
+            #     f"{user_location.city}, {user_location.state} {user_location.postal_code}"
+            #     if user_location.city
+            #     and user_location.state
+            #     and user_location.postal_code
+            #     else user_location.get_location_info()
+            # )  # return city/state/str eg. for UI rendering purposes
+
+            return api.get_next_location(user_location.serialize())  # return city/state/str eg. for UI rendering purposes
         else:
             return (
                 user_location.geolocation or user_location.get_location_info()
@@ -825,70 +751,49 @@ def get_location(no_geocode=False):
     # handle anon user
     else:
         if no_geocode:
-            return (
-                default_session_keys["DEFAULT_LOCATION"]["state"].lower()
-                + default_session_keys["DEFAULT_LOCATION"]["country"].lower()
-            )
-        else:
-            return default_session_keys["CURR_LOCATION"]
+            location_dict = {}
+            for key, default_location_value in default_session_keys["DEFAULT_LOCATION"].items():
+                location_dict[key] = session.get(key) or default_location_value
+                
+            return api.get_next_location(location_dict) 
 
 
-def create_init_params(type="animal"):
+def create_init_params(req_type="animal"):
     """
     Dynamically creates and returns a dictionary of initialization parameters for
     API calls based on the user's authentication state, preferences, and location.
 
     Args:
-        type (str): The type of object to fetch ('animal' or 'org'). Default is 'animal'.
+        req_type (str): The req_type of object to fetch ('animal' or 'org'). Default is 'animal'.
 
     Returns:
-        dict: A dictionary of API query parameters including type, page, location, distance, and limit.
+        dict: A dictionary of API query parameters including req_type, page, location, distance, and limit.
     """
-
-    # Helper function to retrieve species preferences or default to 'dog'
-    def get_species_preferences(user=None):
-        """
-        Fetches the user's species preferences, or defaults to 'dog' if no user or no preferences are present.
-        Args:
-            user (User): Current user object.
-        Returns:
-            list: List of species.
-        """
-        return (
-            list(user.animal_types)
-            if user and user.animal_types
-            else list(default_session_keys.get("ANIMAL_TYPES", "dog"))
-        )
 
     # Common session values or default ones
     current_page_count = (
         session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
-        if type.lower() in ["animal", "animals"]
+        if req_type.lower() in ["animal", "animals"]
         else session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
     )
     distance_pref = session.get("DISTANCE_PREF", default_session_keys["DISTANCE_PREF"])
 
     # If the user is authenticated and active
     if active_authenticated_user():
-        user = load_user(user_id=current_user.id)
-        user_location = (
-            user.location.get_location_info()
-            if user and user.location
-            else db.session.query(UserLocation)
-            .filter_by(user_id=current_user.id)
-            .first()
-        )
+        user = current_user._get_current_object().serialize()
+        user_location = user.get('location') or user.location.serialize()
 
         # Get user-specific data or defaults
-        species = get_species_preferences(user)
+        species = user.animal_types or get_species_preferences(user)
         # prettify the animal types for the API to accept it
         species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
 
-        # get location
-        location_str = user_location
+        # get location str from serializedlocation dict
+        location_str = api.get_next_location(user_location)
+        
         distance_pref = (
-            current_user.travel_preference.distance_filter_preference
-            if current_user.travel_preference
+            user.distance_pref
+            if user and user.distance_pref
             else (
                 UserTravelPreferences._get_distance_filter_param(
                     user_id=current_user.id
@@ -896,11 +801,12 @@ def create_init_params(type="animal"):
                 or 100
             )
         )
-        status = get_rescue_action_mapped_to_animal_status()
+        
+        status = user.get('rescue_interaction_type') or get_rescue_action_mapped_to_animal_status()
     else:
         # Non-authenticated user, default settings
         species = session.get("ANIMAL_TYPES") or default_session_keys.get(
-            "ANIMAL_TYPES", "dog"
+            "ANIMAL_TYPES", ["dog"]
         )
         # prettify the animal types for the API to accept it
         species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
@@ -915,7 +821,7 @@ def create_init_params(type="animal"):
 
     # create status param => "adoptable, adopted, found" PetFinderAPI Accepts multiple values (default: adoptable)
     # Return parameters for animal search
-    if type.lower() in ("animal", "animals"):
+    if req_type.lower() in ("animal", "animals"):
         output_params = {
             "type": species,
             "page": current_page_count,
@@ -931,7 +837,7 @@ def create_init_params(type="animal"):
         return output_params
 
     # Return parameters for organization search
-    elif type.lower() in ("org", "orgs", "organization", "organizations"):
+    elif req_type.lower() in ("org", "orgs", "organization", "organizations"):
         output_params = {
             "type": species,
             "page": current_page_count,
@@ -1058,7 +964,7 @@ def discover_animals():
             "state": session.get("state"),
             "postal_code": session.get("postal_code"),
             "geolocation": session.get("geolocation"),
-        } or default_session_keys.get("LOCATION")
+        } or default_session_keys.get("location")
 
     init_params = create_init_params(type="animals")
     animal_types = (
@@ -1818,7 +1724,7 @@ def init_default_session():
     # populate with default_session_keys
     for key, value in default_session_keys.items():
         session.setdefault(key, value)
-    session["STATE_COUNTRY"] = get_location(no_geocode=False)
+    session["STATE_COUNTRY"] = f"{default_session_keys['location']}"
     session.new = True
     session.modified = True
 
