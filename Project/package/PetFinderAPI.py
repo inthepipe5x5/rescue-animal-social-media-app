@@ -267,6 +267,7 @@ class PetFinderAPI:
             401: PetFinderInvalidCredentialsError(),
             403: PetFinderAccessDeniedError(),
             404: PetFinderResourceNotFoundError(),
+            405: PetFinderInvalidMethod(),
             500: PetFinderUnexpectedServerError(),
             503: PetFinderUnexpectedServerError(),
         }
@@ -434,6 +435,15 @@ class PetFinderAPI:
                 )  # Raise any appropriate errors based on response
                 return response.json()  # Return if successful
 
+            except PetFinderAccessDeniedError as e:
+                #wait attempt number of seconds in case of rate limiting
+                time.sleep(int(attempt))
+                #reset access token
+                self._get_access_token()
+                if attempt == max_retries:
+                    break
+                else:
+                    continue
             except PetFinderInvalidParametersError as e:
                 # Handle invalid parameters by removing problematic keys and retrying
                 invalid_params = (

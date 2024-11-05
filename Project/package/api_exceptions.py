@@ -42,7 +42,7 @@ class PetFinderAPIError(HTTPError, HTTPException):
     """Base class for PetFinder API errors."""
 
     default_message = "An unknown error occurred."
-    status_code = 500
+    default_status_code = 500
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class PetFinderAPIError(HTTPError, HTTPException):
         self.error_subtitle = error_subtitle
         self.error_message = error_message or self.default_message
         self.redirect_url = redirect_url
-        self.status_code = status_code or self.status_code
+        self.status_code = status_code or self.default_status_code
 
     def __str__(self):
         return f"{self.error_message} (Status Code: {self.status_code})"
@@ -73,6 +73,8 @@ class PetFinderAPIError(HTTPError, HTTPException):
 
 class PetFinderInvalidCredentialsError(PetFinderAPIError, Unauthorized):
     """Raised when access is denied due to invalid API credentials."""
+    
+    status_code = 401
 
     def __init__(self, error_message="Invalid credentials provided"):
         super().__init__(
@@ -84,7 +86,9 @@ class PetFinderInvalidCredentialsError(PetFinderAPIError, Unauthorized):
 
 class PetFinderAccessDeniedError(PetFinderAPIError, Forbidden):
     """Raised when access is denied due to insufficient permissions."""
-
+    
+    status_code = 403
+    
     def __init__(
         self,
         invalid_params=None,
@@ -100,6 +104,8 @@ class PetFinderAccessDeniedError(PetFinderAPIError, Forbidden):
 
 class PetFinderResourceNotFoundError(PetFinderAPIError, Gone):
     """Raised when a resource is not found."""
+    
+    status_code = 404
 
     def __init__(self, error_message="An unexpected server error occurred"):
         super().__init__(
@@ -114,13 +120,6 @@ class PetFinderInvalidMethod(PetFinderAPIError, MethodNotAllowed):
 
     default_message = "Invalid HTTP method used."
     status_code = 405
-
-
-class PetFinderUnexpectedServerError(PetFinderAPIError):
-    """Raised for server errors."""
-
-    default_message = "Server encountered an error."
-    status_code = 500
 
 
 class PetFinderInvalidParametersError(PetFinderAPIError, BadRequest):
@@ -143,3 +142,12 @@ class PetFinderLocationError(PetFinderAPIError, BadRequest):
 
     default_message = "Location could not be determined."
     status_code = 400
+
+
+
+class PetFinderUnexpectedServerError(PetFinderAPIError):
+    """Raised for server errors."""
+
+    default_message = "Server encountered an error."
+    status_code = 500
+

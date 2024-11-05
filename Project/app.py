@@ -1198,7 +1198,7 @@ def discover_specific_animal_type(animal_type):
 @app.route('/test/animals')
 def test_animals():
     """Endpoint to retrieve data from PetFinder /animals route"""
-    response = api._get_request(
+    response = api.request_with_retry(
             request_url=urljoin(api.BASE_API_URL, "animals"),
             params={},
             endpoint="animals"
