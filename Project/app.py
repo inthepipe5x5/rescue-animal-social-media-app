@@ -1266,6 +1266,23 @@ def test_location_animals():
         )
 
 
+@app.route("/loading")
+def loading_route():
+    """Route to render loading
+
+    Returns:
+        renders view with skeleton loading cards and then directs after 5 seconds
+    """
+    redirect_url = request.args.get("redirect_url") or url_for("home")
+    redirect_interval = request.args.get("redirect_interval") or 5000
+
+    return render_template(
+        url_for("templates", filename="loading_view.html"),
+        redirect_url=redirect_url,
+        redirect_interval=redirect_interval,
+    )
+
+
 @app.route("/data/animal_types", methods=["GET"])
 def get_animal_types():
     """Endpoint to retrieve animal types from session or os.environ."""
