@@ -1,19 +1,3 @@
-""" a GeoDB helper class with functions to do the following features as functions:
-
-
-**Core Methods:**
-
-- **filter_places**: Filters cities by various criteria like name prefix and population.
-- **find_nearby_places**: Finds cities near a specified latitude and longitude.
-- **get_place_details**: Retrieves detailed information about a specific city.
-- **get_country_regions**: Lists all regions within a specified country.
-- **get_places_in_region**: Retrieves all cities within a specified region.
-- **get_countries_by_currency**: Lists countries using a specific currency.
-
-# Usage example:
-# geo_helper = GeoDBHelper()
-# cities = geo_helper.filter_places(name_prefix="San")
-"""
 
 import requests
 import os
@@ -23,18 +7,37 @@ from ratelimit import (
     sleep_and_retry,
 )
 
-#Define API
+#Define API variables
 api_key = os.environ.get("GEODB_API_KEY") or None
 # Define limit for GeoDB Cities API; free plan limits to 1000 calls per day
 API_CALLS_PER_DAY = 1000
 TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
-MAX_TRIES = 10  # Maximum number of retries for handling RateLimitException
+MAX_TRIES = 3  # Maximum number of retries for handling RateLimitException
 
 
 class GeoDBHelper:
-    BASE_URL = "<http://geodb-free-service.wirefreethought.com/v1/geo>"
-    HEADERS = {"x-rapidapi-key": api_key, "Content-Type": "application/json"}
+    """ a GeoDB helper class with functions to do the following features as functions:
 
+
+    **Core Methods:**
+
+    - **filter_places**: Filters cities by various criteria like name prefix and population.
+    - **find_nearby_places**: Finds cities near a specified latitude and longitude.
+    - **get_place_details**: Retrieves detailed information about a specific city.
+    - **get_country_regions**: Lists all regions within a specified country.
+    - **get_places_in_region**: Retrieves all cities within a specified region.
+    - **get_countries_by_currency**: Lists countries using a specific currency.
+
+    # Usage example:
+    # geo_helper = GeoDBHelper()
+    # cities = geo_helper.filter_places(name_prefix="San")
+    """
+
+    BASE_URL = "http://geodb-free-service.wirefreethought.com/v1/geo"
+    HEADERS = {"x-rapidapi-key": api_key, "Content-Type": "application/json"}
+    
+    @limits(calls=50, period=30)  # Limit of 50 calls per second
+    @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def find_cities(
         self,
         name_prefix=None,

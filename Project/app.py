@@ -38,8 +38,9 @@ import requests
 from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
 from werkzeug.exceptions import HTTPException
+# from marshmallow import MarshMallow
 
-from Project.schemas.data.users.models import (
+from Project.data.users.models import (
     db,
     User,
     UserLocation,
@@ -73,7 +74,6 @@ from package.helper import (
 from config import config, Config
 from package.PetFinderAPI import PetFinderAPI
 from package.parse import Parse
-
 # import custom exceptions
 from package.api_exceptions import (
     PetFinderResourceNotFoundError,

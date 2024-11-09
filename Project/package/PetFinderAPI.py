@@ -42,7 +42,7 @@ load_dotenv()
 # Define limit for generator function to make API calls as PetFinder limits to 1000 calls per day
 API_CALLS_PER_DAY = 1000
 TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
-MAX_TRIES = 10  # Maximum number of retries for handling RateLimitException
+MAX_TRIES = 3  # Maximum number of retries for handling RateLimitException
 
 
 class PetFinderAPI:
