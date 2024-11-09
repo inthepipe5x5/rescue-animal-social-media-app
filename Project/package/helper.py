@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 
 from sqlalchemy.exc import NoResultFound  # type: ignore
-from models import db, User, UserLocation, UserAnimalPreferences
+from Project.schemas.data.users.models import db, User, UserLocation, UserAnimalPreferences
 
 from package.PetFinderAPI import PetFinderAPI
 

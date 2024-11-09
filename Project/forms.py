@@ -17,7 +17,7 @@ from wtforms.validators import DataRequired, Email, Length, ValidationError, Equ
 from wtforms_alchemy import model_form_factory  # type: ignore
 import pycountry  # type: ignore
 
-from models import (
+from Project.schemas.data.users.models import (
     db,
     User,
     UserLocation,
@@ -208,7 +208,7 @@ class UserAddForm(UserExperiencesForm):
     # customize individual animal type preferences
 
 
-class GlobalPreferencesForm(FlaskForm):
+class AnimalTypesForm(FlaskForm):
     """Form for users to indicate if they want to customize their preferences
 
     Args:

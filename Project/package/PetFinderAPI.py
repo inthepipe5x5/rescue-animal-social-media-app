@@ -23,7 +23,6 @@ from collections.abc import Iterable
 from package.parse import Parse, parse_multi_animal
 
 from package.api_exceptions import (
-    PetFinderAPIError,
     PetFinderInvalidCredentialsError,
     PetFinderAccessDeniedError,
     PetFinderResourceNotFoundError,
@@ -84,20 +83,20 @@ class PetFinderAPI:
     }
 
     # user prefs that map to search params
-    attribute_keys = [
+    search_param_keys = [
         "spayed_neutered",
         "house_trained",
         "declawed",
         "special_needs",
         "shots_current",
     ]
-    environment_keys = [
+    animal_environment_keys = [
         "child_friendly",
         "dogs_friendly",
         "cats_friendly",
     ]
     # keys that are dynamically generated
-    dynamic_keys = [
+    dynamic_animal_keys = [
         "breed",
         "coat",
         "color",
@@ -106,6 +105,17 @@ class PetFinderAPI:
         "personality",
         "age",
     ]
+
+    animal_params_that_accept_multiple = [
+        "breed",
+        "size",
+        "gender",
+        "age",
+        "coat",
+        "status",
+        "organization",
+    ]
+
     # Initialize a set to keep track of invalid parameters across calls
     bad_keys_set = set()
 
@@ -334,7 +344,9 @@ class PetFinderAPI:
                 os.environ["ACCESS_TOKEN"] = str(self.access_token)
                 os.environ["TOKEN_EXPIRATION"] = str(self.token_expiration)
 
-                print(f"new access_token received PetFinderAPI and api instance updated {self.access_token}")
+                print(
+                    f"new access_token received PetFinderAPI and api instance updated {self.access_token}"
+                )
                 return self.access_token
             elif response.status_code == 500:
                 time.sleep(2)  # Sleep for 2 seconds before retrying
@@ -424,70 +436,15 @@ class PetFinderAPI:
             raise TypeError(f"Expected 'params' as dict, received type: {type(params)}")
 
         for attempt in range(max_retries):
-            try:
-                response = self._get_request(
-                    endpoint=endpoint,
-                    request_url=request_url or f"{self.BASE_API_URL}/{endpoint}",
-                    params=params,
-                )
-                self.log_and_raise_for_status(
-                    response
-                )  # Raise any appropriate errors based on response
-                return response.json()  # Return if successful
-
-            except PetFinderAccessDeniedError as e:
-                #wait attempt number of seconds in case of rate limiting
-                time.sleep(int(attempt))
-                #reset access token
-                self._get_access_token()
-                if attempt == max_retries:
-                    break
-                else:
-                    continue
-            except PetFinderInvalidParametersError as e:
-                # Handle invalid parameters by removing problematic keys and retrying
-                invalid_params = (
-                    e.invalid_params or []
-                )  # Retrieve invalid params from error, if available
-                for param in invalid_params:
-                    params.pop(param, None)  # Remove invalid key
-                continue  # Retry request with modified parameters
-
-            except PetFinderLocationError:
-                # Handle location errors by cycling through alternative locations
-                location_dict = params.get("location", {})
-                while location_dict:
-                    next_location, location_dict = self.get_alternative_locations(
-                        location_dict
-                    )
-
-                    if not next_location:
-                        # All location alternatives have been exhausted; redirect user to enter location
-                        return PetFinderLocationError(
-                            error_title="Error determining location",
-                            error_subtitle="Please set your location",
-                            error_message=(
-                                "Can't determine your location for local content. "
-                                "Please enter your location or enable geolocation for more accurate results."
-                            ),
-                            redirect_url="/users/location",
-                        ).error_info()
-
-                    # Update params with the new location and retry request
-                    params["location"] = next_location
-                    response = self._get_request(
-                        endpoint,
-                        request_url or f"{self.BASE_API_URL}/{endpoint}",
-                        params=params,
-                    )
-                    self.log_and_raise_for_status(response)
-                    return response.json()  # Return if successful
-
-            except RateLimitException:
-                print("Rate limit reached. Retrying...")
-
-        # If max retries without success, raise a final error
-        raise Exception(f"Request to {endpoint} failed after {max_retries} retries.")
+            response = self._get_request(
+                endpoint=endpoint,
+                request_url=request_url or f"{self.BASE_API_URL}/{endpoint}",
+                params=params,
+            )
+            self.log_and_raise_for_status(
+                response
+            )  # Raise any appropriate errors based on response
+            return response.json()  # Return if successful
 
     @on_exception(
         expo, RateLimitException, max_tries=MAX_TRIES
@@ -716,11 +673,11 @@ class PetFinderAPI:
             elif isinstance(value, bool):
                 if value is False:
                     return None
-                if key in self.attribute_keys:
+                if key in self.search_param_keys:
                     return (
                         lambda obj: obj.get("attributes", {}).get(key, False) == value
                     )
-                elif key in self.environment_keys:
+                elif key in self.animal_environment_keys:
                     return (
                         lambda obj: obj.get("environment", {}).get(key, False) == value
                     )
@@ -733,12 +690,12 @@ class PetFinderAPI:
                 if value_lower in ["any", "false", False]:
                     return None
                 if value_lower == "true":
-                    if key in self.attribute_keys:
+                    if key in self.search_param_keys:
                         return (
                             lambda obj: obj.get("attributes", {}).get(key, False)
                             == True
                         )
-                    elif key in self.environment_keys:
+                    elif key in self.animal_environment_keys:
                         return (
                             lambda obj: obj.get("environment", {}).get(key, False)
                             == True
@@ -777,11 +734,12 @@ class PetFinderAPI:
             return init_params if init_params else {}
         # prefs that only have true/false/None possibilities
         boolean_prefs = {
-            bool_key: False for bool_key in self.environment_keys + self.attribute_keys
+            bool_key: False
+            for bool_key in self.animal_environment_keys + self.search_param_keys
         }
 
         # prefs that only have 'any' or a list possibilities
-        any_prefs = {pref_key: ["any"] for pref_key in self.dynamic_keys}
+        any_prefs = {pref_key: ["any"] for pref_key in self.dynamic_animal_keys}
 
         # Update prefs_obj with boolean and any prefs
         prefs_obj.update(boolean_prefs)
@@ -1004,7 +962,9 @@ class PetFinderAPI:
             try:
                 for animal_type in animal_types:
                     # Set animal type in parameters and prettify the type for the API to accept it
-                    params["type"] = Parse.prettify_animal_types(animal_types=animal_type)
+                    params["type"] = Parse.prettify_animal_types(
+                        animal_types=animal_type
+                    )
                     request_url = f"{self.BASE_API_URL}/animals"
                     response_data = self.request_with_retry(
                         "animals", request_url, params=params
@@ -1023,7 +983,6 @@ class PetFinderAPI:
                             if returned_next_url
                             else None
                         )
-                        
 
                         filtered_results = self.filter_results_by_ids(
                             response_data.get("animals"), exclude_ids, is_animal=True
@@ -1036,8 +995,14 @@ class PetFinderAPI:
                             return
             except Exception as e:
                 # Log the error, yield whatever we have, and break the loop for this animal type
-                self.log_error(f"Error fetching data for {animal_type}, yielding partial results{filtered_results}: {e}")
-                yield {"error": str(e), "animal_type": animal_type, "partial_results": filtered_results}
+                self.log_error(
+                    f"Error fetching data for {animal_type}, yielding partial results{filtered_results}: {e}"
+                )
+                yield {
+                    "error": str(e),
+                    "animal_type": animal_type,
+                    "partial_results": filtered_results,
+                }
 
         # Continue fetching until target_count is met or all pages are exhausted
         while len(yielded_results) < target_count:
@@ -1061,21 +1026,12 @@ class PetFinderAPI:
                     continue
 
                 # Update next URL for pagination tracking
-                returned_next_url = (
-                    response_data.get("pagination", {})
-                    .get("_links", {})
-                    .get("next", {})
-                    .get("href", "")[3:]
-                )
-                next_urls[animal_type] = (
-                    f"{self.BASE_API_URL}{returned_next_url}"
-                    if returned_next_url
+                next_url = (
+                    self.save_next_url(response_data.get("pagination"))
+                    if "pagination" in response_data
                     else None
                 )
-
-                # Check if any animal_type has pages left to determine whether to exit
-                if next_urls[animal_type]:
-                    all_empty = False
+                next_urls[animal_type] = next_url
 
                 # Filter and accumulate results
                 results = response_data.get("animals", [])
@@ -1382,7 +1338,7 @@ class PetFinderAPI:
             updated_dict.pop(param_type, None)
 
         return next_location, updated_dict
-    
+
     def generate_location_combinations(self, location_dict):
         """
         Generate unique combinations of location options.
@@ -1391,8 +1347,8 @@ class PetFinderAPI:
             location_dict (dict of str): where the keys are the location options and the values are the corresponding string representations.
 
         Returns:
-            list of tuples: A list where each tuple contains (key, value) pairs. 
-                            The key is a combination of option names (joined by underscores), 
+            list of tuples: A list where each tuple contains (key, value) pairs.
+                            The key is a combination of option names (joined by underscores),
                             and the value is a string of the corresponding option values (joined by commas).
         """
         options = list(location_dict.keys())
@@ -1411,13 +1367,39 @@ class PetFinderAPI:
         # Add specific examples if they don't already exist
         specific_combos = [
             ("country", location_dict.get("country", "")),
-            ("city_state", f"{location_dict.get('city', '')},{location_dict.get('state', '')}"),
-            ("city_state_postal_code", f"{location_dict.get('city', '')},{location_dict.get('state', '')},{location_dict.get('postal_code', '')}"),
-            ("state_country", f"{location_dict.get('state', '')},{location_dict.get('country', '')}")
+            (
+                "city_state",
+                f"{location_dict.get('city', '')},{location_dict.get('state', '')}",
+            ),
+            (
+                "city_state_postal_code",
+                f"{location_dict.get('city', '')},{location_dict.get('state', '')},{location_dict.get('postal_code', '')}",
+            ),
+            (
+                "state_country",
+                f"{location_dict.get('state', '')},{location_dict.get('country', '')}",
+            ),
         ]
 
         for combo in specific_combos:
-            if combo not in result_combinations and all(combo[1].split(',')):
+            if combo not in result_combinations and all(combo[1].split(",")):
                 result_combinations.append(combo)
 
         return result_combinations
+
+    def save_next_url(self, pagination_dict) -> str:
+        """
+        The function `save_next_url` extracts and concatenates the next URL from a pagination dictionary
+        with a base API URL.
+
+        :param pagination_dict: Pagination_dict is a dictionary containing information about pagination,
+        typically retrieved from an API response. It may have a structure like this:
+        :return: The `save_next_url` method returns a string that is the concatenation of the `BASE_API_URL`
+        and the `href` value extracted from the `pagination_dict`. If the `href` value is not found or
+        empty, it returns `None`.
+        """
+        returned_next_url = (
+            pagination_dict.get("_links", {}).get("next", {}).get("href", "")[3:]
+        )
+
+        return f"{self.BASE_API_URL}{returned_next_url}" if returned_next_url else None

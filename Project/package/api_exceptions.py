@@ -64,10 +64,10 @@ class PetFinderAPIError(HTTPError, HTTPException):
     def error_info(self):
         """Return dict of error info attributes."""
         return {
-            "error_title": self.error_title,
-            "error_subtitle": self.error_subtitle,
-            "error_message": self.error_message,
-            "redirect_url": self.redirect_url,
+            "error_title": self.error_title if self.error_title else self.__name__,
+            "error_subtitle": self.error_subtitle if self.error_subtitle else self.status_code,
+            "error_message": self.error_message if self.error_message else self.default_message,
+            "redirect_url": self.redirect_url or '/',
         }
 
 
@@ -102,7 +102,7 @@ class PetFinderAccessDeniedError(PetFinderAPIError, Forbidden):
         )
 
 
-class PetFinderResourceNotFoundError(PetFinderAPIError, Gone):
+class PetFinderResourceNotFoundError(PetFinderAPIError, NotFound, Gone):
     """Raised when a resource is not found."""
     
     status_code = 404

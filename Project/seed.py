@@ -2,7 +2,7 @@
 
 from csv import DictReader
 from app import app, db
-from models import (
+from Project.schemas.data.users.models import (
     User,
     UserLocation,
     UserAnimalPreferences,

@@ -39,7 +39,7 @@ from flask_bcrypt import Bcrypt
 from werkzeug.datastructures import MultiDict
 from werkzeug.exceptions import HTTPException
 
-from models import (
+from Project.schemas.data.users.models import (
     db,
     User,
     UserLocation,
@@ -76,6 +76,7 @@ from package.parse import Parse
 
 # import custom exceptions
 from package.api_exceptions import (
+    PetFinderResourceNotFoundError,
     PetFinderInvalidCredentialsError,
     PetFinderAccessDeniedError,
     PetFinderInvalidParametersError,
@@ -83,27 +84,33 @@ from package.api_exceptions import (
     PetFinderUnexpectedServerError,
 )
 
-
+# default session keys
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
+# keys to use to store key app values in Flask Session
+CURR_ANIMALS_KEY = "ANIMAL_TYPES"
+DEFAULT_LOCATION = "DEFAULT_LOCATION"
+DISTANCE_KEY = "DISTANCE_PREF"
+RESULTS_PER_PAGE_KEY = "RESULTS_PER_PAGE"
+VIEWED_CONTENT_KEY = "VIEWED_CONTENT_LIST"
+USER_LOCATION_KEY = "CURR_LOCATION"
+NEXT_ANIMAL_URLS_KEY = "NEXT_URLS"
 
 load_dotenv()
 
 default_session_keys = {
-    "CURR_LOCATION": os.environ.get("CURR_LOCATION", "43.6429,-79.3889"),
-    "ANIMAL_TYPES": os.environ.get("ANIMAL_TYPES", ["dog"]),
-    "CURRENT_DISCOVER_ANIMALS_PAGE": 1,
-    "CURRENT_DISCOVER_ORG_PAGE": 1,
-    "DEFAULT_LOCATION": {
+    USER_LOCATION_KEY: os.environ.get(USER_LOCATION_KEY, "43.6429,-79.3889"),
+    CURR_ANIMALS_KEY: os.environ.get("ANIMAL_TYPES", ["dog"]),
+    DEFAULT_LOCATION: {
         "geolocation": "43.6429,-79.3889",
         "state": "ON",
         "country": "CA",
         "postal_code": "m5j0b3",
         "city": "Toronto",
     },
-    "DISTANCE_PREF": 100,
-    "RESULTS_PER_PAGE": 6,  # default is 6 (so render 2 rows of 3 columns of cards)
-    "VIEWED_CONTENT_LIST": [],  # list of id of PetFinder API content seen by the user
+    DISTANCE_KEY: 100,
+    RESULTS_PER_PAGE_KEY: 6,  # default is 6 (so render 2 rows of 3 columns of cards)
+    VIEWED_CONTENT_KEY: [],  # list of id of PetFinder API content seen by the user
 }
 
 
@@ -282,7 +289,7 @@ def do_login(user):
     # add_animal_types_to_g(session, g)
     # add_location_to_g(session, g)
     # update_global_variables(session, g)
-    # session.update("CURR_LOCATION", user.location.city_state_country_str())
+    # session.update(USER_LOCATION_KEY, user.location.city_state_country_str())
     # session.update("ANIMAL_TYPES", user.animal_types)
     load_session()
     app.logger.info(
@@ -302,9 +309,11 @@ def do_logout():
     # return stored values to default
     # reset animal types
     session.pop(
-        "ANIMAL_TYPES", default=os.environ.get("ANIMAL_TYPES", ["dog"])
+        CURR_ANIMALS_KEY, default=os.environ.get("ANIMAL_TYPES", ["dog"])
     )  # reset CURR_LOCATION
-    session.pop("CURR_LOCATION", default=os.environ.get("CURR_LOCATION", "Toronto, ON"))
+    session.pop(
+        USER_LOCATION_KEY, default=os.environ.get(USER_LOCATION_KEY, "Toronto, ON")
+    )
     # app.logger.info(f"do_logout successful. Session[CURR_USER]=", (session["CURR_USER"] if "CURR_USER" in session  else None))
     g.pop("user", None)
     # clear session and create new session
@@ -314,6 +323,47 @@ def do_logout():
     # flask-login's logout user => will clean up the cookie if it exists
     logout_user()
 
+
+def get_anon_user() -> dict:
+    """Grabs anon user data stored in the session
+
+    Raises:
+        TypeError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    animal_types = session.get(CURR_ANIMALS_KEY) or default_session_keys.get(
+        CURR_ANIMALS_KEY
+    )
+    current_location = session.get(USER_LOCATION_KEY) or default_session_keys.get(
+        USER_LOCATION_KEY
+    )
+    # Anonymous user, pull location from session
+    get_anon_location()
+
+def get_anon_location() -> dict:
+
+    # Anonymous user, pull location from session
+    return {
+        "city": session.get("city"),
+        "state": session.get("state"),
+        "postal_code": session.get("postal_code"),
+        "geolocation": session.get("geolocation"),
+    } or default_session_keys.get(DEFAULT_LOCATION)
+
+
+def get_next_animal_urls(animal_types, params, endpoint="animals",) -> dict:
+        
+    next_urls = session.get(
+        NEXT_ANIMAL_URLS_KEY
+    )
+    if not next_urls and params:
+        for animal_type in animal_types:
+            {animal_type: urljoin(f"{api.BASE_API_URL}/{endpoint}", params) }    
+
+
+    return next_urls
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -622,7 +672,7 @@ def update_animal_types():
         animal_types = (
             current_user.animal_types
             if active_authenticated_user()
-            else default_session_keys.get("ANIMAL_TYPES", ["dog"])
+            else default_session_keys.get(CURR_ANIMALS_KEY, ["dog"])
         )
         return jsonify({"animal_types": animal_types}), 200
 
@@ -648,7 +698,7 @@ def save_location_to_session(location_dict):
             if LOCATION_SESSION_KEY in location_dict
             else api.get_next_location(location_dict=location_dict)
         )
-        location_dict.setdefault("CURR_LOCATION", current_location)
+        location_dict.setdefault(USER_LOCATION_KEY, current_location)
         # update session
         session[LOCATION_SESSION_KEY] = location_dict
         # update current location
@@ -793,9 +843,9 @@ def get_location(no_geocode=False):
     else:
         if no_geocode:
             location_dict = {}
-            for key, default_location_value in default_session_keys[
-                "DEFAULT_LOCATION"
-            ].items():
+            for key, default_location_value in default_session_keys.get(
+                DEFAULT_LOCATION
+            ).items():
                 location_dict[key] = session.get(key) or default_location_value
 
             return api.get_next_location(location_dict)
@@ -855,13 +905,13 @@ def create_init_params(req_type="animal"):
         )
     else:
         # Non-authenticated user, default settings
-        species = session.get("ANIMAL_TYPES") or default_session_keys.get(
-            "ANIMAL_TYPES", "dog"
+        species = session.get(CURR_ANIMALS_KEY) or default_session_keys.get(
+            CURR_ANIMALS_KEY, "dog"
         )
         # prettify the animal types for the API to accept it
         species = Parse.prettify_animal_types(animal_types=species, fuzzy_match=True)
-        location_str = session.get("CURR_LOCATION") or os.environ.get(
-            "CURR_LOCATION", "43.6429,-79.3889"
+        location_str = session.get(USER_LOCATION_KEY) or os.environ.get(
+            USER_LOCATION_KEY, "43.6429,-79.3889"
         )
         distance_pref = session.get("DISTANCE_PREF", 100)
 
@@ -895,12 +945,12 @@ def create_init_params(req_type="animal"):
             "state": str(
                 user_location.state
                 if user_location
-                else default_session_keys.get("location.state", "ON")
+                else default_session_keys.get(DEFAULT_LOCATION).get("state", "ON")
             ),  # Fallback state to ON
             "country": str(
                 user_location.country
                 if user_location
-                else default_session_keys.get("location.country", "CA")
+                else default_session_keys.get(DEFAULT_LOCATION).get("country", "CA")
             ),  # Fallback country to CA
             "distance": distance_pref,
             "limit": limit,
@@ -1004,19 +1054,13 @@ def discover_animals():
 
     # Determine user location
     location_data = None
-    if user:
-        # Get location from user's serialized data
-        location_data = user.serialize().get("location")
-    else:
-        # Anonymous user, pull location from session
-        location_data = {
-            "city": session.get("city"),
-            "state": session.get("state"),
-            "postal_code": session.get("postal_code"),
-            "geolocation": session.get("geolocation"),
-        } or default_session_keys.get("location")
 
-    init_params = create_init_params(type="animals")
+    # Get location from user's serialized data
+    location_data = user.serialize().get("location") if user else get_anon_location()
+    if not location_data:
+        return redirect(url_for('form_users_location'))
+    
+    init_params = create_init_params(req_type="animals")
     animal_types = (
         request.args.get("animal_type")
         or init_params.get("type")
@@ -1024,7 +1068,7 @@ def discover_animals():
         or session.get("ANIMAL_TYPES", ["dog"])
     )
     target_count = int(
-        request.args.get("limit") or init_params.get("limit", 9)
+        request.args.get("limit") or session.get(RESULTS_PER_PAGE_KEY) or init_params.get("limit", 9)
     )  # Number of animals per page
 
     # Prepare exclude_ids for viewed or favorited animals
@@ -1044,96 +1088,142 @@ def discover_animals():
 
     # Ensure animal_types is always a list
     animal_types = [animal_types] if isinstance(animal_types, str) else animal_types
-    next_urls = session.get(
-        "next_urls", {animal_type: None for animal_type in animal_types}
-    )
-
-    # Initialize generator with new parameters, including location
-    generator = api.animal_pagination_generator(
-        animal_types=animal_types,
-        target_count=target_count,
-        init_params=init_params,
-        next_urls=next_urls,
-        exclude_ids=exclude_ids,
-        flattened_animal_preferences=flattened_animal_preferences,
-        location_dict=location_data,
-    )
+    
+    next_urls = get_next_animal_urls(animal_types=animal_types, endpoint='animals')
 
     render_content = []
-    no_api_content = False
+    # try:
 
-    try:
-        for data in generator:
-            if "error" in data:
-                # Flash the error message
-                flash(
-                    f"Error fetching data for {data['animal_type']}: {data['error']}",
-                    "error",
-                )
-                # Optionally, append partial results if desired
-                render_content.extend(data.get("partial_results", []))
-            else:
-                # Accumulate full results
-                render_content.extend(data)
+    while len(render_content) < target_count:
+        session[NEXT_ANIMAL_URLS_KEY] = next_urls  # Save updated next URLs in session
+        
+        # Combine initial parameters with animal preferences and location if provided
+        params = init_params.copy().update(flattened_animal_preferences) if flattened_animal_preferences else init_params.copy()
+            
+        # set params['location'] properly
+        if location_data or isinstance(params.get("location"), (dict, object)):
+            params["location"] = api.get_next_location(location_dict=location_data)
 
-        while len(render_content) < target_count:
-            results, next_urls = next(generator)
-            session["next_urls"] = next_urls  # Save updated next URLs in session
+        for animal_type in animal_types:
+            next_url = next_urls.get(animal_type) or urljoin(f"{api.BASE_API_URL}/animals", params)
 
-            if not results:
-                no_api_content = True
-                break  # Exit if generator returns no content
-
-            # Filter and parse results
-            filters = create_user_preference_filters()
-            filtered_results, success_flag = api.filter_parse_animal_results(
-                results, filter_prefs=filters
+            if not next_url:
+                continue  # Skip this type if no next URL is available (exhausted)
+            # Fetch data from the API using request_with_retry
+            results = api.request_with_retry(
+                endpoint="animals", request_url=next_url, params=params
             )
-            render_content.extend(filtered_results)
+        
+        if not results:
+            raise PetFinderResourceNotFoundError()
+            break  # Exit if generator returns no content
 
-            # Add viewed content to session if successful
-            if success_flag:
-                session["VIEWED_CONTENT_LIST"] = list(
-                    set(
-                        session.get("VIEWED_CONTENT_LIST", [])
-                        + [result["id"] for result in filtered_results]
-                    )
+        # Filter and parse results
+        filters = create_user_preference_filters()
+        filtered_results, success_flag = api.filter_parse_animal_results(
+            results, filter_prefs=filters
+        )
+        render_content.extend(filtered_results)
+
+        # Add viewed content to session if successful
+        if success_flag:
+            session["VIEWED_CONTENT_LIST"] = list(
+                set(
+                    session.get("VIEWED_CONTENT_LIST", [])
+                    + [result["id"] for result in filtered_results]
                 )
-                break
-
-        # No content message
-        if no_api_content:
-            flash(
-                "No animals found matching your filters. Adjust filters or try again later!",
-                "warning",
             )
-            init_params = {"limit": target_count}
+            break
 
-            # Attempt backup API call if no content
-            try:
-                backup_results = api._get_request(
-                    "animals", f"{api.BASE_API_URL}/animals", params=init_params
-                )
-                if not backup_results:
-                    return redirect(
-                        url_for(
-                            "custom_error",
-                            error_title="PetFinder API Unavailable",
-                            error_subtitle="We're sorry for the inconvenience.",
-                            error_message="PetFinder's API is temporarily down. Please try again later.",
-                        )
-                    )
-                render_content = backup_results.get("animals", [])
-            except Exception as api_error:
-                app.logger.error(f"API Backup Call Failed: {api_error}")
+    # No content message
+    if len(render_content) == 0:
+        flash(
+            "No animals found matching your filters. Adjust filters or try again later!",
+            "warning",
+        )
+        init_params = {"limit": target_count}
+
+        # Attempt backup API call if no content
+        try:
+            backup_results = api._get_request(
+                "animals", f"{api.BASE_API_URL}/animals", params=init_params
+            )
+            if not backup_results:
                 return redirect(
                     url_for(
                         "custom_error",
-                        error_title="PetFinder API Error",
-                        error_subtitle="Unable to retrieve animals.",
-                        error_message="Our system is currently experiencing issues connecting to PetFinder. Please try again later.",
+                        error_title="PetFinder API Unavailable",
+                        error_subtitle="We're sorry for the inconvenience.",
+                        error_message="PetFinder's API is temporarily down. Please try again later.",
                     )
                 )
+            render_content = backup_results.get("animals", [])
+        except Exception as api_error:
+            app.logger.error(f"API Backup Call Failed: {api_error}")
+            return redirect(
+                url_for(
+                    "custom_error",
+                    error_title="PetFinder API Error",
+                    error_subtitle="Unable to retrieve animals.",
+                    error_message="Our system is currently experiencing issues connecting to PetFinder. Please try again later.",
+                )
+            )
+
+    # except PetFinderAccessDeniedError as e:
+    #         #wait attempt number of seconds in case of rate limiting
+    #         sleep(int(attempt))
+    #         #reset access token
+    #         self._get_access_token()
+    #         if attempt == max_retries:
+    #             break
+    #         else:
+    #             continue
+    #     except PetFinderInvalidParametersError as e:
+    #         # Handle invalid parameters by removing problematic keys and retrying
+    #         invalid_params = (
+    #             e.invalid_params or []
+    #         )  # Retrieve invalid params from error, if available
+    #         for param in invalid_params:
+    #             params.pop(param, None)  # Remove invalid key
+    #         continue  # Retry request with modified parameters
+
+    #     except PetFinderLocationError:
+    #         # Handle location errors by cycling through alternative locations
+    #         location_dict = params.get("location", {})
+    #         while location_dict:
+    #             next_location, location_dict = self.get_alternative_locations(
+    #                 location_dict
+    #             )
+
+    #             if not next_location:
+    #                 # All location alternatives have been exhausted; redirect user to enter location
+    #                 return PetFinderLocationError(
+    #                     error_title="Error determining location",
+    #                     error_subtitle="Please set your location",
+    #                     error_message=(
+    #                         "Can't determine your location for local content. "
+    #                         "Please enter your location or enable geolocation for more accurate results."
+    #                     ),
+    #                     redirect_url="/users/location",
+    #                 ).error_info()
+
+    #             # Update params with the new location and retry request
+    #             params["location"] = next_location
+    #             response = self._get_request(
+    #                 endpoint,
+    #                 request_url or f"{self.BASE_API_URL}/{endpoint}",
+    #                 params=params,
+    #             )
+    #             self.log_and_raise_for_status(response)
+    #             return response.json()  # Return if successful
+
+    #     except RateLimitException:
+    #         print("Rate limit reached. Retrying...")
+
+    # # If max retries without success, raise a final error
+    # raise Exception(f"Request to {endpoint} failed after {max_retries} retries.")
+
+
 
         # Respond with JSON for AJAX or render HTML
         if request.is_json:
@@ -1143,16 +1233,175 @@ def discover_animals():
 
         return render_template("results.html", animals=render_content)
 
-    except Exception as e:
-        app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
-        return redirect(
-            url_for(
-                "custom_error",
-                error_title="Unexpected Error",
-                error_subtitle="We ran into an issue!",
-                error_message="Our system encountered an issue loading animals. Please try refreshing the page or come back later.",
-            )
-        )
+    # except Exception as e:
+    #     app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
+    #     return redirect(
+    #         url_for(
+    #             "custom_error",
+    #             error_title="Unexpected Error",
+    #             error_subtitle="We ran into an issue!",
+    #             error_message="Our system encountered an issue loading animals. Please try refreshing the page or come back later.",
+    #         )
+    #     )
+
+
+# @app.route("/discover/animals", methods=["GET"])
+# def discover_animals():
+#     """Route to fetch and display paginated animal data, with error handling and fallback UI in case of API downtime."""
+
+#     user = current_user._get_current_object() if active_authenticated_user() else None
+
+#     # Determine user location
+#     location_data = None
+#     if user:
+#         # Get location from user's serialized data
+#         location_data = user.serialize().get("location")
+#     else:
+#         # Anonymous user, pull location from session
+#         location_data = {
+#             "city": session.get("city"),
+#             "state": session.get("state"),
+#             "postal_code": session.get("postal_code"),
+#             "geolocation": session.get("geolocation"),
+#         } or default_session_keys.get(DEFAULT_LOCATION)
+
+#     init_params = create_init_params(req_type="animals")
+#     animal_types = (
+#         request.args.get("animal_type")
+#         or init_params.get("type")
+#         or user.get("animal_types")
+#         or session.get("ANIMAL_TYPES", ["dog"])
+#     )
+#     target_count = int(
+#         request.args.get("limit") or init_params.get("limit", 9)
+#     )  # Number of animals per page
+
+#     # Prepare exclude_ids for viewed or favorited animals
+#     user_favorites = user.get_all_favorites if user else []
+#     viewed_content = session.get("VIEWED_CONTENT_LIST", [])
+#     exclude_ids = set(viewed_content + user_favorites)
+
+#     # Flatten user preferences for API request
+#     flattened_animal_preferences = (
+#         api.preprocess_preferences(
+#             init_params=init_params.copy(),
+#             prefs_obj=get_user_animal_preferences(species_list=animal_types),
+#         )
+#         if user
+#         else {animal_type: None for animal_type in animal_types}
+#     )
+
+#     # Ensure animal_types is always a list
+#     animal_types = [animal_types] if isinstance(animal_types, str) else animal_types
+#     next_urls = session.get(
+#         NEXT_ANIMAL_URLS_KEY, {animal_type: None for animal_type in animal_types}
+#     )
+
+#     # Initialize generator with new parameters, including location
+#     generator = api.animal_pagination_generator(
+#         animal_types=animal_types,
+#         target_count=target_count,
+#         init_params=init_params,
+#         next_urls=next_urls,
+#         exclude_ids=exclude_ids,
+#         flattened_animal_preferences=flattened_animal_preferences,
+#         location_dict=location_data,
+#     )
+
+#     render_content = []
+#     no_api_content = False
+
+#     try:
+#         for data in generator:
+#             if "error" in data:
+#                 # Flash the error message
+#                 flash(
+#                     f"Error fetching data for {data['animal_type']}: {data['error']}",
+#                     "error",
+#                 )
+#                 # Optionally, append partial results if desired
+#                 render_content.extend(data.get("partial_results", []))
+#             else:
+#                 # Accumulate full results
+#                 render_content.extend(data)
+
+#         while len(render_content) < target_count:
+#             results, next_urls = next(generator)
+#             session[NEXT_ANIMAL_URLS_KEY] = next_urls  # Save updated next URLs in session
+
+#             if not results:
+#                 no_api_content = True
+#                 break  # Exit if generator returns no content
+
+#             # Filter and parse results
+#             filters = create_user_preference_filters()
+#             filtered_results, success_flag = api.filter_parse_animal_results(
+#                 results, filter_prefs=filters
+#             )
+#             render_content.extend(filtered_results)
+
+#             # Add viewed content to session if successful
+#             if success_flag:
+#                 session["VIEWED_CONTENT_LIST"] = list(
+#                     set(
+#                         session.get("VIEWED_CONTENT_LIST", [])
+#                         + [result["id"] for result in filtered_results]
+#                     )
+#                 )
+#                 break
+
+#         # No content message
+#         if no_api_content:
+#             flash(
+#                 "No animals found matching your filters. Adjust filters or try again later!",
+#                 "warning",
+#             )
+#             init_params = {"limit": target_count}
+
+#             # Attempt backup API call if no content
+#             try:
+#                 backup_results = api._get_request(
+#                     "animals", f"{api.BASE_API_URL}/animals", params=init_params
+#                 )
+#                 if not backup_results:
+#                     return redirect(
+#                         url_for(
+#                             "custom_error",
+#                             error_title="PetFinder API Unavailable",
+#                             error_subtitle="We're sorry for the inconvenience.",
+#                             error_message="PetFinder's API is temporarily down. Please try again later.",
+#                         )
+#                     )
+#                 render_content = backup_results.get("animals", [])
+#             except Exception as api_error:
+#                 app.logger.error(f"API Backup Call Failed: {api_error}")
+#                 return redirect(
+#                     url_for(
+#                         "custom_error",
+#                         error_title="PetFinder API Error",
+#                         error_subtitle="Unable to retrieve animals.",
+#                         error_message="Our system is currently experiencing issues connecting to PetFinder. Please try again later.",
+#                     )
+#                 )
+
+#         # Respond with JSON for AJAX or render HTML
+#         if request.is_json:
+#             return jsonify(
+#                 {"results": render_content, "success_flag": bool(render_content)}
+#             )
+
+#         return render_template("results.html", animals=render_content)
+
+#     except Exception as e:
+#         app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
+#         return redirect(
+#             url_for(
+#                 "custom_error",
+#                 error_title="Unexpected Error",
+#                 error_subtitle="We ran into an issue!",
+#                 error_message="Our system encountered an issue loading animals. Please try refreshing the page or come back later.",
+#             )
+#         )
 
 
 @app.route("/discover/animals/<animal_type>")
@@ -1205,7 +1454,10 @@ def discover_specific_animal_type(animal_type):
 def test_animals():
     """Endpoint to retrieve data from PetFinder /animals route"""
     response = api.request_with_retry(
-        request_url=urljoin(api.BASE_API_URL, "animals"), params={}, endpoint="animals"
+        request_url=urljoin(api.BASE_API_URL, "animals"),
+        params={},
+        endpoint="animals",
+        max_retries=3,
     )
     data = response.json() or []
     return jsonify({"response": data})
@@ -1562,7 +1814,7 @@ def set_location():
         location = ",".join(country, state)
 
     # set location in session
-    session["CURR_LOCATION"] = location
+    session[USER_LOCATION_KEY] = location
 
     success_msg = f"App.py: Current CURR_LOCATION set to: {session['CURR_LOCATION']}"
     add_location_to_g(session=session, g=g)
@@ -1791,15 +2043,17 @@ def animal_preferences(animal_type):
 def homepage():
     """Show homepage:"""
 
+    offcanvas_form = UserExperiencesForm()
+    
     if active_authenticated_user():
         # grab user
-        user = current_user._get_current_object()
+        user = current_user._get_current_object().serialize()
         user = user if user else load_user(user_id=current_user.id)
 
         # set session with user data
         load_session()
 
-        return render_template("home.html", user=user)
+        return render_template("home.html", user=user, form=offcanvas_form)
     else:
         return render_template("home-anon.html")  # , results=results
 

@@ -1,12 +1,22 @@
-{% extends "base.html" %}
-
+{% extends "base.html" %} {% block offcanvas %}
 <!-- Offcanvas component -->
-<div class="offcanvas offcanvas-start" tabindex="-1" id="dynamicOffcanvas" aria-labelledby="dynamicOffcanvasLabel">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="dynamicOffcanvasLabel">{% block offcanvas_title %}Filter Options{% endblock %}</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body">
-        {% block offcanvas_content %}{% endblock %}
-    </div>
+<div
+  class="offcanvas offcanvas-start"
+  tabindex="-1"
+  id="dynamicOffcanvas"
+  aria-labelledby="dynamicOffcanvasLabel"
+>
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="dynamicOffcanvasLabel">
+      {% block offcanvas_title %}Filter Options{% endblock %}
+    </h5>
+    <button
+      type="button"
+      class="btn-close text-reset"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"
+    ></button>
+  </div>
+  <div class="offcanvas-body">{% block offcanvas_content %}{% endblock %}</div>
 </div>
+{% endblock %}

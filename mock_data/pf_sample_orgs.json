@@ -1,0 +1,69 @@
+{
+    "organizations": [
+        {
+            "id": "NJ333",
+            "name": "NJ333 - Petfinder Test Account",
+            "email": "no-reply@petfinder.com",
+            "phone": "555-555-5555",
+            "address": {
+                "address1": "Test address 1",
+                "address2": "Test address 2",
+                "city": "Jersey City",
+                "state": "NJ",
+                "postcode": "07097",
+                "country": "US"
+            },
+            "hours": {
+                "monday": null,
+                "tuesday": null,
+                "wednesday": null,
+                "thursday": null,
+                "friday": null,
+                "saturday": null,
+                "sunday": null
+            },
+            "url": "https://www.petfinder.com/member/us/nj/jersey-city/nj333-petfinder-test-account/?referrer_id=d7e3700b-2e07-11e9-b3f3-0800275f82b1",
+            "website": null,
+            "mission_statement": null,
+            "adoption": {
+                "policy": null,
+                "url": null
+            },
+            "social_media": {
+                "facebook": null,
+                "twitter": null,
+                "youtube": null,
+                "instagram": null,
+                "pinterest": null
+            },
+            "photos": [
+                {
+                    "small": "https://photos.petfinder.com/photos/organizations/124/1/?bust=1546042081&width=100",
+                    "medium": "https://photos.petfinder.com/photos/organizations/124/1/?bust=1546042081&width=300",
+                    "large": "https://photos.petfinder.com/photos/organizations/124/1/?bust=1546042081&width=600",
+                    "full": "https://photos.petfinder.com/photos/organizations/124/1/?bust=1546042081"
+                }
+            ],
+            "distance": 0.4095,
+            "_links": {
+                "self": {
+                    "href": "/v2/organizations/nj333"
+                },
+                "animals": {
+                    "href": "/v2/animals?organization=nj333"
+                }
+            }
+        }
+    ],
+    "pagination": {
+        "count_per_page": 20,
+        "total_count": 1,
+        "current_page": 1,
+        "total_pages": 2,
+        "_links": {
+            "next": {
+                "href": "/v2/organizations?page=2"
+            }
+        }
+    }
+}

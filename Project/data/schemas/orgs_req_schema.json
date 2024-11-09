@@ -1,0 +1,172 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Return results matching organization name"
+          },
+          "location": {
+            "type": "string",
+            "description": "Return results by location (city, state; latitude,longitude; or postal code)"
+          },
+          "distance": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Return results within distance of location (in miles)"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2,
+            "description": "Filter results by state (two-letter abbreviation)"
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2,
+            "description": "Filter results by country (two-letter abbreviation)"
+          },
+          "query": {
+            "type": "string",
+            "description": "Search on name, city, state"
+          },
+          "sort": {
+            "type": "string",
+            "enum": ["distance", "-distance", "name", "-name", "country", "-country", "state", "-state"],
+            "description": "Field to sort by; leading dash requests a reverse-order sort"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20,
+            "description": "Maximum number of results to return"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Page of results to return"
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "properties": {
+          "organizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "email": { "type": "string", "format": "email" },
+                "phone": { "type": "string" },
+                "address": {
+                  "type": "object",
+                  "properties": {
+                    "address1": { "type": "string" },
+                    "address2": { "type": "string" },
+                    "city": { "type": "string" },
+                    "state": { "type": "string" },
+                    "postcode": { "type": "string" },
+                    "country": { "type": "string" }
+                  }
+                },
+                "hours": {
+                  "type": "object",
+                  "properties": {
+                    "monday": { "type": ["string", "null"] },
+                    "tuesday": { "type": ["string", "null"] },
+                    "wednesday": { "type": ["string", "null"] },
+                    "thursday": { "type": ["string", "null"] },
+                    "friday": { "type": ["string", "null"] },
+                    "saturday": { "type": ["string", "null"] },
+                    "sunday": { "type": ["string", "null"] }
+                  }
+                },
+                "url": { "type": "string", "format": "uri" },
+                "website": { "type": ["string", "null"], "format": "uri" },
+                "mission_statement": { "type": ["string", "null"] },
+                "adoption": {
+                  "type": "object",
+                  "properties": {
+                    "policy": { "type": ["string", "null"] },
+                    "url": { "type": ["string", "null"], "format": "uri" }
+                  }
+                },
+                "social_media": {
+                  "type": "object",
+                  "properties": {
+                    "facebook": { "type": ["string", "null"] },
+                    "twitter": { "type": ["string", "null"] },
+                    "youtube": { "type": ["string", "null"] },
+                    "instagram": { "type": ["string", "null"] },
+                    "pinterest": { "type": ["string", "null"] }
+                  }
+                },
+                "photos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "small": { "type": "string", "format": "uri" },
+                      "medium": { "type": "string", "format": "uri" },
+                      "large": { "type": "string", "format": "uri" },
+                      "full": { "type": "string", "format": "uri" }
+                    }
+                  }
+                },
+                "distance": { "type": "number" },
+                "_links": {
+                  "type": "object",
+                  "properties": {
+                    "self": {
+                      "type": "object",
+                      "properties": {
+                        "href": { "type": "string" }
+                      }
+                    },
+                    "animals": {
+                      "type": "object",
+                      "properties": {
+                        "href": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count_per_page": { "type": "integer" },
+              "total_count": { "type": "integer" },
+              "current_page": { "type": "integer" },
+              "total_pages": { "type": "integer" },
+              "_links": {
+                "type": "object",
+                "properties": {
+                  "next": {
+                    "type": "object",
+                    "properties": {
+                      "href": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["organizations", "pagination"]
+      }
+    },
+    "required": ["request", "response"]
+  }
