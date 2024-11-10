@@ -83,6 +83,7 @@ from package.api_exceptions import (
     PetFinderLocationError,
     PetFinderUnexpectedServerError,
 )
+from package.petfinder_types import AnimalReqParams
 
 # default session keys
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -95,7 +96,7 @@ RESULTS_PER_PAGE_KEY = "RESULTS_PER_PAGE"
 VIEWED_CONTENT_KEY = "VIEWED_CONTENT_LIST"
 USER_LOCATION_KEY = "CURR_LOCATION"
 NEXT_ANIMAL_URLS_KEY = "NEXT_URLS"
-
+API_ANIMAL_TYPES_KEY = "API_ANIMAL_TYPES"
 load_dotenv()
 
 default_session_keys = {
@@ -1406,8 +1407,8 @@ def discover_animals():
 
 @app.route("/discover/animals/<animal_type>")
 def discover_specific_animal_type(animal_type):
-    types_key = "API_ANIMAL_TYPES"
-    types_list = session.get(types_key) or json.loads(os.environ.get(types_key, "[]"))
+    
+    types_list = session.get(API_ANIMAL_TYPES_KEY) or json.loads(os.environ.get(API_ANIMAL_TYPES_KEY, "[]"))
 
     # Validate animal_type
     if not types_list:
@@ -1418,7 +1419,7 @@ def discover_specific_animal_type(animal_type):
             url_for("discover_specific_animal_type", animal_type=animal_type)
         )
 
-    prettified_animal_type = api.prettify_animal_type(animal_type)
+    prettified_animal_type = Parse.prettify_animal_types(animal_type)
 
     if (animal_type, prettified_animal_type) not in types_list:
         return redirect(
@@ -2175,20 +2176,20 @@ def init_default_session():
 @app.before_request
 def seed_animal_info():
     """Make API call for animal types information and save it to session and environment."""
-    types_key = "API_ANIMAL_TYPES"
+    API_ANIMAL_TYPES_KEY = "API_ANIMAL_TYPES"
 
     # Retrieve type list from session or environment
     type_list = (
-        session.get(types_key) or json.loads(os.environ.get(types_key, "[]")) or None
+        session.get(API_ANIMAL_TYPES_KEY) or json.loads(os.environ.get(API_ANIMAL_TYPES_KEY, "[]")) or None
     )
 
-    if not type_list and types_key not in session and types_key not in os.environ:
+    if not type_list and API_ANIMAL_TYPES_KEY not in session and API_ANIMAL_TYPES_KEY not in os.environ:
         # make API call if
         type_list = api.seed_animal_types()
 
         # Store the type_list in session and environment
-        session[types_key] = type_list
-        os.environ[types_key] = json.dumps(type_list)
+        session[API_ANIMAL_TYPES_KEY] = type_list
+        os.environ[API_ANIMAL_TYPES_KEY] = json.dumps(type_list)
 
 
 @app.before_request
@@ -2211,6 +2212,7 @@ def load_session():
         if user_session_data:
             # update session with state_country, animal_types, curr_location, distance
             session.update(user_session_data)
+
 
 
 animal_colors = {

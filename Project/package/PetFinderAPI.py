@@ -21,6 +21,7 @@ from json import JSONDecodeError
 from collections.abc import Iterable
 
 from package.parse import Parse, parse_multi_animal
+from package.petfinder_types import AnimalReqParams, AnimalTypes, AnimalFeatures
 
 from package.api_exceptions import (
     PetFinderInvalidCredentialsError,
@@ -361,9 +362,9 @@ class PetFinderAPI:
     def _get_request(
         self,
         request_url,
-        endpoint,
-        params=None,
-    ):
+        endpoint: str,
+        params: AnimalReqParams = None,
+    ) -> object:
         """Create a url to make an API request based off passed in params object.
 
 
@@ -395,16 +396,19 @@ class PetFinderAPI:
         response = requests.get(request_url, params=params, headers=headers)
         return response
 
-    def format_list_params(self, params):
+    def format_list_params(self, params: AnimalReqParams):
         """Validate and format parameters before making API requests."""
         formatted_params = {}
         for key, value in params.items():
-            if isinstance(value, list) and key.lower() not in [
-                "type",
-                "types",
-                "animal_type",
-                "animal_types",
-            ]:
+            if isinstance(value, list) and key.lower() not in (
+                self.animal_params_that_accept_multiple
+                + [
+                    "type",
+                    "types",
+                    "animal_type",
+                    "animal_types",
+                ]
+            ):
                 formatted_params[key] = ",".join(map(str, value))
             else:
                 formatted_params[key] = value
@@ -416,7 +420,7 @@ class PetFinderAPI:
     @limits(calls=50, period=1)  # Limit of 50 calls per second
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def request_with_retry(
-        self, endpoint, request_url, params=default_options_obj, max_retries=MAX_TRIES
+        self, endpoint, request_url, params=default_options_obj, max_retries:int=MAX_TRIES
     ):
         """
         Higher-order wrapper function that wraps the request in a retry mechanism to handle rate limits and temporary issues.
