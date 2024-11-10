@@ -71,6 +71,7 @@ from package.helper import (
     add_location_to_g,
     add_animal_types_to_g,
 )
+from ..mock_data.mock_pf import mock_pf_bp
 from config import config, Config
 from package.PetFinderAPI import PetFinderAPI
 from package.parse import Parse
@@ -142,6 +143,8 @@ def create_app():
 # create Flask app
 app = Flask(__name__)
 # app.session_interface = CustomSessionInterface()
+#Register blueprint
+app.register_blueprint(mock_pf_bp)
 
 # create config instance
 app_config_instance = Config()

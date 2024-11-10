@@ -1,10 +1,9 @@
 from marshmallow import Schema, fields, validate
-from flask_sqlalchemy import SQLAlchemy
 from enum import Enum
 
+# from ...db import db
 from ...package.petfinder_types import AnimalType
 
-db = SQLAlchemy()
 
 class AnimalType(Enum):
 # The class `AnimalType` defines an enumeration of different types of animals.
@@ -79,8 +78,8 @@ class ContactSchema(Schema):
 class BreedsSchema(Schema):
     primary = fields.Str(allow_none=True)
     secondary = fields.Str(allow_none=True)
-    mixed = fields.Bool()
-    unknown = fields.Bool()
+    mixed = fields.Bool(allow_none=True)
+    unknown = fields.Bool(allow_none=True)
 
 class ColorsSchema(Schema):
     primary = fields.Str(allow_none=True)

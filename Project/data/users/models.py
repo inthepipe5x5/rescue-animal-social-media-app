@@ -5,15 +5,15 @@ import pycountry
 import json
 from flask import abort
 from flask_bcrypt import Bcrypt
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert
 from sqlalchemy.sql import func
 from flask_login import UserMixin
 from sqlalchemy.exc import IntegrityError
 
+from ...db import db
+
 bcrypt = Bcrypt()
-db = SQLAlchemy()
 
 
 class UserFavorites(db.Model):
