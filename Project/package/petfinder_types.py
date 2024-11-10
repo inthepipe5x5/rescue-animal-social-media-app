@@ -42,7 +42,7 @@ class FormattedAnimalType(Enum):
 AnimalTypes: TypeAlias = Union[str, List[str], tuple, AnimalType]
 PetfinderID: TypeAlias = Union[int, str, List[Union[int, str]], Tuple[Union[int, str]]]
 AnimalFeatures: TypeAlias = Union[
-    bool, str, List[str], tuple[str]
+    bool, str, List[str], tuple[str, ...]
 ]  # accepts a list/tuple of features, which are either boolean or string
 Date: TypeAlias = Union[str, datetime.datetime]
 
@@ -55,6 +55,7 @@ Animals: TypeAlias = Union[list[dict], dict, DataFrame]
 class GeoLocation(TypedDict):
     latitude: float
     longitude: float
+
 
 # This Union type allows for both dictionary and string representations of geolocation
 GeoLocationType = Union[GeoLocation, str]  # str for "lat,lon" format
