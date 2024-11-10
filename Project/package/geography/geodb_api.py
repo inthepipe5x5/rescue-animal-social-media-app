@@ -6,6 +6,7 @@ from ratelimit import (
     RateLimitException,
     sleep_and_retry,
 )
+from ...package.petfinder_types import UserLocationData
 
 #Define API variables
 api_key = os.environ.get("GEODB_API_KEY") or None
@@ -83,3 +84,39 @@ class GeoDBHelper:
             f"{self.BASE_URL}/regions/{region_id}/cities", headers=self.HEADERS
         )
         return response.json()
+
+    def get_city_geolocation(self, params: UserLocationData) -> Optional[str]:
+        """
+        # Example usage
+        
+        params = UserLocationData(state="CA", country="US", city="San Francisco")
+        geolocation = get_city_geolocation(params)
+        if geolocation:
+            print(geolocation)
+        
+        """
+        base_url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
+        headers = {
+            "X-RapidAPI-Key": "YOUR_RAPIDAPI_KEY",  # Replace with your RapidAPI key
+            "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com"
+        }
+        query_params = {
+            "namePrefix": params['city'],
+            "countryIds": params['country'],
+            "regionCode": params['state']
+        }
+
+        response = requests.get(base_url, headers=headers, params=query_params)
+
+        if response.status_code == 200:
+            data = response.json()
+            if data['data']:
+                # Get latitude and longitude from the first result
+                city_info = data['data'][0]
+                latitude = city_info.get('latitude')
+                longitude = city_info.get('longitude')
+                return f"{latitude}, {longitude}"
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+
+        return None

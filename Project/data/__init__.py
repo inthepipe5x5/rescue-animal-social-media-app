@@ -1,14 +1,14 @@
 from marshmallow import fields
-from flask_sqlalchemy import Column
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB
-from ...db import db
-from .animal_store import Animal
+from .animals.animals_store import AnimalSchema
+from .orgs.orgs_store import OrganizationSchema
 
 from marshmallow import fields, Schema
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB
-from ...db import db
+from db import db
+
 
 class SchemaDbModel(db.Model):
     __abstract__ = True
@@ -22,8 +22,8 @@ class SchemaDbModel(db.Model):
     def create_model_from_schema(cls, schema_class):
         for field_name, field_obj in schema_class._declared_fields.items():
             column = cls.get_column_from_field(field_obj)
-            if column:
-                setattr(cls, field_name, column)
+            column = setattr(cls, field_name, column) if column else None #is this right? trying to avoid this type error: TypeError("Boolean value of this clause is not defined")
+                
 
     @staticmethod
     def get_column_from_field(field_obj):
@@ -40,8 +40,6 @@ class SchemaDbModel(db.Model):
         elif isinstance(field_obj, fields.List):
             if isinstance(field_obj.inner, fields.Str):
                 return Column(JSONB)  # Store list of strings as JSONB
-            else:
-                return Column(JSONB)  # Store other lists as JSONB
         else:
             return Column(String)  # Default to String
 
@@ -78,24 +76,26 @@ class SchemaDbModel(db.Model):
 
     @staticmethod
     def get_next_url(pagination_data):
-        if not pagination_data or '_links' not in pagination_data:
+        if not pagination_data or "_links" not in pagination_data:
             return None
-        
-        next_link = pagination_data['_links'].get('next')
-        if next_link and 'href' in next_link:
-            return next_link['href']
+
+        next_link = pagination_data["_links"].get("next")
+        if next_link and "href" in next_link:
+            return next_link["href"]
         return None
+
 
 # subclass for Animals
 class Animal(SchemaDbModel, schema=AnimalSchema):
-    __tablename__ = 'animals'
-    api_list_key = 'animals'
+    __tablename__ = "animals"
+    api_list_key = "animals"
 
     id = Column(String(50), primary_key=True)
 
+
 # subclass for Organizations
 class Organization(SchemaDbModel, schema=OrganizationSchema):
-    __tablename__ = 'organizations'
-    api_list_key = 'organizations'
+    __tablename__ = "organizations"
+    api_list_key = "organizations"
 
     id = Column(String(50), primary_key=True)

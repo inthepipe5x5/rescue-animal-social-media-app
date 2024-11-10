@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, validate
 from enum import Enum
+from ...db import db
 
 # from ...db import db
 from ...package.petfinder_types import AnimalType

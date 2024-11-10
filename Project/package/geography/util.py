@@ -9,6 +9,16 @@ from urllib.parse import urljoin
 class GeoUtil:
 
     def lookup_country(search_string) -> list:
+        """
+        The `lookup_country` function takes a search string and returns a list of dictionaries containing
+        country objects that match the fuzzy search.
+        
+        :param search_string: The `lookup_country` function takes a `search_string` as input and returns a
+        list of dictionaries containing information about countries that match the search string using fuzzy
+        search. The `search_string` parameter is the string that will be used to search for countries
+        :return: A list of dictionaries containing information about countries that match the search string
+        using fuzzy search.
+        """
 
         return [
             dict(country_obj)

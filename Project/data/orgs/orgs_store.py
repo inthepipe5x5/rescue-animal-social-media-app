@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
+from flask_marshmallow import Marshmallow, fields
+from ...db import db
 
-db = SQLAlchemy()
 ma = Marshmallow()
 
 class Organization(db.Model):
@@ -24,15 +24,12 @@ class Address(db.Model):
     postcode = db.Column(db.String)
     country = db.Column(db.String)
 
-class OrganizationSchema(ma.SQLAlchemyAutoSchema):
+class OrganizationSchema(ma.SQLAlchemySchema):
     class Meta:
         model = Organization
         include_fk = True
-
-class AddressSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = Address
-        include_fk = True
+        include_relationships = True
+        load_instance = True
 
 class OrganizationResponseSchema(ma.Schema):
     id = fields.Str()
