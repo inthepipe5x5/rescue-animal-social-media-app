@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone, timedelta
-from package.PetFinderAPI import PetFinderAPI
-from package.helper import get_anon_preference, get_user_preference
+from petfinder.PetFinderAPI import PetFinderAPI
+from petfinder.helper import get_anon_preference, get_user_preference
 
 class TestPetFinderPetPyAPI(unittest.TestCase):
 

@@ -1,0 +1,158 @@
+.
+|-- Dockerfile
+|-- LICENSE
+|-- Project
+|   |-- __init__.py
+|   |-- app.py
+|   |-- config.py
+|   |-- data
+|   |   |-- __init__.py
+|   |   |-- animals
+|   |   |   |-- __init__.py
+|   |   |   |-- animals_req.py
+|   |   |   `-- animals_store.py
+|   |   |-- orgs
+|   |   |   |-- __init__.py
+|   |   |   |-- orgs_req.py
+|   |   |   `-- orgs_store.py
+|   |   |-- schemas
+|   |   |   |-- animals_req_schema.json
+|   |   |   `-- orgs_req_schema.json
+|   |   `-- users
+|   |       `-- models.py
+|   |-- db.py
+|   |-- fake-user-generator
+|   |   |-- create_csvs.py
+|   |   |-- follows.csv
+|   |   |-- helpers.py
+|   |   |-- messages.csv
+|   |   `-- users.csv
+|   |-- forms.py
+|   |-- migrations
+|   |   |-- README
+|   |   |-- alembic.ini
+|   |   |-- env.py
+|   |   |-- script.py.mako
+|   |   `-- versions
+|   |       |-- 3131d0249564_.py
+|   |       `-- f1663474f27b_init_migration.py
+|   |-- package
+|   |   |-- PetFinderAPI.py
+|   |   |-- __init__.py
+|   |   |-- api_exceptions.py
+|   |   |-- geography
+|   |   |   |-- geodb_api.py
+|   |   |   `-- util.py
+|   |   |-- helper.py
+|   |   |-- parse.py
+|   |   `-- petfinder_types.py
+|   |-- requirements.txt
+|   |-- seed.py
+|   |-- static
+|   |   |-- animalPref.js
+|   |   |-- animateHoverableCard.js
+|   |   |-- favicon.ico
+|   |   |-- geolocation.js
+|   |   |-- home-ui.js
+|   |   |-- images
+|   |   |   |-- animal-pictures
+|   |   |   |   |-- chris-anderson-coheb5v8c0M-unsplash.jpg
+|   |   |   |   |-- cynthia-smith-vDs0MCYkfQ4-unsplash.jpg
+|   |   |   |   |-- kym-ellis-p025ltbEPwM-unsplash.jpg
+|   |   |   |   |-- madeline-bowen-O3L9n7_QI70-unsplash.jpg
+|   |   |   |   |-- margarita-kosior-qip8Py7fh6I-unsplash.jpg
+|   |   |   |   |-- obada-fa-NdAwLiM110o-unsplash.jpg
+|   |   |   |   `-- sasha-sashina-Xcscr_sNSEY-unsplash.jpg
+|   |   |   |-- ff-logo.svg
+|   |   |   |-- graphics
+|   |   |   |   |-- bird_eucalyp.png
+|   |   |   |   |-- cat_freepik.png
+|   |   |   |   |-- dog-hug-freepik.png
+|   |   |   |   |-- dog-play-photo3idea_studio.png
+|   |   |   |   |-- dog-walking-photo3idea_studio.png
+|   |   |   |   |-- dog_freepik.png
+|   |   |   |   |-- easter_bunny_freepik.png
+|   |   |   |   |-- horse_freepik.png
+|   |   |   |   |-- hourglass_freepik.png
+|   |   |   |   |-- pets-iconixar.png
+|   |   |   |   |-- pin_freepik.png
+|   |   |   |   |-- scales-smashicons.png
+|   |   |   |   |-- small_furry_freepik.png
+|   |   |   |   `-- tracks_freepik.png
+|   |   |   `-- profile-images
+|   |   |       |-- default-header-image-natalie-kinnear-MUkxOfl8epk-unsplash.jpg
+|   |   |       |-- default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg
+|   |   |       |-- default-pic.png
+|   |   |       `-- home-anon-user.jpg
+|   |   |-- renderAnimalCards.js
+|   |   |-- renderSkeletonCards.js
+|   |   |-- setStateCountryInput.js
+|   |   |-- setTravelPreference.js
+|   |   |-- stylesheets
+|   |   |   `-- style.css
+|   |   `-- toggleDataCollapse.js
+|   |-- templates
+|   |   |-- animalModal.html
+|   |   |-- animalModalButton.html
+|   |   |-- animalResults.html
+|   |   |-- aside.html
+|   |   |-- base.html
+|   |   |-- carousel-form.html
+|   |   |-- error_page.html
+|   |   |-- header.html
+|   |   |-- hiddenForm.html
+|   |   |-- home-anon.html
+|   |   |-- home.html
+|   |   |-- loading_view.html
+|   |   |-- messages
+|   |   |   |-- new.html
+|   |   |   `-- show.html
+|   |   |-- offcanvas.html
+|   |   |-- offcanvas_animal.html
+|   |   |-- pagination-footer-nav.html
+|   |   |-- results
+|   |   |   |-- macros.html
+|   |   |   `-- org-results.html
+|   |   |-- results.html
+|   |   |-- scrollToTopButton.html
+|   |   |-- top-results.html
+|   |   `-- users
+|   |       |-- detail.html
+|   |       |-- edit.html
+|   |       |-- followers.html
+|   |       |-- following.html
+|   |       |-- form.html
+|   |       |-- index.html
+|   |       |-- login.html
+|   |       |-- show.html
+|   |       |-- signup.html
+|   |       `-- user_animal_preferences.html
+|   `-- tests
+|       |-- __init__.py
+|       `-- test_PetFinderAPI.py
+|-- docker-build.sh
+|-- docker-run.sh
+|-- docs
+|   |-- directory_structure.txt
+|   `-- project_structure.txt
+|-- ff_rescue_db_backup.sql
+|-- gunicorn.conf.py
+|-- mock_data
+|   |-- mock_pf.py
+|   |-- pf_assorted_na_orgs.json
+|   |-- pf_sample_animals.json
+|   |-- pf_sample_orgs.json
+|   |-- pf_sample_single_animal.json
+|   `-- pf_sample_single_org.json
+|-- prod-ca-2021.crt
+|-- project_structure.txt
+|-- readme.txt
+|-- render.yaml
+|-- requirements.txt
+|-- start.sh
+|-- supabase_test.py
+|-- tests
+|-- traint
+`-- wsgi.py
+
+25 directories, 130 files

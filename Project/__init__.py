@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app
-from db import db
+from Project.core import db
 
 if __name__ == "__main__":
     print("Flask app =", app)

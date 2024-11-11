@@ -1,7 +1,21 @@
-SECRET_KEY=topsecretkey
-API_KEY=donotsharethisapikeywithanyone
-API_SECRET=wowwowsosecret
-SQLALCHEMY_DATABASE_URI=postgresql:///ff-rescue-db
-SQLALCHEMY_TEST_DATABASE_URI=postgresql:///ff-rescue-db-test
-SQLALCHEMY_PROD_DATABASE_URI=postgresql:///ff-rescue-db-prod
-ACCESS_TOKEN=None
+# Flask
+FLASK_APP=app.py
+SECRET_KEY=super-secret-key
+#PetFinder API
+API_KEY=
+API_SECRET=
+ACCESS_TOKEN=
+
+# SQLAlchemy #
+SQLALCHEMY_DATABASE_URI="fake-url"
+SQLALCHEMY_TEST_DATABASE_URI="fake-url"
+SQLALCHEMY_PROD_DATABASE_URI="fake-url"
+
+# SupaBase #
+SUPABASE_HOST="fake-url"
+SUPABASE_URI="fake-url"
+SUPABASE_USER="fake-url"
+SUPABASE_PW="fake-pw"
+
+#GeoDB
+GEODB_API_KEY=
