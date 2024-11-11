@@ -1,5 +1,6 @@
 # file to store constant variables that are necessary for app function and/or to be shared
 import os
+
 # keys to use to store key app values in Flask Session
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 CURR_ANIMALS_KEY = "ANIMAL_TYPES"
@@ -66,6 +67,36 @@ default_error_details = {
         "redirect_text": "Back to Home",
     },
 }
+
+default_animal_photos = {
+        "dog": "dog-freepik.png",
+            "cat": "cat-freepik.png",
+            "horse": "horse-freepik.png",
+            "bird": "bird-eucalyp.png",
+            "small-furry": "small-furry-freepik.png",
+            "scales-fins-other": "scales-smashicons.png",
+            "barnyard": "scales-smashicons.png",
+            "rabbit": "rabbit-freepik.png",
+            "misc": "tracks_freepik.png",
+        }
+
+default_animal_prefs = [
+    {"declawed": False},
+    {"shots_current": False},
+    {"special_needs": False},
+    {"spayed_neutered": False},
+    {"house_trained": False},
+    {"child_friendly": False},
+    {"dogs_friendly": False},
+    {"cats_friendly": False},
+    {"breeds": ["any"]},
+    {"colors": ["any"]},
+    {"coat": ["any"]},
+    {"age": ["any"]},
+    {"gender": ["any"]},
+    {"size": ["any"]},
+    {"personality": ["any"]},
+]
 
 animal_colors = {
     "dog": "primary",

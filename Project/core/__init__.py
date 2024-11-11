@@ -19,6 +19,9 @@ from ..services import pf as api
 from ..app import app
 from ..utils import Parse
 
+from api import register_bp
+# Register blueprints
+app = register_bp(app)
 
 def do_login(user):
     """Log in user."""
@@ -87,7 +90,6 @@ def load_session():
         if user_session_data:
             # update app.session with state_country, animal_types, curr_location, distance
             app.session.update(user_session_data)
-
 
 def init_default_session():
     """Initialize the app.session with default values"""

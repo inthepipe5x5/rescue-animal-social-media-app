@@ -1,18 +1,21 @@
 from flask import Blueprint
 
-from .routes.animals import animal_routes
-from .routes.data import data_routes
-from .routes.user import user_routes
-from .routes.org import org_routes
+from .routes.animals import animals_bp
+from .routes.data import datas_bp
+from .routes.user import users_bp
+from .routes.org import orgs_bp
+from .routes.error import errors_bp
+from .routes.pf import pf_bp
 
-api_bp = Blueprint('api', __name__)
 
-def init_api(app):
-    animal_routes.register(api_bp)
-    org_routes.register(api_bp)
-    user_routes.register(api_bp)
-    
-    app.register_blueprint(api_bp, url_prefix='/api')
+def register_bp(app):
+    # Register blueprints
+    app.register(animals_bp)
+    app.register(orgs_bp)
+    app.register(users_bp)
+    app.register(datas_bp)
+    app.register(errors_bp)
+    app.register(pf_bp)
 
 if __name__ == '__main__':
     pass

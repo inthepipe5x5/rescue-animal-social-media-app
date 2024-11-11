@@ -4,11 +4,11 @@ from urllib.parse import urljoin
 import requests
 from time import sleep
 from services import pf as api, geodb
-from core import AnimalReqParams, RequestedContent
+from core import db, AnimalReqParams, RequestedContent
 from schemas import Animal, AnimalListResponseSchema, AnimalSchema
-from core import db
+from models import Animal
 
-pf_bp = Blueprint("pf", __name__, url_prefix="/pf")
+pf_bp = Blueprint("pf", __name__, url_prefix="/pf", url_defaults=url_for("return_animals"))
 load_dotenv()
 
 
@@ -16,8 +16,13 @@ load_dotenv()
 def return_animals():
     """Route to return scraped PetFinder /animals data"""
 
-    params = request.body.get("params")
-
+    #TODO:
+    # params = request.body.get("params")
+    # if params:
+    #     db.session.query(Animal).filter()
+    
+    animals = db.session.query(Animal).limit(20)
+    return jsonify(animals)
 
 @pf_bp.route("/animals/scrape", methods=["POST"])
 def scrape_animals():

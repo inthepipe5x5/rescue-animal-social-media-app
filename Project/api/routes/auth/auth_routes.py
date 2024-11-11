@@ -1,17 +1,16 @@
-
 # auth/routes.py
 import os
 from flask import Blueprint, flash, redirect, session, g, render_template, url_for
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
-
+from core import do_login, do_logout, init_default_session, login_required
 from models import db, User
 from forms import LoginForm, UserAddForm
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 load_dotenv()
-CURR_USER_KEY = os.environ.get("CURR_USER_KEY", 'curr_user')
+CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 
 
 ##############################################################################
@@ -50,4 +49,3 @@ def logout():
     init_default_session()
     flash(f"Log out successful. Hope to see you again", "success")
     return redirect("/")
-

@@ -35,7 +35,7 @@ from forms import (
 
 load_dotenv()
 
-error_bp = Blueprint("error", __name__, url_prefix="error")
+error_bp = Blueprint("error", __name__, url_prefix="error", url_defaults=url_for('error'))
 
 
 # ERROR routes ##############################################################################

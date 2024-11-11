@@ -7,7 +7,6 @@ from flask import (
     render_template,
     session,
     jsonify,
-    url_default
 )
 from dotenv import load_dotenv
 from werkzeug.datastructures import MultiDict
@@ -28,7 +27,8 @@ from core import (
     create_init_params,
     create_next_animal_url,
     load_user,
-    load_session
+    load_session,
+    save_location_to_session
 )
 from models import User, UserFavorites, UserLocation, UserAnimalPreferences
 from forms import (
@@ -46,7 +46,9 @@ from forms import (
 
 load_dotenv()
 
-users_bp = Blueprint("users", __name__, url_prefix="users")
+users_bp = Blueprint(
+    "users", __name__, url_prefix="users", url_defaults=url_for("profile")
+)
 
 
 ##############################################################################
@@ -54,19 +56,20 @@ users_bp = Blueprint("users", __name__, url_prefix="users")
 @login_required
 @users_bp.route("/")
 def list_users():
-    """Page with listing of users.
+    # """Page with listing of users.
 
-    Can take a 'q' param in querystring to search by that username.
-    """
+    # Can take a 'q' param in querystring to search by that username.
+    # """
 
-    search = request.args.get("q")
+    # search = request.args.get("q")
 
-    if not search:
-        users = User.query.all()
-    else:
-        users = User.query.filter(User.username.like(f"%{search}%")).all()
+    # if not search:
+    #     users = User.query.all()
+    # else:
+    #     users = User.query.filter(User.username.like(f"%{search}%")).all()
 
-    return render_template("users/index.html", users=users)
+    # return render_template("index.html", users=users)
+    return redirect(url_for("profile"))
 
 
 @users_bp.route("/<int:user_id>")
@@ -75,7 +78,7 @@ def show_user(user_id):
     user_location_form = UserLocationForm(obj=user.location)
     user_travel_form = UserTravelForm(obj=user.travel_preference)
     return render_template(
-        "users/show.html",
+        "show.html",
         user=user,
         user_location_form=user_location_form,
         user_travel_form=user_travel_form,
@@ -131,7 +134,7 @@ def update_user_location():
             return redirect(url_for("show_user", user_id=current_user.id))
 
         return render_template(
-            "/users/form.html",
+            "/form.html",
             form=form,
             form_title="Where are you located?",
             page_scripts=[
@@ -183,7 +186,7 @@ def user_travel_preferences():
         return redirect(url_for("show_user", user_id=current_user.id))
 
     return render_template(
-        "/users/form.html",
+        "/form.html",
         form=form,
         form_title="How far are you willing to travel?",
         page_scripts=[url_for("static", filename="setTravelPreference.js")],
@@ -327,7 +330,7 @@ def update_animal_types():
 
 
 @login_required
-@users_bp.route("/users/preferences/<animal_type>", methods=["GET", "POST"])
+@users_bp.route("/preferences/<animal_type>", methods=["GET", "POST"])
 def animal_preferences(animal_type):
     if request.method == "GET":
         user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
@@ -392,12 +395,14 @@ def animal_preferences(animal_type):
             return redirect(url_for("profile"))
 
     return render_template(
-        "/users/user_animal_preferences.html", form=form, endpoint_param=animal_type
+        url_for("templates", "users/user_animal_preferences.html"),
+        form=form,
+        endpoint_param=animal_type,
     )
 
+
 @login_required
-@url_default
-@users_bp.route("/users/profile", methods=["GET", "POST"])
+@users_bp.route("/profile", methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
     # TODO write this to accept a dict of values to update on the current user
@@ -424,12 +429,12 @@ def profile():
                 flash(
                     "You were unsuccessful, try again", "error"
                 )  # show success to user
-                return render_template("users/edit.html", form=form, user=active_user)
+                return render_template("edit.html", form=form, user=active_user)
 
-        return render_template("users/edit.html", form=form, user=active_user)
+        return render_template("edit.html", form=form, user=active_user)
 
 
-@users_bp.route("/users/delete", methods=["POST"])
+@users_bp.route("/delete", methods=["POST"])
 def delete_user():
     """Delete user."""
 
@@ -494,7 +499,7 @@ def signup_user():
         except IntegrityError:
             flash("Username already taken", "danger")
             db.session.rollback()
-            return render_template("users/signup.html", form=form)
+            return render_template("signup.html", form=form)
 
         do_login(user)
         flash("User # {user.id} created successfully: {user.username}", "success")
@@ -509,7 +514,7 @@ def signup_user():
 
         db.session.rollback()
         return render_template(
-            "users/signup.html",
+            "signup.html",
             form=form,
             page_scripts=[
                 url_for("static", filename="geolocation.js"),
@@ -536,5 +541,4 @@ def signup_preferences():
             form=u_pref_form, session=session, user=session["CURR_USER"]
         )  # pass in a current user
 
-    return render_template("users/form.html", form=u_pref_form, next=False)
-
+    return render_template("form.html", form=u_pref_form, next=False)
