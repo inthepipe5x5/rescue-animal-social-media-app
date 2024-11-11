@@ -44,31 +44,22 @@ class TwoCharString(str):
 def handle_error(e):
     """Handle both HTTP exceptions and other exceptions."""
     error_code = e.code if isinstance(e, (HTTPException, HTTPError)) else 500
-
-    error_info = error_details.get(
-        error_code,
-        {
-            "error_title": f"{error_code} Error",
-            "error_subtitle": "An unexpected error occurred.",
-            "error_message": "We're sorry, but something went wrong on our end. Please try again later.",
-            "redirect_url": "/",
-            "redirect_text": "Back to Home",
-        },
-    )
-
-    return (
-        render_template(
-            "error_page.html",
-            error_title=error_info["error_title"],
-            error_subtitle=error_info["error_subtitle"],
-            error_message=error_info["error_message"],
-            redirect_url=request.args.get("redirect_url", error_info["redirect_url"]),
-            redirect_text=request.args.get(
-                "redirect_text", error_info["redirect_text"]
-            ),
-        ),
-        error_code,
-    )
+    if error_details.keys() in e:
+        error_info = {
+            key: e.get(key, error_details[key]) for key in error_details.keys()
+        }
+    else:
+        error_info = error_details.get(
+            error_code,
+            {
+                "error_title": f"{error_code} Error",
+                "error_subtitle": "An unexpected error occurred.",
+                "error_message": "We're sorry, but something went wrong on our end. Please try again later.",
+                "redirect_url": "/",
+                "redirect_text": "Back to Home",
+            },
+        )
+    return error_info
 
 
 # session methods ##################################################################################################################

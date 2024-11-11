@@ -18,6 +18,7 @@ from core import (
     current_user,
     active_authenticated_user,
     handle_error,
+    default_error_details,
 )
 from models import User, UserFavorites, UserLocation, UserAnimalPreferences
 from forms import (
@@ -35,7 +36,9 @@ from forms import (
 
 load_dotenv()
 
-error_bp = Blueprint("error", __name__, url_prefix="error", url_defaults=url_for('error'))
+error_bp = Blueprint(
+    "error", __name__, url_prefix="error", url_defaults=url_for("error")
+)
 
 
 # ERROR routes ##############################################################################
@@ -50,7 +53,22 @@ def http_error_handler(e):
 # Register a catch-all error handler for any other exceptions
 @error_bp.errorhandler(Exception)
 def internal_error_handler(e):
-    return handle_error(e)
+    error_info = handle_error(e)
+    return (
+        redirect(
+            "error",
+            error_title=error_info["error_title"],
+            error_subtitle=error_info["error_subtitle"],
+            error_message=error_info["error_message"],
+            redirect_url=error_info.get(
+                "redirect_url", default_error_details["redirect_url"]
+            ),
+            redirect_text=error_info.get(
+                "redirect_text", default_error_details["redirect_text"]
+            ),
+        ),
+        e.status_code,
+    )
 
 
 @error_bp.route("/error")
