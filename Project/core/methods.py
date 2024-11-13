@@ -1,18 +1,288 @@
+from flask import current_app
+from flask_login import current_user
 from requests import HTTPError
 from http.client import HTTPException
 from urllib.parse import urljoin
+import os
+
 from core import (
-    current_user,
     default_error_details as error_details,
     NEXT_ANIMAL_URLS_KEY,
     LOCATION_SESSION_KEY,
     USER_LOCATION_KEY,
     default_session_keys,
     DEFAULT_LOCATION,
+    CURR_USER_KEY,
+    CURR_ANIMALS_KEY,
 )
 from services import pf as api, AnimalTypes
 from schemas import AnimalReqParams
-from app import app
+from extensions import db, login_user, logout_user
+from ..utils import Parse
+from ..services import pf as api
+from ..models import UserLocation, UserTravelPreferences
+
+
+def do_login(user):
+    """Log in user."""
+    with current_app.app_context():
+        # add user.id to session
+        current_app.session[CURR_USER_KEY] = user.id
+        current_app.session["CURR_USER"] = (
+            user.serialize()
+        )  # needs to be JSON serializable to be saved
+        current_app.g.user = user.serialize()  # auto calls the Model.serialize()
+        # update the other global variables
+        # add_animal_types_to_g(session, g)
+        # add_location_to_g(session, g)
+        # update_global_variables(session, g)
+        # current_app.session.update(USER_LOCATION_KEY, user.location.city_state_country_str())
+        # current_app.session.update("ANIMAL_TYPES", user.animal_types)
+        load_session()
+        current_app.logger.info(
+            f"do_login({user.username}) successful. session[CURR_USER]=",
+            current_app.session["CURR_USER"],
+        )
+        # use flask-login's login user function
+        login_user(user, remember=True)
+
+
+def do_logout():
+    """Logout user."""
+
+    current_app.session.pop(CURR_USER_KEY, default=None)
+    current_app.session.pop("CURR_USER", default=None)
+
+    # return stored values to default
+    # reset animal types
+    current_app.session.pop(
+        CURR_ANIMALS_KEY, default=os.environ.get("ANIMAL_TYPES", ["dog"])
+    )  # reset CURR_LOCATION
+    current_app.session.pop(
+        USER_LOCATION_KEY, default=os.environ.get(USER_LOCATION_KEY, "Toronto, ON")
+    )
+    # current_app.logger.info(f"do_logout successful. session[CURR_USER]=", (session["CURR_USER"] if "CURR_USER" in session  else None))
+    current_app.g.pop("user", None)
+    # clear session and create new session
+    current_app.session.clear()
+    current_app.session.new = True
+
+    # flask-login's logout user => will clean up the cookie if it exists
+    logout_user()
+
+
+def load_session():
+    """Update the current_app.session with user values if user else populates with default values"""
+
+    # populate with default for anon-users for new sessions
+    if not active_authenticated_user() and current_app.session.new == True:
+        return init_default_session()
+    else:
+        user_id = (
+            current_user.id
+            if (
+                active_authenticated_user()
+                and (
+                    current_app.session.new == True
+                    or current_app.session.modified == True
+                )
+            )
+            else None
+        )
+        user_session_data = current_user._get_current_object().serialize()
+        if user_session_data:
+            # update current_app.session with state_country, animal_types, curr_location, distance
+            current_app.session.update(user_session_data)
+
+
+def init_default_session():
+    """Initialize the current_app.session with default values"""
+    with current_app.app_context():
+        # clear current_app.session
+        do_logout()
+        # populate with default_session_keys
+        for key, value in default_session_keys.items():
+            current_app.session.setdefault(key, value)
+        current_app.session["STATE_COUNTRY"] = f"{default_session_keys['location']}"
+        current_app.session.new = True
+        current_app.session.modified = True
+
+
+# TODO: I can move this to the User ORM class in models.py and call from `current_user._get_current_object`` instead
+# Helper function to get the location or default location
+def get_location(no_geocode=False):
+    """
+    Retrieves location from user data or current_app.session or defaults to a preset location.
+    Args:
+        user_location (UserLocation): Location object related to the current user.
+    Returns:
+        str: A geolocation string or postal code based on the user's or default location.
+    """
+    # If the user is authenticated and active
+    if active_authenticated_user():
+        user = load_user(user_id=current_user.id)
+        user_location = (
+            user.location
+            if user and user.location
+            else db.current_app.session.query(UserLocation)
+            .filter_by(user_id=current_user.id)
+            .first()
+        )
+
+        # update db if user_location found but not linked to user
+        if user_location and not user.location:
+            user.location = user_location
+            # save to db
+            db.current_app.session.add(user)
+            db.current_app.session.commit()
+
+        if no_geocode:
+            #     return (
+            #     f"{user_location.city}, {user_location.state} {user_location.postal_code}"
+            #     if user_location.city
+            #     and user_location.state
+            #     and user_location.postal_code
+            #     else user_location.get_location_info()
+            # )  # return city/state/str eg. for UI rendering purposes
+
+            return api.get_next_location(
+                user_location.serialize()
+            )  # return city/state/str eg. for UI rendering purposes
+        else:
+            return (
+                user_location.geolocation or user_location.get_location_info()
+            )  # returns first truthy location column
+    # handle anon user
+    else:
+        if no_geocode:
+            location_dict = {}
+            for key, default_location_value in default_session_keys.get(
+                DEFAULT_LOCATION
+            ).items():
+                location_dict[key] = (
+                    current_app.session.get(key) or default_location_value
+                )
+
+            return api.get_next_location(location_dict)
+
+
+def create_init_params(req_type="animal"):
+    """
+    Dynamically creates and returns a dictionary of initialization parameters for
+    API calls based on the user's authentication state, preferences, and location.
+
+    Args:
+        req_type (str): The req_type of object to fetch ('animal' or 'org'). Default is 'animal'.
+
+    Returns:
+        dict: A dictionary of API query parameters including req_type, page, location, distance, and limit.
+    """
+    with current_app.app_context():
+        # Common current_app.session values or default ones
+        current_page_count = (
+            current_app.session.get("CURRENT_DISCOVER_ANIMALS_PAGE", 1)
+            if req_type.lower() in ["animal", "animals"]
+            else current_app.session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
+        )
+        distance_pref = current_app.session.get(
+            "DISTANCE_PREF", default_session_keys["DISTANCE_PREF"]
+        )
+
+        # If the user is authenticated and active
+        if active_authenticated_user():
+            user = current_user._get_current_object().serialize()
+            user_location = user.get("location") or user.location.serialize()
+
+            # Get user-specific data or defaults
+            species = user.animal_types
+            if not species:
+                current_app.flash(
+                    "Please select what type of animals you're looking for"
+                )
+                return current_app.redirect(
+                    current_app.url_for("/users/animal_preferences")
+                )
+
+            # prettify the animal types for the API to accept it
+            species = Parse.prettify_animal_types(
+                animal_types=species, fuzzy_match=True
+            )
+
+            # get location str from serialized location dict
+            location_str = api.get_next_location(user_location)
+
+            distance_pref = (
+                user.distance_pref
+                if user and user.distance_pref
+                else (
+                    UserTravelPreferences._get_distance_filter_param(
+                        user_id=current_user.id
+                    )
+                    or 100
+                )
+            )
+
+            status = (
+                user.get("rescue_interaction_type")
+                or get_rescue_action_mapped_to_animal_status()
+            )
+        else:
+            # Non-authenticated user, default settings
+            species = current_app.session.get(
+                CURR_ANIMALS_KEY
+            ) or default_session_keys.get(CURR_ANIMALS_KEY, "dog")
+            # prettify the animal types for the API to accept it
+            species = Parse.prettify_animal_types(
+                animal_types=species, fuzzy_match=True
+            )
+            location_str = current_app.session.get(USER_LOCATION_KEY) or os.environ.get(
+                USER_LOCATION_KEY, "43.6429,-79.3889"
+            )
+            distance_pref = current_app.session.get("DISTANCE_PREF", 100)
+
+        # Set limit based on species length (more species = more results per page)
+        species_len = len(species) or 1
+        limit = (15 if 0 < species_len < 8 else 10) * species_len
+
+        # create status param => "adoptable, adopted, found" PetFinderAPI Accepts multiple values (default: adoptable)
+        # Return parameters for animal search
+        if req_type.lower() in ("animal", "animals"):
+            output_params = {
+                "type": species,
+                "page": current_page_count,
+                "location": location_str,
+                "distance": distance_pref,
+                "limit": limit,
+                "sort": "distance",  # Sort results by distance
+            }
+            # add status query param only if truthy (ie. user wants to adopt)
+            if status:
+                output_params["status"] = status
+
+            return output_params
+
+        # Return parameters for organization search
+        elif req_type.lower() in ("org", "orgs", "organization", "organizations"):
+            output_params = {
+                "type": species,
+                "page": current_page_count,
+                "location": location_str,
+                "state": str(
+                    user_location.state
+                    if user_location
+                    else default_session_keys.get(DEFAULT_LOCATION).get("state", "ON")
+                ),  # Fallback state to ON
+                "country": str(
+                    user_location.country
+                    if user_location
+                    else default_session_keys.get(DEFAULT_LOCATION).get("country", "CA")
+                ),  # Fallback country to CA
+                "distance": distance_pref,
+                "limit": limit,
+                "sort": "distance",  # Sort results by distance
+            }
+
+            return output_params
 
 
 def active_authenticated_user():
@@ -72,24 +342,25 @@ def get_anon_user() -> dict:
     Returns:
         _type_: _description_
     """
-    animal_types = session.get(CURR_ANIMALS_KEY) or default_session_keys.get(
-        CURR_ANIMALS_KEY
-    )
-    current_location = session.get(USER_LOCATION_KEY) or default_session_keys.get(
-        USER_LOCATION_KEY
-    )
-    # Anonymous user, pull location from session
-    get_anon_location()
+    with current_app.app_context():
+        animal_types = current_app.session.get(
+            CURR_ANIMALS_KEY
+        ) or default_session_keys.get(CURR_ANIMALS_KEY)
+        current_location = current_app.session.get(
+            USER_LOCATION_KEY
+        ) or default_session_keys.get(USER_LOCATION_KEY)
+        # Anonymous user, pull location from session
+        get_anon_location()
 
 
 def get_anon_location() -> dict:
-    with app.app_context():
+    with current_app.app_context():
         # Anonymous user, pull location from session
         return {
-            "city": app.session.get("city"),
-            "state": app.session.get("state"),
-            "postal_code": app.session.get("postal_code"),
-            "geolocation": app.session.get("geolocation"),
+            "city": current_app.session.get("city"),
+            "state": current_app.session.get("state"),
+            "postal_code": current_app.session.get("postal_code"),
+            "geolocation": current_app.session.get("geolocation"),
         } or default_session_keys.get(DEFAULT_LOCATION)
 
 
@@ -117,7 +388,7 @@ def save_location_to_session(location_dict):
     Returns:
         location_dict: dict of location values to use
     """
-    with app.app_context():
+    with current_app.app_context():
 
         if not location_dict:
             raise TypeError(
@@ -131,9 +402,9 @@ def save_location_to_session(location_dict):
             )
             location_dict.setdefault(USER_LOCATION_KEY, current_location)
             # update session
-            app.session[LOCATION_SESSION_KEY] = location_dict
+            current_app.session[LOCATION_SESSION_KEY] = location_dict
             # update current location
-            app.session.setdefault(LOCATION_SESSION_KEY, current_location)
+            current_app.session.setdefault(LOCATION_SESSION_KEY, current_location)
 
             return location_dict
 
@@ -150,7 +421,7 @@ def get_rescue_action_mapped_to_animal_status():
         str: Status query parameter value for the PetFinder API.
     """
     # Default status to return when user is interested in adoption or fostering
-    default_animal_status = "adoptable,found"
+    from core import default_animal_status
 
     # Check if user and user.rescue_action_type exist, and retrieve the list
     if active_authenticated_user() and current_user.rescue_action_type:
@@ -177,29 +448,30 @@ def get_user_animal_preferences(species_list=None):
         dict: Dictionary of user preferences keyed by species type.
               {'dog': { 'preference_name': 'preference_data', ... }, ...}
     """
-    if not species_list:
-        species_list = (
-            current_user.animal_types
-            if active_authenticated_user()
-            else session.get("ANIMAL_TYPES", ["dog"])
-        )
+    with current_app.app_context():
+        if not species_list:
+            species_list = (
+                current_user.animal_types
+                if active_authenticated_user()
+                else current_app.session.get("ANIMAL_TYPES", ["dog"])
+            )
 
-    # Get user preferences or set prefs to None if user is not authenticated
-    prefs = {
-        key: value
-        for key, value in (
-            current_user._get_current_object().animal_prefs
-            if active_authenticated_user() and current_user.user_animal_preferences
-            else {animal_type: None for animal_type in species_list}
-        ).items()
-        if key.lower() in species_list
-    }
+        # Get user preferences or set prefs to None if user is not authenticated
+        prefs = {
+            key: value
+            for key, value in (
+                current_user._get_current_object().animal_prefs
+                if active_authenticated_user() and current_user.user_animal_preferences
+                else {animal_type: None for animal_type in species_list}
+            ).items()
+            if key.lower() in species_list
+        }
 
-    # handle bad keys
-    # API requires 'color' but returns key 'colors'
-    for species_pref in prefs:
-        if "color" in prefs[species_pref].keys():
-            prefs[species_pref]["colors"] = prefs[species_pref]["color"]
-            del prefs[species_pref]["color"]
+        # handle bad keys
+        # API requires 'color' but returns key 'colors'
+        for species_pref in prefs:
+            if "color" in prefs[species_pref].keys():
+                prefs[species_pref]["colors"] = prefs[species_pref]["color"]
+                del prefs[species_pref]["color"]
 
-    return prefs
+        return prefs

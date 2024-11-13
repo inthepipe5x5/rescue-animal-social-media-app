@@ -9,9 +9,9 @@ from sqlalchemy.sql import func
 from flask_login import UserMixin
 from sqlalchemy.exc import IntegrityError
 
-from core import db
+from core import db, bcrypt
 
-bcrypt = Bcrypt()
+
 
 
 class UserFavorites(db.Model):
@@ -957,11 +957,3 @@ class UserCurrentPets(db.Model):
     user_pets_friendly_to_new_misc_animal_types = db.Column(db.Boolean)
 
 
-def connect_db(app):
-    """Connect this database to provided Flask app.
-
-    You should call this in your Flask app.
-    """
-
-    db.app = app
-    db.init_app(app)

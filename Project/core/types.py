@@ -1,7 +1,7 @@
 from typing import TypeAlias, TypedDict, Optional, Union, List, Tuple
 import datetime
 from enum import Enum
-from core import TwoCharString
+from core.methods import TwoCharString
 
 class GeoLocation(TypedDict):
     latitude: float

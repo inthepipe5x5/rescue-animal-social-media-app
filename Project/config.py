@@ -1,11 +1,8 @@
 import os
 import re
 import logging
-from flask_wtf.csrf import CSRFProtect
 from logging.config import dictConfig
 from dotenv import load_dotenv
-from Project.schemas.data.users.models import db, connect_db
-from flask_migrate import Migrate
 from sqlalchemy.engine.url import URL
 
 # Load environment variables from .env file
@@ -16,6 +13,7 @@ os.environ["APP_DIR"] = basedir
 
 
 # custom formatter for Flask logger to log in different colors
+
 
 class CustomFormatter(logging.Formatter):
     # Define color codes
@@ -36,9 +34,7 @@ class CustomFormatter(logging.Formatter):
     purple_highlight = "\x1b[45m"
 
     # Define the format
-    format = (
-        "%(levelname)s - %(name)s - (%(filename)s:%(lineno)d) - %(message)s"
-    )
+    format = "%(levelname)s - %(name)s - (%(filename)s:%(lineno)d) - %(message)s"
 
     FORMATS = {
         logging.DEBUG: green + format + reset,
@@ -55,26 +51,24 @@ class CustomFormatter(logging.Formatter):
 
         # Highlight status codes
         formatted_message = re.sub(
-            r'\b(200|201)\b',
-            f'{self.green_highlight}\\1{self.reset}',
-            formatted_message
+            r"\b(200|201)\b",
+            f"{self.green_highlight}\\1{self.reset}",
+            formatted_message,
         )
         formatted_message = re.sub(
-            r'\b(401|404)\b',
-            f'{self.yellow_highlight}\\1{self.reset}',
-            formatted_message
+            r"\b(401|404)\b",
+            f"{self.yellow_highlight}\\1{self.reset}",
+            formatted_message,
         )
         formatted_message = re.sub(
-            r'\b(500)\b',
-            f'{self.red_highlight}\\1{self.reset}',
-            formatted_message
+            r"\b(500)\b", f"{self.red_highlight}\\1{self.reset}", formatted_message
         )
 
         # Highlight debugger PIN
         formatted_message = re.sub(
-            r'(Debugger PIN: )(\d+-\d+-\d+-\d+-\d+)',
-            f'\\1{self.purple_highlight}\\2{self.reset}',
-            formatted_message
+            r"(Debugger PIN: )(\d+-\d+-\d+-\d+-\d+)",
+            f"\\1{self.purple_highlight}\\2{self.reset}",
+            formatted_message,
         )
 
         return formatted_message
@@ -109,8 +103,8 @@ class Config:
     SESSION_REFRESH_EACH_REQUEST = (
         False  # set to false to ensure cookie is not refreshed on each request
     )
-    #keep session permanent to try fixing session resetting issues
-    SESSION_PERMANENT=True
+    # keep session permanent to try fixing session resetting issues
+    SESSION_PERMANENT = True
     # session security configs
     SESSION_COOKIE_SECURE = True  # set to True for HTTPS
     SESSION_COOKIE_HTTPONLY = True  # prevent malicious scripts from accessing the session cookie on the client side.
@@ -144,25 +138,37 @@ class Config:
         :param app: Flask app, update object
         :return:
         """
+        from utils import Parse
+        # create config instance
+        config_instance = Config()
 
-        app.config.from_object(obj)
+        # grab FLASK_ENV from os to determine config type
+        flask_env_type = (
+            os.environ.get("FLASK_ENV")
+            if os.environ.get("FLASK_ENV") is not None
+            else "default"
+        )
+        config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
 
         # Configure logging
         dictConfig(obj.get_logger_config())
 
-        connect_db(app)
 
-        migrate = Migrate(app, db, compare_type=True)
+        # Inject Custom Jinja filters Here
+        custom_filters_dict = {
+            "format_kebob_case": Parse.format_kebob_case,
+            "prettify_animal_types": Parse.prettify_animal_types,
+        }
+        for function_key, function in custom_filters_dict.items():
+            app.jinja_env.filters[function_key] = function
 
-        # enable CSRF globally
-        csrf = CSRFProtect()
-        csrf.init_app(app)
         return app
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
     EXPLAIN_TEMPLATE_LOADING = True
+
 
 class TestingConfig(Config):
     TESTING = True
@@ -194,8 +200,6 @@ class ProductionConfig(Config):
         # Configure logging
         dictConfig(obj.get_logger_config())
 
-        connect_db(app)
-        migrate = Migrate(app, db, compare_type=True)
 
         return app
 

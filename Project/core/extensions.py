@@ -13,26 +13,27 @@ from flask_login import (
     logout_user,
     current_user,
 )
+from flask_wtf.csrf import CSRFProtect
+from flask_migrate import Migrate
 
-from app import app
+
 from models import User
 
-ma = Marshmallow()
-db = SQLAlchemy()
-
-# config bcrypt
-bcrypt = Bcrypt(app)
-
-# config flask-login.login manager
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
+csrf = CSRFProtect()
+ma = Marshmallow()  # flask-marshmallow for
+db = SQLAlchemy()  # flask-sqlalchemy
+login_manager = LoginManager()  # flask-login manager
 
 
-# user load function to load user session based on user_id
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def connect_db(app):
+    """Connect this database to provided Flask app.
+
+    You should call this in your Flask app.
+    """
+
+    db.app = app
+    db.init_app(app)
+    migrate = Migrate(app=app, db=db, compare_type=True)
 
 
 if __name__ == "__main__":

@@ -3,25 +3,45 @@
 |-- LICENSE
 |-- Project
 |   |-- __init__.py
+|   |-- api
+|   |   |-- __init__.py
+|   |   |-- routes
+|   |   |   |-- __init__.py
+|   |   |   |-- animals
+|   |   |   |   |-- __init__.py
+|   |   |   |   `-- animal_routes.py
+|   |   |   |-- auth
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- auth_routes.py
+|   |   |   |   `-- methods.py
+|   |   |   |-- data
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- data_routes.py
+|   |   |   |   `-- methods.py
+|   |   |   |-- error
+|   |   |   |   |-- __init__.py
+|   |   |   |   `-- error_routes.py
+|   |   |   |-- org
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- methods.py
+|   |   |   |   `-- org_routes.py
+|   |   |   |-- pf
+|   |   |   |   |-- __init__.py
+|   |   |   |   `-- pf_bp.py
+|   |   |   `-- user
+|   |   |       |-- __init__.py
+|   |   |       |-- methods.py
+|   |   |       `-- user_routes.py
+|   |   `-- utils
 |   |-- app.py
 |   |-- config.py
-|   |-- data
+|   |-- core
 |   |   |-- __init__.py
-|   |   |-- animals
-|   |   |   |-- __init__.py
-|   |   |   |-- animals_req.py
-|   |   |   `-- animals_store.py
-|   |   |-- orgs
-|   |   |   |-- __init__.py
-|   |   |   |-- orgs_req.py
-|   |   |   `-- orgs_store.py
-|   |   |-- schemas
-|   |   |   |-- animals_req_schema.json
-|   |   |   `-- orgs_req_schema.json
-|   |   `-- users
-|   |       `-- models.py
-|   |-- db.py
-|   |-- fake-user-generator
+|   |   |-- constants.py
+|   |   |-- extensions.py
+|   |   |-- methods.py
+|   |   `-- types.py
+|   |-- fake-data-generator
 |   |   |-- create_csvs.py
 |   |   |-- follows.csv
 |   |   |-- helpers.py
@@ -36,18 +56,32 @@
 |   |   `-- versions
 |   |       |-- 3131d0249564_.py
 |   |       `-- f1663474f27b_init_migration.py
-|   |-- package
-|   |   |-- PetFinderAPI.py
+|   |-- models
 |   |   |-- __init__.py
-|   |   |-- api_exceptions.py
+|   |   |-- animals.py
+|   |   |-- common.py
+|   |   |-- orgs.py
+|   |   `-- users.py
+|   |-- requirements.txt
+|   |-- schemas
+|   |   |-- __init__.py
+|   |   |-- animals.py
+|   |   |-- animals_req_schema.json
+|   |   |-- common.py
+|   |   |-- orgs.py
+|   |   `-- orgs_req_schema.json
+|   |-- seed.py
+|   |-- services
+|   |   |-- __init__.py
 |   |   |-- geography
 |   |   |   |-- geodb_api.py
 |   |   |   `-- util.py
-|   |   |-- helper.py
-|   |   |-- parse.py
-|   |   `-- petfinder_types.py
-|   |-- requirements.txt
-|   |-- seed.py
+|   |   `-- petfinder
+|   |       |-- PetFinderAPI.py
+|   |       |-- __init__.py
+|   |       |-- api_exceptions.py
+|   |       |-- helper.py
+|   |       `-- petfinder_types.py
 |   |-- static
 |   |   |-- animalPref.js
 |   |   |-- animateHoverableCard.js
@@ -127,25 +161,28 @@
 |   |       |-- show.html
 |   |       |-- signup.html
 |   |       `-- user_animal_preferences.html
-|   `-- tests
+|   |-- tests
+|   |   |-- __init__.py
+|   |   `-- test_PetFinderAPI.py
+|   `-- utils
 |       |-- __init__.py
-|       `-- test_PetFinderAPI.py
+|       `-- parse.py
 |-- docker-build.sh
 |-- docker-run.sh
 |-- docs
-|   |-- directory_structure.txt
-|   `-- project_structure.txt
+|   |-- api_dir_README.txt
+|   |-- directory_organization_README.txt
+|   |-- project_structure.txt
+|   `-- services_dir_README.txt
 |-- ff_rescue_db_backup.sql
 |-- gunicorn.conf.py
 |-- mock_data
-|   |-- mock_pf.py
 |   |-- pf_assorted_na_orgs.json
 |   |-- pf_sample_animals.json
 |   |-- pf_sample_orgs.json
 |   |-- pf_sample_single_animal.json
 |   `-- pf_sample_single_org.json
 |-- prod-ca-2021.crt
-|-- project_structure.txt
 |-- readme.txt
 |-- render.yaml
 |-- requirements.txt
@@ -155,4 +192,4 @@
 |-- traint
 `-- wsgi.py
 
-25 directories, 130 files
+35 directories, 157 files

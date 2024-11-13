@@ -10,6 +10,7 @@ Project/ #contains main app logic
     # Creates the Flask application instance
     # Imports the create_app function from __init__.py
 
+|-- core/
 |-- extensions.py
     # Defines and initializes Flask extensions
     # e.g., db = SQLAlchemy()

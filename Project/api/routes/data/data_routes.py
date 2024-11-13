@@ -1,4 +1,14 @@
-from flask import Blueprint, json, redirect, request, jsonify, session, flash
+from flask import (
+    Blueprint,
+    json,
+    redirect,
+    request,
+    jsonify,
+    session,
+    flash,
+    render_template,
+    url_for,
+)
 import os
 import pycountry
 
@@ -34,7 +44,7 @@ def seed_animal_info():
         os.environ[API_ANIMAL_TYPES_KEY] = json.dumps(type_list)
 
 
-@data_bp.route("/data/animal_types", methods=["GET"])
+@data_bp.route("/animal_types", methods=["GET"])
 def get_animal_types():
     """Endpoint to retrieve animal types from session or os.environ."""
     types_session_key = "API_ANIMAL_TYPES"
@@ -49,8 +59,7 @@ def get_animal_types():
 
     return jsonify({"types": type_list})
 
-
-@data_bp.route("/data/<country>/state", methods=["GET"])
+@data_bp.route("/<country>/state", methods=["GET"])
 def get_state(country):
     """
     Data route to return list of states/provinces/subdivisions based on the country.
@@ -109,7 +118,7 @@ def get_state(country):
 
 
 @login_required
-@data_bp.route("/data/prefs/<animal_type>", methods=["GET"])
+@data_bp.route("/prefs/<animal_type>", methods=["GET"])
 def animal_pref_data(animal_type):
     if animal_type[-1].lower() == "s":
         species = animal_type.lower()[:-1]
@@ -134,3 +143,20 @@ def animal_pref_data(animal_type):
         category = "error"
     flash(message=message, category=category)
     return jsonify(user_animal_prefs)
+
+
+@data_bp.route("/loading")
+def loading_route():
+    """Route to render loading
+
+    Returns:
+        renders view with skeleton loading cards and then directs after 5 seconds
+    """
+    redirect_url = request.args.get("redirect_url") or url_for("home")
+    redirect_interval = request.args.get("redirect_interval") or 5000
+
+    return render_template(
+        url_for("templates", filename="loading_view.html"),
+        redirect_url=redirect_url,
+        redirect_interval=redirect_interval,
+    )

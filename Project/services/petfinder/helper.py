@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy.exc import NoResultFound  # type: ignore
 
-from core import db
+from core import db, default_animal_params 
 from Project.models import User, UserLocation, UserAnimalPreferences
 from services import pf
 
@@ -16,20 +16,20 @@ CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
 def get_anon_preference(key, session, g):
     """Get saved ANON user preferences for a specific key.
 
-    Returns: saved preferences in session, g, pf.default_options_obj or env var
+    Returns: saved preferences in session, g, default_animal_params or env var
     """
     if key in session:
         return session.get(key)
     elif key in g:
         return g.get(key)
-    elif key in pf.default_options_obj:
-        return pf.default_options_obj.get(key)
+    elif key in default_animal_params:
+        return default_animal_params.get(key)
     else:
         print(
             f"No saved Anon User preference found for {key}: default anon preferences returned"
         )
         env_key = "CURR_LOCATION" if key == "location" else key
-        anon_pref = os.environ.get(env_key, pf.default_options_obj.get(key))
+        anon_pref = os.environ.get(env_key, default_animal_params.get(key))
         return anon_pref
 
 
@@ -95,7 +95,7 @@ def get_user_preference(key, session, g):
     if db_query is None:
         # Return default key preference value if none found in db, session nor g
         env_key = "CURR_LOCATION" if key == "location" else key
-        u_pref = os.environ.get(env_key, pf.default_options_obj.get(key))
+        u_pref = os.environ.get(env_key, default_animal_params.get(key))
         print(f"No saved preference found for {key}: default returned: {u_pref}")
         return u_pref
     else:
@@ -107,14 +107,14 @@ def update_anon_preferences(form, session):
     state = (
         form.state.data
         if form.state.data
-        else pf.default_options_obj.get(
+        else default_animal_params.get(
             "state", ",".split(os.environ.get("CURR_LOCATION"))[0]
         )
     )
     country = (
         form.country.data
         if form.country.data
-        else pf.default_options_obj.get(
+        else default_animal_params.get(
             "country", ",".split(os.environ.get("CURR_LOCATION"))[1]
         )
     )
@@ -133,7 +133,7 @@ def update_anon_preferences(form, session):
         animal_types = (
             form.animal_types.data
             if form.animal_types.data
-            else pf.default_options_obj.get(
+            else default_animal_params.get(
                 "animal_types", os.environ.get("ANIMAL_TYPES"), ["dog"]
             )
         )

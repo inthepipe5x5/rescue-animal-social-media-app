@@ -41,7 +41,7 @@
           </div>
         </li>
         <li class="nav-item">
-          <a class="btn nav-link text-dark" href={{ url_for('update_user_location') }}>
+          <a class="btn nav-link text-dark" href={{ url_for('user_location_form') }}>
             at 📍 {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else (CURR_USER.location.country + ", " +  CURR_USER.location.country) if (CURR_USER and CURR_USER.location ) else "Location Not Set" }}</a>
         </li>
         {% endif %}
@@ -80,7 +80,7 @@
           </button>
           <ul class="dropdown-menu" aria-labelledby="preferencesDropdown">
             <li class="dropdown-header"><h6>Search Filters</h6></li>
-            <li><a class="dropdown-item" href="{{ url_for('update_user_location') }}">
+            <li><a class="dropdown-item" href="{{ url_for('user_location_form') }}">
               Location Filter
               <span class="badge rounded-pill text-bg-primary">             
                 {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else 'ON, CA📍' }}

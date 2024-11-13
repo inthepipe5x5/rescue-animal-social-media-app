@@ -1,4 +1,4 @@
-from Project.extensions import db
+from core.extensions import db
 from marshmallow import fields
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB

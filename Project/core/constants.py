@@ -30,6 +30,38 @@ default_session_keys = {
     VIEWED_CONTENT_KEY: [],  # list of id of PetFinder API content seen by the user
 }
 
+
+# store default user_preference
+default_animal_params = {
+    "location": "Toronto, ON",
+    "state": "ON",
+    "country": "CA",
+    "animal_types": [
+        "dog"
+    ],  # 8 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
+    "sort": "distance",
+    "status": "adoptable,found",
+    "distance": 100,
+}
+default_animal_types = [
+    "dog",
+    "cat",
+    "rabbit",
+    "small-furry",
+    "horse",
+    "bird",
+    "scales-fins-other",
+    "barnyard",
+]
+
+animal_emojis = {
+    animal: emoji
+    for animal, emoji in zip(
+        default_animal_types, ["🐶", "🐱", "🐰", "🐹", "🐴", "🐦", "🦎", "🐄"]
+    )
+}
+
+
 default_error_details = {
     400: {
         "error_title": "400 Bad Request",
@@ -69,16 +101,16 @@ default_error_details = {
 }
 
 default_animal_photos = {
-        "dog": "dog-freepik.png",
-            "cat": "cat-freepik.png",
-            "horse": "horse-freepik.png",
-            "bird": "bird-eucalyp.png",
-            "small-furry": "small-furry-freepik.png",
-            "scales-fins-other": "scales-smashicons.png",
-            "barnyard": "scales-smashicons.png",
-            "rabbit": "rabbit-freepik.png",
-            "misc": "tracks_freepik.png",
-        }
+    "dog": "dog-freepik.png",
+    "cat": "cat-freepik.png",
+    "horse": "horse-freepik.png",
+    "bird": "bird-eucalyp.png",
+    "small-furry": "small-furry-freepik.png",
+    "scales-fins-other": "scales-smashicons.png",
+    "barnyard": "scales-smashicons.png",
+    "rabbit": "rabbit-freepik.png",
+    "misc": "tracks_freepik.png",
+}
 
 default_animal_prefs = [
     {"declawed": False},
@@ -97,7 +129,7 @@ default_animal_prefs = [
     {"size": ["any"]},
     {"personality": ["any"]},
 ]
-
+default_animal_status = "adoptable,found"
 animal_colors = {
     "dog": "primary",
     "cat": "secondary",

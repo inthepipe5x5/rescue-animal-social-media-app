@@ -7,6 +7,7 @@ from flask import (
     render_template,
     session,
     jsonify,
+    current_app,
 )
 from dotenv import load_dotenv
 from werkzeug.datastructures import MultiDict
@@ -24,11 +25,8 @@ from core import (
     do_login,
     update_user_preferences,
     default_session_keys,
-    create_init_params,
-    create_next_animal_url,
-    load_user,
     load_session,
-    save_location_to_session
+    save_location_to_session,
 )
 from models import User, UserFavorites, UserLocation, UserAnimalPreferences
 from forms import (
@@ -87,7 +85,7 @@ def show_user(user_id):
 
 # Form route available to both anon and users but only user location is saved to db
 @users_bp.route("/location", methods=["GET", "POST"])
-def update_user_location():
+def user_location_form():
     users_bp.logger.info(
         f"Request method: {request.method}, Current user.location: {current_user.location if (active_authenticated_user() and current_user.location) else 'No Saved Location'}"
     )
@@ -143,11 +141,44 @@ def update_user_location():
             ],
         )
     except Exception as e:
-        users_bp.logger.error(f"Error in update_user_location: {str(e)}")
+        users_bp.logger.error(f"Error in user_location_form: {str(e)}")
         db.session.rollback()
         flash(
             "An error occurred while updating your location. Please try again.", "error"
         )
+
+
+@users_bp.route("/location/update", methods=["POST"])
+def update_location():
+    """Route to set location for search results
+
+    Returns:
+        _type_: _description_
+    """
+    from Project.core.types import UserLocationData
+
+    # grab location from request body
+    location = request.values.get(
+        "location"
+    )  # Use request.values for a combined view of query and form data.
+
+    # handle lack of location provided from request body
+    if not location:
+        # check if country, state is provided in request body
+        country = request.values.get("country", None)
+        state = request.values.get("state", None)
+        postal_code = request.values.get("postal_code", None)
+        geolocation = request.values.get("geolocation", None)
+
+        location = ",".join(country, state)
+
+    # set location in session
+    current_app.session[USER_LOCATION_KEY] = location
+
+    success_msg = f"App.py: Current CURR_LOCATION set to: {session['CURR_LOCATION']}"
+    add_location_to_g(session=session, g=g)
+
+    return jsonify({"message": success_msg})
 
 
 @login_required
@@ -159,7 +190,7 @@ def user_travel_preferences():
 
     if not current_user.location:
         flash("Please set your location details first", "warning")
-        return redirect(url_for("update_user_location"))
+        return redirect(url_for("user_location_form"))
 
     if travel_preferences:
         form = UserTravelForm(obj=travel_preferences)
@@ -508,7 +539,7 @@ def signup_user():
             "Please consider enabling geolocation in the browser to help us return more accurate results relative to your location",
             "warning",
         )
-        return redirect(url_for("update_user_location"))
+        return redirect(url_for("user_location_form"))
 
     else:
 
@@ -542,3 +573,65 @@ def signup_preferences():
         )  # pass in a current user
 
     return render_template("form.html", form=u_pref_form, next=False)
+
+
+@users_bp.route("/update/types", methods=["GET", "POST"])
+def update_animal_types():
+    """Route to set the global options for country of origin and animal types
+
+    If GET -> return form page
+    If POST -> set 'country' and/or 'animal_types' in sessions
+
+    """
+    # handle if POST request with updated data
+    if (
+        request.args
+        and ("animal_types", "ANIMAL_TYPES", "types", "TYPES") in request.body
+    ):
+        pass
+        # TODO: write this wrote to accept API requests from front end
+
+        user = (
+            current_user._get_current_object()
+            if active_authenticated_user()
+            else User()
+        )
+    else:
+        # Check if the user is logged in
+        if active_authenticated_user():
+
+            animal_types = (
+                session.get("ANIMAL_TYPES")
+                if "ANIMAL_TYPES" in session
+                else current_user.animal_types
+            )
+            state_country = (
+                session.get("STATE_COUNTRY", "ON, CA🍁")
+                if "STATE_COUNTRY" in session
+                else current_user.location.city_state_country_str()
+            )
+
+            form = UserExperiencesForm(animal_types=animal_types, country=country)
+        else:
+            # check db, session and 'g' for ANON preferences. if not found, will return default country : 'CA'
+            country = get_anon_preference(key="country", session=session, g=g)
+            animal_types = get_anon_preference(key="animal_types", session=session, g=g)
+            form = AnonExperiencesForm(country=country, animal_types=animal_types)
+
+        # Validate form submission
+        if form.validate_on_submit():
+            # Save preferences for logged-in users
+            if "CURR_USER" in session:
+                update_user_preferences(form=form)
+                return redirect(url_for("home.html"))
+            else:
+                # Redirect anonymous users to login if animal types are selected
+                if isinstance(form.animal_types.data, list):
+                    return redirect(url_for("login"))
+                else:
+                    # Set global country and animal type for anonymous users
+                    update_anon_preferences(form=form)
+
+        return render_template(
+            "users/form.html", form=form, next=url_for("discover_animals")
+        )

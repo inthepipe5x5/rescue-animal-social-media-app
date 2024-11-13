@@ -15,9 +15,9 @@ from ratelimit import (
     RateLimitException,
     sleep_and_retry,
 )
-
 from collections.abc import Iterable
 
+from Project.core import default_animal_params
 from Project.utils.parse import Parse, parse_multi_animal
 from petfinder.petfinder_types import AnimalReqParams, AnimalTypes, AnimalFeatures
 
@@ -52,35 +52,6 @@ class PetFinderAPI:
     BASE_API_URL = os.environ.get("PETFINDER_API_URL", "https://api.petfinder.com/v2")
     if "https://" not in BASE_API_URL:
         BASE_API_URL = "https://" + BASE_API_URL
-
-    # store default user_preference
-    default_options_obj = {
-        "location": "Toronto, ON",
-        "state": "ON",
-        "country": "CA",
-        "animal_types": [
-            "dog"
-        ],  # 8 possible values:  ‘dog’, ‘cat’, ‘rabbit’, ‘small-furry’, ‘horse’, ‘bird’, ‘scales-fins-other’, ‘barnyard’.
-        "sort": "distance",
-        "status": "adoptable,found",
-    }
-    animal_types = [
-        "dog",
-        "cat",
-        "rabbit",
-        "small-furry",
-        "horse",
-        "bird",
-        "scales-fins-other",
-        "barnyard",
-    ]
-
-    animal_emojis = {
-        animal: emoji
-        for animal, emoji in zip(
-            animal_types, ["🐶", "🐱", "🐰", "🐹", "🐴", "🐦", "🦎", "🐄"]
-        )
-    }
 
     # user prefs that map to search params
     search_param_keys = [
@@ -422,7 +393,7 @@ class PetFinderAPI:
         self,
         endpoint,
         request_url,
-        params=default_options_obj,
+        params=default_animal_params,
         max_retries: int = MAX_TRIES,
     ):
         """
