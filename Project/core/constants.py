@@ -60,7 +60,10 @@ animal_emojis = {
         default_animal_types, ["🐶", "🐱", "🐰", "🐹", "🐴", "🐦", "🦎", "🐄"]
     )
 }
-
+default_animal_status_choices = ["adoptable", "adopted", "found"]
+default_animal_size_choices = ["small", "medium", "large", "xlarge"]
+default_animal_age_choices = ["baby", "young", "adult", "senior"]
+default_animal_gender_choices = ["male", "female", "unknown"]
 
 default_error_details = {
     400: {

@@ -15,8 +15,7 @@ class SchemaDbModel(db.Model):
     def create_model_from_schema(cls, schema_class):
         for field_name, field_obj in schema_class._declared_fields.items():
             column = cls.get_column_from_field(field_obj)
-            column = setattr(cls, field_name, column) if column else None #is this right? trying to avoid this type error: TypeError("Boolean value of this clause is not defined")
-                
+            column = setattr(cls, field_name, column) if column else None                 
 
     @staticmethod
     def get_column_from_field(field_obj):
@@ -45,7 +44,7 @@ class SchemaDbModel(db.Model):
         return schema.load(data)
 
     @classmethod
-    def db_bulk_insert_mapping(cls, session, api_response):
+    def db_bulk_insert_mapping(cls, api_response):
         schema = cls.schema()
         try:
             validated_data = schema.load(api_response)
@@ -62,8 +61,8 @@ class SchemaDbModel(db.Model):
                 print(f"Skipping invalid item: {e}")
 
         if data_to_insert:
-            session.bulk_save_objects(data_to_insert)
-            session.commit()
+            db.session.bulk_save_objects(data_to_insert)
+            db.session.commit()
         else:
             print("No valid data to insert")
 

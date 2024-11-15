@@ -1,4 +1,3 @@
-
 import requests
 import os
 from ratelimit import (
@@ -6,14 +5,14 @@ from ratelimit import (
     RateLimitException,
     sleep_and_retry,
 )
+
+from Project.services.geography.util import GeoUtil
 from ..petfinder.petfinder_types import UserLocationData
-from typing import Optional
+from typing import List, Optional
 
 
-
-class GeoDBHelper:
-    """ a GeoDB helper class with functions to do the following features as functions:
-
+class GeoDB(GeoUtil):
+    """a GeoDB helper class with functions to do the following features as functions:
 
     **Core Methods:**
 
@@ -25,11 +24,11 @@ class GeoDBHelper:
     - **get_countries_by_currency**: Lists countries using a specific currency.
 
     # Usage example:
-    # geo_helper = GeoDBHelper()
+    # geo_helper = GeoDB()
     # cities = geo_helper.filter_places(name_prefix="San")
     """
 
-    #Define API variables
+    # Define API variables
     api_key = os.environ.get("GEODB_API_KEY") or None
     # Define limit for GeoDB Cities API; free plan limits to 1000 calls per day
     API_CALLS_PER_DAY = 1000
@@ -38,7 +37,7 @@ class GeoDBHelper:
 
     BASE_URL = "http://geodb-free-service.wirefreethought.com/v1/geo"
     HEADERS = {"x-rapidapi-key": api_key, "Content-Type": "application/json"}
-    
+
     @limits(calls=50, period=30)  # Limit of 50 calls per second
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
     def find_cities(
@@ -70,6 +69,13 @@ class GeoDBHelper:
         return response.json()
 
     def get_place_details(self, city_id):
+        """
+        This function retrieves details about a place based on the provided city ID.
+        
+        :param city_id: The `city_id` parameter is used to specify the unique identifier of a city for
+        which you want to retrieve details or information. This identifier helps in identifying the
+        specific city within a database or system
+        """
         response = requests.get(
             f"{self.BASE_URL}/cities/{city_id}", headers=self.HEADERS
         )
@@ -90,29 +96,122 @@ class GeoDBHelper:
     def get_city_geolocation(self, params: UserLocationData) -> Optional[str]:
         """
         # Example usage
-        
+
         params = UserLocationData(state="CA", country="US", city="San Francisco")
         geolocation = get_city_geolocation(params)
         if geolocation:
             print(geolocation)
-        
+
         """
 
         query_params = {
-            "namePrefix": params['city'],
-            "countryIds": params['country'],
-            "regionCode": params['state']
+            "namePrefix": params["city"],
+            "countryIds": params["country"],
+            "regionCode": params["state"],
         }
 
-        response = requests.get(self.BASE_URL, headers=self.HEADERS, params=query_params)
+        response = requests.get(
+            self.BASE_URL, headers=self.HEADERS, params=query_params
+        )
 
         if response.status_code == 200:
             data = response.json()
-            if data['data']:
+            if data["data"]:
                 # Get latitude and longitude from the first result
-                city_info = data['data'][0]
-                latitude = city_info.get('latitude')
-                longitude = city_info.get('longitude')
+                city_info = data["data"][0]
+                latitude = city_info.get("latitude")
+                longitude = city_info.get("longitude")
+                return f"{latitude},{longitude}"
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+
+        return None
+
+    def get_cities_within_radius(self, location: str, radius: int) -> List[dict]:
+        """
+        Returns a list of cities within the specified radius of the given location.
+
+        Args:
+            location (str): Can be one of the following:
+                - "country,state" (e.g., "US,CA")
+                - "postal_code" (e.g., "90210")
+                - "latitude,longitude" (e.g., "34.0522,-118.2437")
+            radius (int): Search radius in miles
+
+        Returns:
+            List[dict]: A list of dictionaries containing city information
+        """
+        # Convert radius from miles to kilometers (GeoDB uses km)
+        radius_km = radius * 1.60934
+
+        # Determine the type of location input
+        if "," in location and not location.replace(",", "").replace(".", "").isdigit():
+            # It's a country,state format
+            country, state = location.split(",")
+            geolocation = self.get_state_geolocation(country.strip(), state.strip())
+        elif location.replace(",", "").replace(".", "").isdigit():
+            # It's a latitude,longitude format
+            geolocation = location
+        else:
+            # Assume it's a postal code
+            geolocation = self.get_postal_code_geolocation(location)
+
+        if not geolocation:
+            return []
+
+        # Use the find_nearby_places method to get cities within the radius
+        nearby_places = self.find_nearby_places(geolocation, radius_km)
+        return nearby_places.get("data", [])
+
+    def get_state_geolocation(self, country: str, state: str) -> Optional[str]:
+        """
+        Returns the geolocation (latitude,longitude) for a given state and country.
+
+        Args:
+            country (str): Country code (e.g., "US")
+            state (str): State/province/territory code (e.g., "CA")
+
+        Returns:
+            Optional[str]: Geolocation as "latitude,longitude" or None if not found
+        """
+        params = {"countryIds": country, "regionCode": state, "types": "REGION"}
+        response = requests.get(
+            f"{self.BASE_URL}/places", headers=self.HEADERS, params=params
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            if data["data"]:
+                region_info = data["data"][0]
+                latitude = region_info.get("latitude")
+                longitude = region_info.get("longitude")
+                return f"{latitude},{longitude}"
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+
+        return None
+
+    def get_postal_code_geolocation(self, postal_code: str) -> Optional[str]:
+        """
+        Returns the geolocation (latitude,longitude) for a given postal code.
+
+        Args:
+            postal_code (str): Postal code
+
+        Returns:
+            Optional[str]: Geolocation as "latitude,longitude" or None if not found
+        """
+        params = {"postalCode": postal_code, "types": "CITY"}
+        response = requests.get(
+            f"{self.BASE_URL}/places", headers=self.HEADERS, params=params
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            if data["data"]:
+                city_info = data["data"][0]
+                latitude = city_info.get("latitude")
+                longitude = city_info.get("longitude")
                 return f"{latitude},{longitude}"
         else:
             print(f"Error: {response.status_code} - {response.text}")

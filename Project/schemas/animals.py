@@ -1,5 +1,8 @@
-from marshmallow import fields, validate
+from marshmallow import fields, validate, pre_load, post_dump
+from Project.services.petfinder.petfinder_types import FormattedAnimalType
+from Project.utils.parse import Parse
 from core import ma
+
 
 class AnimalAttributesSchema(ma.Schema):
     # Attributes
@@ -9,11 +12,13 @@ class AnimalAttributesSchema(ma.Schema):
     special_needs = fields.Boolean(allow_none=True)
     shots_current = fields.Boolean(allow_none=True)
 
+
 class AnimalEnvironmentSchema(ma.Schema):
     # Environment
     children = fields.Boolean(allow_none=True)
     dogs = fields.Boolean(allow_none=True)
     cats = fields.Boolean(allow_none=True)
+
 
 class BreedsSchema(ma.Schema):
     primary = fields.Str(allow_none=True)
@@ -41,7 +46,9 @@ class EnvironmentSchema(ma.Schema):
     dogs = fields.Bool()
     cats = fields.Bool()
 
+
 from .common import PhotoSchema, VideoSchema, LinkSchema, ContactSchema
+
 
 class AnimalSchema(ma.Schema):
     """
@@ -56,7 +63,7 @@ class AnimalSchema(ma.Schema):
     size = fields.Str()
     gender = fields.Str()
     age = fields.Str()
-    #Features
+    # Features
     breeds = fields.Nested(BreedsSchema)
     colors = fields.Nested(ColorsSchema)
     coat = fields.Str()
@@ -69,7 +76,7 @@ class AnimalSchema(ma.Schema):
     # Nested Boolean (environment, attributes)
     environment = fields.Nested(AnimalEnvironmentSchema)
     attributes = fields.Nested(AnimalAttributesSchema)
-    
+
     # Additional fields from API response
     # Media
     photos = fields.Nested(PhotoSchema)
@@ -77,8 +84,22 @@ class AnimalSchema(ma.Schema):
     contact = fields.Nested(ContactSchema)
     _links = fields.Nested(LinkSchema)
 
+    @pre_load
+    def preprocess_data(self, data, **kwargs):
+        # Standardize 'type' to lowercase by reverse the prettified animal mapping
+        mapping = {value: key for key, value in Parse.PRETTIFIED_MAPPING.items()}
 
+        if "type" in data:
+            data["type"] = mapping.get(data["type"].lower())
+        return data
 
+    @post_dump
+    def postprocess_data(self, data, **kwargs):
+        # Convert 'type' to a prettified format for API requests
+
+        if "type" in data:
+            data["type"] = Parse.prettify_animal_types(data["type"])
+        return data
 
 
 class AnimalListResponseSchema(ma.Schema):
@@ -91,36 +112,70 @@ class AnimalListResponseSchema(ma.Schema):
     animals = fields.List(fields.Nested(AnimalSchema))
     pagination = fields.Dict()
 
-####################################### GET Request Schemas 
+
+####################################### GET Request Schemas
+from Project.core.constants import (
+    default_animal_age_choices,
+    default_animal_gender_choices,
+    default_animal_size_choices,
+    default_animal_status_choices,
+)
+
+
 class AnimalRequestSchema(ma.Schema):
-    status = fields.List(fields.Str(validate=validate.OneOf(["adoptable", "adopted", "found"])))
-    name = fields.Str()
-    type = fields.Str(validate=validate.OneOf(["dog", "cat", "rabbit", "small-furry", "horse", "bird", "scales-fins-other", "barnyard"]))
-    breed = fields.List(fields.Str())
-    size = fields.List(fields.Str(validate=validate.OneOf(["small", "medium", "large", "xlarge"])))
-    gender = fields.List(fields.Str(validate=validate.OneOf(["male", "female", "unknown"])))
-    age = fields.List(fields.Str(validate=validate.OneOf(["baby", "young", "adult", "senior"])))
-    color = fields.Str()
-    coat = fields.List(fields.Str(validate=validate.OneOf(["short", "medium", "long", "wire", "hairless", "curly"])))
-    organization = fields.List(fields.Str())
-    good_with_children = fields.Boolean()
-    good_with_dogs = fields.Boolean()
-    good_with_cats = fields.Boolean()
-    house_trained = fields.Boolean()
-    declawed = fields.Boolean()
-    special_needs = fields.Boolean()
-    
-    #geography
-    location = fields.Str()
+    status = fields.List(
+        fields.Str(
+            allow_none=True, validate=validate.OneOf(default_animal_status_choices)
+        )
+    )
+    name = fields.Str(allow_none=True)
+    type = fields.Str(allow_none=True, validate=validate.OneOf(FormattedAnimalType))
+    breed = fields.List(fields.Str(allow_none=True))
+    size = fields.List(
+        fields.Str(
+            allow_none=True, validate=validate.OneOf(default_animal_size_choices)
+        )
+    )
+    gender = fields.List(
+        fields.Str(
+            allow_none=True, validate=validate.OneOf(default_animal_gender_choices)
+        )
+    )
+    age = fields.List(
+        fields.Str(allow_none=True, validate=validate.OneOf(default_animal_age_choices))
+    )
+    color = fields.Str(allow_none=True)
+    coat = fields.List(
+        fields.Str(
+            allow_none=True,
+            validate=validate.OneOf(
+                ["short", "medium", "long", "wire", "hairless", "curly"]
+            ),
+        )
+    )
+    organization = fields.List(fields.Str(allow_none=True))
+    good_with_children = fields.Boolean(allow_none=True)
+    good_with_dogs = fields.Boolean(allow_none=True)
+    good_with_cats = fields.Boolean(allow_none=True)
+    house_trained = fields.Boolean(allow_none=True)
+    declawed = fields.Boolean(allow_none=True)
+    special_needs = fields.Boolean(allow_none=True)
+
+    # geography
+    location = fields.Str(allow_none=False)  # mandatory
     distance = fields.Int(validate=validate.Range(min=1, max=500))
-    
-    #meta
-    before = fields.DateTime(format="iso")
-    after = fields.DateTime(format="iso")
-    sort = fields.Str(validate=validate.OneOf(["recent", "-recent", "distance", "-distance", "random"]))
+
+    # meta
+    before = fields.DateTime(format="iso", allow_none=True)
+    after = fields.DateTime(format="iso", allow_none=True)
+    sort = fields.Str(
+        validate=validate.OneOf(
+            ["recent", "-recent", "distance", "-distance", "random"]
+        )
+    )
     page = fields.Int(validate=validate.Range(min=1))
     limit = fields.Int(validate=validate.Range(min=1, max=100))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

@@ -43,7 +43,6 @@ class PaginationSchema(ma.Schema):
 class DistanceParamSchema(ma.Schema):
     distance = fields.Int(validate=validate.Range(min=1, max=500), missing=100)
 
-
 class limitParamSchema(ma.Schema):
     distance = fields.Int(validate=validate.Range(min=1, max=100), missing=100)
 

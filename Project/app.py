@@ -8,7 +8,7 @@ from flask import (  # type: ignore
     g,
     url_for,
     jsonify,
-    current_app
+    current_app,
 )
 
 from flask_login import (
@@ -31,6 +31,13 @@ from core import (
     active_authenticated_user,
     default_animal_prefs,
     load_session,
+    connect_db,
+)
+
+from core.constants import (
+    default_animal_types,
+    animal_emojis,
+    animal_colors,
     default_animal_photos,
 )
 
@@ -86,40 +93,42 @@ from services.petfinder.petfinder_types import (
     AnimalTypes,
     FormattedAnimalType,
 )
+
 load_dotenv()
 
 
 from flask_migrate import Migrate
 from Project.core import db, ma, login_manager, bcrypt, csrf
-from Project.api import register_bp
+
 
 def create_app():
     # create app with factory method
-    app = create_app()
+    app = Flask(__name__)
+
+    from Project.api import register_bp
+
+    # Register blueprints before extensions
+    register_bp(app)
 
     # INITIALIZE EXTENSIONS
-    db.init_app(app)
+    # Set up DB & Flask-Migrate
+    connect_db(app)
     csrf.init_app(app)
     bcrypt.init_app(app)
     ma.init_app(app)
     login_manager.init_app(app)
 
-    # Set up Flask-Migrate
-    migrate = Migrate(app, db, compare_type=True)
-
     # config flask-login.login manager
     login_manager.login_view = "login"
+
     # user load function to load user session based on user_id
     @login_manager.user_loader
     def load_user(user_id):
         from models import User
-        return User.query.get(int(user_id))
-    
-    # Register blueprints
-    register_bp(app)
 
-    #register routes
-    
+        return User.query.get(int(user_id))
+
+    # register routes
 
     @app.route("/")
     def homepage():
@@ -138,7 +147,6 @@ def create_app():
             return render_template("home.html", user=user, form=offcanvas_form)
         else:
             return render_template("home-anon.html")  # , results=results
-
 
     @app.route("/reseed_db", methods=["GET"])
     def reseed_db():
@@ -159,7 +167,12 @@ def create_app():
             "password": "test123",
             "animal_types": ["dog"],
             "image_url": "../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
-            "rescue_action_type": ["volunteering", "donation", "adoption", "animal foster"],
+            "rescue_action_type": [
+                "volunteering",
+                "donation",
+                "adoption",
+                "animal foster",
+            ],
         }
 
         test_user_location = default_session_keys["DEFAULT_LOCATION"]
@@ -200,8 +213,6 @@ def create_app():
             }
         )
 
-
-    
     # Inject Custom Jinja filters Here
     custom_filters_dict = {
         "format_kebob_case": Parse.format_kebob_case,
@@ -209,7 +220,7 @@ def create_app():
     }
     for function_key, function in custom_filters_dict.items():
         app.jinja_env.filters[function_key] = function
-    
+
     # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
     @app.context_processor
     def inject_global_vars():
@@ -218,8 +229,8 @@ def create_app():
         return {
             "session": session,
             "g": g,
-            "animal_types": api.animal_types,
-            "animal_emojis": api.animal_emojis,
+            "animal_types": default_animal_types,
+            "animal_emojis": animal_emojis,
             "animal_colors": animal_colors,
             "animal_default_photos": default_animal_photos,
             "animal_border_colors": {
@@ -239,7 +250,7 @@ def create_app():
             "user_auth_status": active_authenticated_user(),
             "default_prettified_animal_types": Parse.get_default_prettified_animal_types,
         }
-    
+
     @app.after_request
     def add_header(req):
         """Add non-caching headers on every request."""
@@ -250,12 +261,7 @@ def create_app():
         req.headers["Cache-Control"] = "public, max-age=0"
         return req
 
-
-
-    
     return app
-
-
 
 
 ##############################################################################
@@ -306,13 +312,10 @@ def create_app():
 #         app.logger.info(f"Session reset to default - {session}")
 
 
-
-
 # TODO # FIX LATER
 # @app.route("/static/images/graphics/<path:filename>")
 # def serve_image(filename):
 #     return send_from_directory(IMAGE_FOLDER, f"/{filename}")
-
 
 
 ##############################################################################
@@ -320,7 +323,6 @@ def create_app():
 
 
 ##############################################################################
-
 
 
 # Turn off all caching in Flask
@@ -332,7 +334,7 @@ def create_app():
 if __name__ == "__main__":
     flask_env = os.environ.get("FLASK_ENV", "development")
     app = create_app()
-    
+
     app.logger.warning(f"Starting app with FLASK_ENV={flask_env}")
 
     # run app
