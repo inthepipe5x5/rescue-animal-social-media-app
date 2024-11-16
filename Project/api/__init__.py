@@ -1,11 +1,11 @@
 from flask import Blueprint
 
-from .routes.animals import animals_bp
-from .routes.data import datas_bp
-from .routes.user import users_bp
-from .routes.org import orgs_bp
-from .routes.error import errors_bp
-from .routes.pf import pf_bp
+from Project.routes.animals import animals_bp
+from Project.routes.data import datas_bp
+from Project.routes.user import users_bp
+from Project.routes.org import orgs_bp
+from Project.routes.error import errors_bp
+from Project.routes.pf import pf_bp
 
 
 def register_bp(app):

@@ -5,7 +5,7 @@ from logging.config import dictConfig
 from dotenv import load_dotenv
 from sqlalchemy.engine.url import URL
 
-# Load environment variables from .env file
+# Load environment variables from Project.env file
 load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -138,7 +138,6 @@ class Config:
         :param app: Flask app, update object
         :return:
         """
-        from utils import Parse
         # create config instance
         config_instance = Config()
 
@@ -152,15 +151,6 @@ class Config:
 
         # Configure logging
         dictConfig(obj.get_logger_config())
-
-
-        # Inject Custom Jinja filters Here
-        custom_filters_dict = {
-            "format_kebob_case": Parse.format_kebob_case,
-            "prettify_animal_types": Parse.prettify_animal_types,
-        }
-        for function_key, function in custom_filters_dict.items():
-            app.jinja_env.filters[function_key] = function
 
         return app
 

@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 
-from .common import SchemaDbModel
-from ..schemas.orgs import OrganizationSchema
+from Project.common import SchemaDbModel
+from Project..schemas.orgs import OrganizationSchema
 from core import db, ma
 
 

@@ -1,7 +1,7 @@
 """Seed database with sample data from CSV Files."""
 
 from csv import DictReader
-from app import app, db
+from Project.core.app import app, db
 from Project.schemas.data.users.models import (
     User,
     UserLocation,

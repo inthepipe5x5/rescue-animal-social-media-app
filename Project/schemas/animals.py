@@ -47,7 +47,7 @@ class EnvironmentSchema(ma.Schema):
     cats = fields.Bool()
 
 
-from .common import PhotoSchema, VideoSchema, LinkSchema, ContactSchema
+from Project.schemas.common import PhotoSchema, VideoSchema, LinkSchema, ContactSchema
 
 
 class AnimalSchema(ma.Schema):

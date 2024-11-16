@@ -1,5 +1,5 @@
 from marshmallow import fields, validate
-from core import ma
+from Project.core.extensions import ma
 
 
 class AddressSchema(ma.Schema):

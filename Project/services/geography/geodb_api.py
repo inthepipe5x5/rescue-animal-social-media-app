@@ -2,12 +2,10 @@ import requests
 import os
 from ratelimit import (
     limits,
-    RateLimitException,
-    sleep_and_retry,
 )
 
 from Project.services.geography.util import GeoUtil
-from ..petfinder.petfinder_types import UserLocationData
+from Project.core.types import UserLocationData
 from typing import List, Optional
 
 

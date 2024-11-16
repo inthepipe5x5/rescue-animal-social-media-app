@@ -10,7 +10,6 @@ from wtforms import (  # type: ignore # type: ignore
     IntegerRangeField,
 )
 
-# from petpy import Petfinder
 import os
 from dotenv import load_dotenv  # type: ignore
 
@@ -18,7 +17,7 @@ from wtforms.validators import DataRequired, Email, Length, ValidationError, Equ
 from wtforms_alchemy import model_form_factory  # type: ignore
 import pycountry  # type: ignore
 
-from Project.schemas.data.users.models import (
+from Project.models.users import (
     db,
     User,
     UserLocation,

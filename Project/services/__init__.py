@@ -1,5 +1,5 @@
-from .petfinder import PetFinderAPI
-from .geography import geodb_api
+from Project.services.petfinder import PetFinderAPI
+from Project.services.geography import geodb_api
 
 # initialize services here
 pf = PetFinderAPI()

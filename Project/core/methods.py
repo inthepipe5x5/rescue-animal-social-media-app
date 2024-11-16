@@ -5,8 +5,7 @@ from http.client import HTTPException
 from urllib.parse import urljoin
 import os
 
-from core import (
-    default_error_details as error_details,
+from Project.core.constants import (
     NEXT_ANIMAL_URLS_KEY,
     LOCATION_SESSION_KEY,
     USER_LOCATION_KEY,
@@ -14,13 +13,15 @@ from core import (
     DEFAULT_LOCATION,
     CURR_USER_KEY,
     CURR_ANIMALS_KEY,
+    default_error_details as error_details,
 )
-from services import pf as api, AnimalTypes
-from schemas import AnimalReqParams
-from extensions import db, login_user, logout_user
-from ..utils import Parse
-from ..services import pf as api
-from ..models import UserLocation, UserTravelPreferences
+from Project.core.extensions import db
+from flask_login import login_user, logout_user
+from Project.services import pf as api, AnimalTypes
+from Project.schemas import AnimalReqParams
+from Project.utils import Parse
+from Project.services import pf as api
+from Project.models import UserLocation, UserTravelPreferences
 
 
 def do_login(user):
@@ -120,7 +121,7 @@ def get_location(no_geocode=False):
     """
     # If the user is authenticated and active
     if active_authenticated_user():
-        user = load_user(user_id=current_user.id)
+        user = current_user._get_current_object()
         user_location = (
             user.location
             if user and user.location
@@ -300,14 +301,6 @@ def active_authenticated_user():
         return True
     else:
         return False
-
-
-# Custom Validator
-class TwoCharString(str):
-    def __new__(cls, value):
-        if len(value) != 2:
-            raise ValueError("Must be a 2-character string")
-        return super().__new__(cls, value)
 
 
 # Handle Error

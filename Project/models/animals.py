@@ -1,8 +1,10 @@
 from sqlalchemy import Column, Integer, String, Boolean, JSON
+
 # from sqlalchemy.dialects.postgresql import JSONB
 
-from .common import SchemaDbModel
-from ..schemas.animals import AnimalSchema
+from Project.schemas.common import SchemaDbModel
+from Project.schemas.animals import AnimalSchema
+
 
 # subclass for Animals
 class Animal(SchemaDbModel, schema=AnimalSchema):
@@ -12,11 +14,12 @@ class Animal(SchemaDbModel, schema=AnimalSchema):
     This model stores all information about an animal, including its attributes,
     matching the structure of an returned from PetFinder /animalsAPI response.
     """
-    
+
     __tablename__ = "animals"
     api_list_key = "animals"
 
     id = Column(String(50), primary_key=True)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pass

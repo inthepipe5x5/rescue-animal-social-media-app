@@ -2,7 +2,7 @@ from typing import TypeAlias, TypedDict, Optional, Union, List, Tuple
 import datetime
 from enum import Enum
 from pandas import DataFrame
-from core import UserLocationData
+
 
 
 
@@ -46,7 +46,6 @@ RequestedContent: TypeAlias = Union[list[dict], dict, DataFrame]
 Animals: TypeAlias = Union[list[dict], dict, DataFrame]
 
 
-
 class AnimalReqParams(TypedDict, total=False):
     """Typing for req params being made to PetFinder API
 
@@ -83,6 +82,9 @@ class AnimalReqParams(TypedDict, total=False):
     house_trained: Optional[bool]
     special_needs: Optional[bool]
 
+    #lazy import to prevent circular import
+    from Project.core.types import UserLocationData
+    
     # meta
     before_date: Optional[Date]
     after_date: Optional[Date]

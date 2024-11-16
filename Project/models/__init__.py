@@ -1,6 +1,6 @@
-from models.animals import Animal
-from models.orgs import Organization
-from models.users import (
+from Project.models.animals import Animal
+from Project.models.orgs import Organization
+from Project.models.users import (
     User,
     UserLocation,
     UserAnimalPreferences,

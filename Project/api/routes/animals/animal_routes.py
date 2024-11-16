@@ -1,23 +1,32 @@
-from flask import Blueprint, json, redirect, request, session, url_for, jsonify, render_template
-import pycountry
+from flask import (
+    Blueprint,
+    json,
+    redirect,
+    request,
+    session,
+    url_for,
+    jsonify,
+    render_template,
+)
 from urllib.parse import urljoin
 from time import sleep
-from core import (
-    login_required,
-    API_ANIMAL_TYPES_KEY,
+from Project.core.methods import (
     get_location,
     default_session_keys,
     active_authenticated_user,
     current_user,
     create_init_params,
-    get_anon_location
+    get_anon_location,
+)
+from Project.core.constants import (
+    API_ANIMAL_TYPES_KEY,
 )
 import os
 from dotenv import load_dotenv
 from data import seed_animal_info
 from utils import Parse
 
-from ....services import pf as api
+from Project.services import pf as api
 
 load_dotenv()
 

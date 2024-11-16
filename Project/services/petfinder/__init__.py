@@ -1,11 +1,11 @@
-from petfinder import PetFinderAPI
+from Project.services.petfinder.PetFinderAPI import PetFinderAPI
 
 # initialize services here
 pf = PetFinderAPI()
 
 # This allows: from Project.services import pf, geodb
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # pf = PetFinderAPI()
     # geodb = geodb_api()
 

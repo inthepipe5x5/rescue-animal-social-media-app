@@ -1,13 +1,13 @@
 import pycountry
 from itertools import combinations
 from urllib.parse import urljoin
-from core import GeoLocationType, UserLocationData
+from Project.core.types import GeoLocationType, UserLocationData
 
 
 class GeoUtil:
     """Utility class and methods for handling geography and location data"""
 
-    def lookup_country(search_string: GeoLocationType.country) -> list:
+    def lookup_country(search_string: GeoLocationType) -> list:
         """
         The `lookup_country` function takes a search string and returns a list of dictionaries containing
         country objects that match the fuzzy search.

@@ -14,6 +14,13 @@ API_ANIMAL_TYPES_KEY = "API_ANIMAL_TYPES"
 # key to use to store in session
 LOCATION_SESSION_KEY = "location"
 
+# Define limit for generator function to make API calls as PetFinder limits to 1000 calls per day
+API_CALLS_PER_DAY = 1000
+TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
+MAX_TRIES = 3  # Maximum number of retries for handling RateLimitException
+
+
+
 # default session keys
 default_session_keys = {
     USER_LOCATION_KEY: os.environ.get(USER_LOCATION_KEY, "43.6429,-79.3889"),
