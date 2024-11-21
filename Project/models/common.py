@@ -76,3 +76,17 @@ class SchemaDbModel(db.Model):
             return next_link["href"]
         return None
 
+# class MetaData(db.Model):
+#     __abstract__ = True
+
+#     @declared_attr
+#     def dt_saved(cls):
+#         return db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+#     @declared_attr
+#     def provider(cls):
+#         return db.Column(db.String(255), nullable=False)
+
+# class MetaDataSchema(Schema):
+#     dt_saved = fields.DateTime(dump_only=True)
+#     provider = fields.String(required=True)

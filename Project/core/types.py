@@ -1,4 +1,5 @@
 from typing import TypedDict, Optional, Union
+from Project.utils.utils import TwoCharString
 
 
 class GeoLocation(TypedDict):
@@ -11,7 +12,6 @@ GeoLocationType = Union[GeoLocation, str]  # str for "lat,lon" format
 
 
 class UserLocationData(TypedDict, total=False):
-    from Project.utils.utils import TwoCharString
 
     geolocation: Optional[GeoLocationType]
     state: Optional[TwoCharString]

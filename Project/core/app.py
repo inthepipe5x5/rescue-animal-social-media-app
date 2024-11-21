@@ -1,14 +1,8 @@
 from flask import (  # type: ignore
-    Flask,
     render_template,
-    request,
-    flash,
-    redirect,
     session,
     g,
-    url_for,
     jsonify,
-    current_app,
 )
 
 from flask_login import (
@@ -25,7 +19,6 @@ from core.methods import (
     active_authenticated_user,
     load_session,
 )
-from core.extensions import connect_db
 
 from core.constants import (
     default_session_keys,
@@ -38,7 +31,6 @@ from core.constants import (
 )
 
 from Project.models import (
-    db,
     User,
     UserLocation,
     UserAnimalPreferences,
@@ -48,76 +40,14 @@ from forms import (
     UserExperiencesForm,
 )
 
-from config import config, Config
-from services import pf as api
 from Project.utils.parse import Parse
 
 # import custom exceptions
-from services.petfinder.api_exceptions import (
-    PetFinderResourceNotFoundError,
-    PetFinderInvalidCredentialsError,
-    PetFinderAccessDeniedError,
-    PetFinderInvalidParametersError,
-    PetFinderLocationError,
-    PetFinderUnexpectedServerError,
-)
-from services.petfinder.petfinder_types import (
-    AnimalReqParams,
-    AnimalType,
-    AnimalTypes,
-    FormattedAnimalType,
-)
 
 load_dotenv()
 
 
-from flask_migrate import Migrate
-from Project.core.extensions import db, ma, login_manager, bcrypt, csrf
-
-
-def create_app():
-    # create app with factory method
-    app = Flask(__name__)
-
-    #CONFIG APP
-    # create config instance
-    app_config_instance = Config()
-
-    # config Flask app
-    flask_env_type = (
-        os.environ.get("FLASK_ENV")
-        if os.environ.get("FLASK_ENV") is not None
-        else "default"
-    )
-    app_config_instance.config_app(app=app, obj=config[flask_env_type])
-    
-    # Register blueprints before extensions
-    from Project.api import register_bp
-    register_bp(app)
-
-    # Config app
-
-    # INITIALIZE EXTENSIONS
-    # Set up DB & Flask-Migrate
-    connect_db(app)
-    csrf.init_app(app)
-    bcrypt.init_app(app)
-    ma.init_app(app)
-    login_manager.init_app(app)
-
-    # config flask-login.login manager
-    login_manager.login_view = "login"
-
-    # user load function to load user session based on user_id
-    @login_manager.user_loader
-    def load_user(user_id):
-        from models import User
-
-        return User.query.get(int(user_id))
-
-    return app
-
-
+from Project.core import create_app
 app = create_app()
 
 

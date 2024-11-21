@@ -17,8 +17,8 @@ from Project.core.constants import (
 )
 from Project.core.extensions import db
 from flask_login import login_user, logout_user
-from Project.services import pf as api, AnimalTypes
-from Project.schemas import AnimalReqParams
+from Project.services import pf as api
+from Project.services.petfinder.petfinder_types import AnimalTypes, AnimalReqParams
 from Project.utils import Parse
 from Project.services import pf as api
 from Project.models import UserLocation, UserTravelPreferences

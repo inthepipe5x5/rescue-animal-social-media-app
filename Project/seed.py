@@ -2,7 +2,7 @@
 
 from csv import DictReader
 from Project.core.app import app, db
-from Project.schemas.data.users.models import (
+from Project.models.users import (
     User,
     UserLocation,
     UserAnimalPreferences,
@@ -32,7 +32,7 @@ db.create_all()
 
 if os.environ.get("FLASK_ENV") != "production":
     salt = bcrypt.gensalt()
-    test_user.password = bcrypt(test_user.password.encode('utf-8'), salt)
+    test_user.password = bcrypt(test_user.password.encode("utf-8"), salt)
     test123 = User.signup(**test_user)
     test123_location = UserLocation(country="CA", state="ON")
     db.session.add(test123_location)

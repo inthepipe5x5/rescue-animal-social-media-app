@@ -1,4 +1,5 @@
-from Project.models.animals import Animal
+from Project.models.animals import Animal, AnimalCity
+from Project.models.geography import City
 from Project.models.orgs import Organization
 from Project.models.users import (
     User,

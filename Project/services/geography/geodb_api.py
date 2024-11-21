@@ -1,3 +1,4 @@
+import fuzzywuzzy
 import requests
 import os
 from ratelimit import (
@@ -6,7 +7,7 @@ from ratelimit import (
 
 from Project.services.geography.util import GeoUtil
 from Project.core.types import UserLocationData
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 class GeoDB(GeoUtil):
@@ -43,14 +44,12 @@ class GeoDB(GeoUtil):
         name_prefix=None,
         country_ids=None,
         location=None,
-        timezone=None,
         min_population=50_000,
     ):
         params = {
             "namePrefix": name_prefix,
             "countryIds": country_ids,
             "location": location,
-            "timezone": timezone,
             "minPopulation": min_population,
         }
         response = requests.get(
@@ -65,19 +64,64 @@ class GeoDB(GeoUtil):
             f"{self.BASE_URL}/cities/nearby", headers=self.HEADERS, params=params
         )
         return response.json()
+    
+    @staticmethod
+    def process_city_data(city_data: dict):
+        """
+        Process the city data returned by the API to match your City model structure.
 
-    def get_place_details(self, city_id):
+        :param city_data: The data returned by the API
+        :param state: The state name (since it might not be included in the API response)
+        :return: A dictionary with keys matching your City model
         """
-        This function retrieves details about a place based on the provided city ID.
-        
-        :param city_id: The `city_id` parameter is used to specify the unique identifier of a city for
-        which you want to retrieve details or information. This identifier helps in identifying the
-        specific city within a database or system
+        return {
+            "type": "CITY",
+            "name": city_data.get("name"),
+            "country": city_data.get("country"),
+            "country_code": city_data.get("countryCode"),
+            "region_name": city_data.get('region', None),
+            "region_code": city_data.get("regionCode"),
+            "geolocation": f"({city_data.get('latitude', '')},{city_data.get('longitude', '')})",
+            "population": city_data.get("population"),
+            "postal_code": city_data.get("postcode"),
+        }
+
+    
+    
+    @staticmethod
+    def get_city_details(self, city_identifier: Union[str, int], country):
         """
-        response = requests.get(
-            f"{self.BASE_URL}/cities/{city_id}", headers=self.HEADERS
-        )
-        return response.json()
+        This function retrieves details about a place based on the provided city ID or city name.
+
+        :param city_identifier: Can be either a city ID (int) or a city name (str) for fuzzy search
+        :return: A dictionary containing place details or None if not found
+        """
+        if isinstance(city_identifier, int):
+            # If it's an integer, assume it's a city ID
+            response = self.get_place_details(city_id=city_identifier)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+                return None
+        elif isinstance(city_identifier, str):
+            params = {"namePrefix": city_identifier, "countryIds": country}
+            response = requests.get(
+                f"{self.BASE_URL}/cities", headers=self.HEADERS, params=params
+            )
+            data = response.json()
+
+            # Extract relevant information from API response
+            city_info = data["data"][0] if data["data"] else None
+
+            if city_info:
+                return city_info
+            return None
+        else:
+            print(
+                "Invalid input. Please provide either a city ID (int) or a city name (str)."
+            )
+            return None
 
     def get_country_regions(self, country_id):
         response = requests.get(
@@ -161,7 +205,9 @@ class GeoDB(GeoUtil):
         nearby_places = self.find_nearby_places(geolocation, radius_km)
         return nearby_places.get("data", [])
 
-    def get_state_geolocation(self, country: str, state: str) -> Optional[str]:
+    def convert_state_to_geolocation_str(
+        self, country: str, state: str
+    ) -> Optional[str]:
         """
         Returns the geolocation (latitude,longitude) for a given state and country.
 
@@ -189,7 +235,7 @@ class GeoDB(GeoUtil):
 
         return None
 
-    def get_postal_code_geolocation(self, postal_code: str) -> Optional[str]:
+    def convert_postal_code_to_geolocation_str(self, postal_code: str) -> Optional[str]:
         """
         Returns the geolocation (latitude,longitude) for a given postal code.
 
@@ -215,3 +261,34 @@ class GeoDB(GeoUtil):
             print(f"Error: {response.status_code} - {response.text}")
 
         return None
+
+    @staticmethod
+    def alternate_cities(city_dict: dict, country: str) -> List[dict]:
+        """
+        This function alternate_cities takes a dictionary of cities and a country name,
+        and returns a list of dictionaries. Each dictionary contains country, state, and city
+        information. The cities are alternated across all states/provinces.
+
+        :param city_dict: A dictionary where keys are states/provinces and values are lists of cities
+        :param country: The name of the country (e.g., "USA", "Canada")
+        :return: A list of dictionaries with country, state, and city information
+
+        # Example usage:
+        # alternated_cities = alternate_cities(usa, "USA")
+        # print(alternated_cities)
+        """
+        # Get the maximum length of any list in the dictionary
+        max_len = max(len(cities) for cities in city_dict.values())
+
+        result = []
+
+        # Iterate through each index
+        for i in range(max_len):
+            # For each state/province, get the i-th city if it exists
+            for state, cities in city_dict.items():
+                if i < len(cities):
+                    result.append(
+                        {"country": country, "state": state, "city": cities[i]}
+                    )
+
+        return result

@@ -1,9 +1,9 @@
 from Project.services.petfinder import PetFinderAPI
-from Project.services.geography import geodb_api
+from Project.services.geography.geodb_api import GeoDB
 
 # initialize services here
 pf = PetFinderAPI()
-geodb = geodb_api()
+geodb = GeoDB()
 
 # This allows: from Project.services import pf, geodb
 

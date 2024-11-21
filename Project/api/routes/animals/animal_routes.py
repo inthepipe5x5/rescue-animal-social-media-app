@@ -11,18 +11,23 @@ from flask import (
 from urllib.parse import urljoin
 from time import sleep
 from Project.core.methods import (
+    create_next_animal_url,
     get_location,
     default_session_keys,
     active_authenticated_user,
     current_user,
     create_init_params,
     get_anon_location,
+    get_user_animal_preferences,
 )
 from Project.core.constants import (
     API_ANIMAL_TYPES_KEY,
+    NEXT_ANIMAL_URLS_KEY,
+    RESULTS_PER_PAGE_KEY,
 )
 import os
 from dotenv import load_dotenv
+from Project.services.petfinder.api_exceptions import PetFinderResourceNotFoundError
 from data import seed_animal_info
 from utils import Parse
 
@@ -116,7 +121,7 @@ def discover_animals():
             break  # Exit if generator returns no content
 
         # Filter and parse results
-        filters = create_user_preference_filters()
+        filters = pf()
         filtered_results, success_flag = api.filter_parse_animal_results(
             results, filter_prefs=filters
         )

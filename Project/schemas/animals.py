@@ -1,3 +1,4 @@
+import html
 from marshmallow import fields, validate, pre_load, post_dump
 from Project.services.petfinder.petfinder_types import FormattedAnimalType
 from Project.utils.parse import Parse
@@ -47,7 +48,14 @@ class EnvironmentSchema(ma.Schema):
     cats = fields.Bool()
 
 
-from Project.schemas.common import PhotoSchema, VideoSchema, LinkSchema, ContactSchema
+from Project.services import geodb
+from Project.schemas.common import (
+    PhotoSchema,
+    VideoSchema,
+    LinkSchema,
+    ContactSchema,
+    AddressSchema,
+)
 
 
 class AnimalSchema(ma.Schema):
@@ -59,6 +67,8 @@ class AnimalSchema(ma.Schema):
     """
 
     id = fields.Int()
+    organization_id = fields.Str()
+    type = fields.Enum(FormattedAnimalType)
     name = fields.Str()
     size = fields.Str()
     gender = fields.Str()
@@ -68,7 +78,6 @@ class AnimalSchema(ma.Schema):
     colors = fields.Nested(ColorsSchema)
     coat = fields.Str()
     status = fields.Str()
-    organization_id = fields.Str()
     description = fields.Str()
 
     tags = fields.List(fields.Str())
@@ -91,6 +100,20 @@ class AnimalSchema(ma.Schema):
 
         if "type" in data:
             data["type"] = mapping.get(data["type"].lower())
+        # deserialize animal
+        data = AnimalSchema.deserialize_animal(animal_data=data)
+
+        # html escape the values
+        data = (
+            {
+                key: html.escape(value)
+                for key, value in data.items()
+                if isinstance(value, str)
+            }
+            if isinstance(data, dict)
+            else data
+        )
+
         return data
 
     @post_dump
@@ -100,6 +123,110 @@ class AnimalSchema(ma.Schema):
         if "type" in data:
             data["type"] = Parse.prettify_animal_types(data["type"])
         return data
+
+    @staticmethod
+    def deserialize_address(animal_data):
+        """
+        Deserialize the address from the animal's contact information and format it for City model.
+
+        :param animal_data: Dict containing animal data from API response
+        :return: Dict with deserialized and formatted address information
+        """
+        if (
+            not animal_data
+            or "contact" not in animal_data
+            or "address" not in animal_data["contact"]
+        ):
+            return None
+
+        address_data = animal_data["contact"]["address"]
+
+        # Use the existing AddressSchema to deserialize the address
+        address_schema = AddressSchema()
+        deserialized_address = address_schema.load(address_data)
+
+        # Process the deserialized address data to match City model structure
+        city_data = {
+            "name": deserialized_address.get("city"),
+            "country": deserialized_address.get("country"),
+            "countryCode": deserialized_address.get(
+                "country"
+            ),  # Assuming country is provided as a code
+            "region": deserialized_address.get("state"),
+            "regionCode": deserialized_address.get(
+                "state"
+            ),  # Assuming state is provided as a code
+            "postcode": deserialized_address.get("postcode"),
+        }
+
+        # Use the process_city_data function to format the data for City model
+        formatted_city_data = geodb.process_city_data(city_data)
+
+        return formatted_city_data
+
+    @classmethod
+    def deserialize_animal(cls, animal_data):
+        """
+        Deserialize the entire animal data, including the address formatted for City model.
+
+        :param animal_data: Dict containing animal data from API response
+        :return: Dict with fully deserialized animal data
+        """
+        schema = cls()
+        deserialized_data = schema.load(animal_data)
+
+        # Deserialize and format the address separately
+        formatted_address = cls.deserialize_address(animal_data)
+        if formatted_address:
+            deserialized_data["contact"]["address"] = formatted_address
+
+        return deserialized_data
+
+    @staticmethod
+    def deserialize_address(animal_data):
+        """
+        Deserialize the address from the animal's contact information using LinkSchema.
+
+        :param animal_data: Dict containing animal data from API response
+        :return: Dict with deserialized address information
+        """
+        if (
+            not animal_data
+            or "contact" not in animal_data
+            or "address" not in animal_data["contact"]
+        ):
+            return None
+
+        address_data = animal_data["contact"]["address"]
+
+        # Use LinkSchema to deserialize the _links part if it exists
+        if "_links" in address_data:
+            link_schema = LinkSchema()
+            address_data["_links"] = link_schema.load(address_data["_links"])
+
+        # Deserialize the address data
+        address_schema = AddressSchema()
+        deserialized_address = address_schema.load(address_data)
+
+        return deserialized_address
+
+    @classmethod
+    def deserialize_animal(cls, animal_data):
+        """
+        Deserialize the entire animal data, including the address.
+
+        :param animal_data: Dict containing animal data from API response
+        :return: Dict with fully deserialized animal data
+        """
+        schema = cls()
+        deserialized_data = schema.load(animal_data)
+
+        # Deserialize the address separately
+        deserialized_address = cls.deserialize_address(animal_data)
+        if deserialized_address:
+            deserialized_data["contact"]["address"] = deserialized_address
+
+        return deserialized_data
 
 
 class AnimalListResponseSchema(ma.Schema):
@@ -111,6 +238,15 @@ class AnimalListResponseSchema(ma.Schema):
 
     animals = fields.List(fields.Nested(AnimalSchema))
     pagination = fields.Dict()
+
+
+class AnimalCityJoinSchema(ma.Schema):
+    animal_id = fields.String(attribute="Animal.id")
+    animal_name = fields.String(attribute="Animal.name")
+    animal_type = fields.String(attribute="Animal.type")
+    city_name = fields.String(attribute="City.name")
+    city_country = fields.String(attribute="City.country")
+    city_geolocation = fields.String(attribute="City.geolocation")
 
 
 ####################################### GET Request Schemas
@@ -175,6 +311,14 @@ class AnimalRequestSchema(ma.Schema):
     )
     page = fields.Int(validate=validate.Range(min=1))
     limit = fields.Int(validate=validate.Range(min=1, max=100))
+
+    @pre_load
+    def preprocess_data(self, data, **kwargs):
+        # Standardize 'type' to lowercasing the prettified animal mapping returned by the API
+        if "type" in data:
+            data["type"] = Parse.PRETTIFIED_MAPPING.get(data["type"].lower())
+
+        return data
 
 
 if __name__ == "__main__":

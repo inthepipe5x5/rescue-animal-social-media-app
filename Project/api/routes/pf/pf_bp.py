@@ -3,12 +3,21 @@ from dotenv import load_dotenv
 from urllib.parse import urljoin
 import requests
 from time import sleep
-from services import pf as api, geodb
-from core import db, AnimalReqParams, RequestedContent
-from schemas import Animal, AnimalListResponseSchema, AnimalSchema
+from typing import List, Callable, Any
+from Project.services.data import seed_initial_cities
+from Project.services.petfinder.PetFinderAPI import pf as api
+from Project.services.petfinder.petfinder_types import RequestedContent, AnimalReqParams
+from Project.core import db
+from Project.schemas.animals import Animal, AnimalListResponseSchema, AnimalSchema
 from models import Animal
 
-pf_bp = Blueprint("pf", __name__, url_prefix="/pf", url_defaults=url_for("return_animals"))
+import logging
+from logging.config import dictConfig
+from Project.config import Config
+
+pf_bp = Blueprint(
+    "pf", __name__, url_prefix="/pf", url_defaults=url_for("return_animals")
+)
 load_dotenv()
 
 
@@ -16,13 +25,14 @@ load_dotenv()
 def return_animals():
     """Route to return scraped PetFinder /animals data"""
 
-    #TODO:
+    # TODO:
     # params = request.body.get("params")
     # if params:
     #     db.session.query(Animal).filter()
-    
+
     animals = db.session.query(Animal).limit(20)
     return jsonify(animals)
+
 
 @pf_bp.route("/animals/scrape", methods=["POST"])
 def scrape_animals():
@@ -53,3 +63,60 @@ def scrape_animals():
         sleep(20)
         request.post(url_for("scrape_animals", _external=True), params=params)
         return jsonify({"data": validated_data})
+
+
+# Configure logging
+logging.config.dictConfig(Config.get_logger_config())
+logger = logging.getLogger(__name__)
+
+
+def validate_saved_cities(
+    db: Any,
+    check_db_func: Callable[[str, Any], bool],
+    http_request_func: Callable[[str], Any],
+    save_to_db_func: Callable[[Any, Any], None],
+) -> None:
+    """
+    Validate cities saved in db, making HTTP requests and saving updated data to the database if incomplete data found.
+
+    :param cities: List of city names to process
+    :param db: Database object (Flask SQLAlchemy object)
+    :param check_db_func: Function to check if an entry exists in the database
+    :param http_request_func: Function to make HTTP requests
+    :param save_to_db_func: Function to save data to the database
+    """
+    query_all_cities = db.session.query(City).all()
+    query_all_cities_dicts = (
+        [city.dump() for city in query_all_cities]
+        if query_all_cities
+        else seed_initial_cities()
+    )
+
+    for city in query_all_cities_dicts:
+        try:
+            # Check if the city result has falsy column values
+            get_updated_data_flag = any(bool(val) for val in city.values())
+
+            if get_updated_data_flag:
+                logger.info(
+                    f"City {city} requires updating..making HTTP request to GEODB cities API."
+                )
+                # Make HTTP request
+                data = http_request_func(city)
+                validated_data = CitySchema.loads(data)
+                updated_city = City(**validated_data)
+                db.session.add()
+                db.commit()
+
+            # Save data to database
+            save_to_db_func(data, db)
+
+            logger.info(f"Successfully processed and saved data for {city}")
+
+            # Add a small delay to avoid overwhelming the server
+            sleep(2)
+
+        except Exception as e:
+            logger.error(f"Error processing {city}: {str(e)}")
+
+    logger.info("Finished processing all cities")

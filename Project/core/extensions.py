@@ -1,3 +1,4 @@
+from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_login import (
@@ -10,7 +11,7 @@ csrf = CSRFProtect()
 ma = Marshmallow()  # flask-marshmallow for validation & serialization
 db = SQLAlchemy()  # flask-sqlalchemy
 login_manager = LoginManager()  # flask-login manager
-
+bcrypt = Bcrypt()
 
 def connect_db(app):
     """Connect this database to provided Flask app.
