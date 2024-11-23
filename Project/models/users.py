@@ -144,24 +144,6 @@ class UserFavorites(db.Model):
         else:
             print(f"Favorite {favorite_id} not found for user {user_id}")
 
-
-class RescueOrganization(db.Model):
-    """Rescue Organization db.Model"""
-
-    __tablename__ = "rescueOrg"
-
-    id = db.Column(
-        db.Integer,
-        primary_key=True,
-    )
-
-    name = db.Column(
-        db.Text,
-        nullable=False,
-        unique=True,
-    )
-
-
 class MatchedRescueOrganization(db.Model):
     """Matched Rescue Organization db.Model captures information about a Rescue Organization and the relationship to a specific user"""
 
@@ -253,43 +235,6 @@ class UserLocation(db.Model):
             # Log the error
             print(f"Error in city_state_country_str: {str(e)}")
             raise ValueError("Unable to process location information")
-
-    def format_geolocation(*coordinates) -> str:
-        """
-        This function formats geolocation coordinates into a standardized string format.
-        It can handle a single string input, separate float inputs, or separate string inputs for latitude and longitude.
-
-        Args:
-            *coordinates: Either a single string "latitude,longitude" or two values (latitude, longitude) as floats or strings
-
-        Returns:
-            str: geolocation string in "latitude,longitude" format with 6 decimal places precision
-
-        Examples:
-            >>> format_geolocation("43.6429,79.3889")
-            '43.642900,79.388900'
-            >>> format_geolocation(40.7128, -74.0060)
-            '40.712800,-74.006000'
-            >>> format_geolocation("-33.8688", "151.2093")
-            '-33.868800,151.209300'
-        """
-        if len(coordinates) == 1 and isinstance(coordinates[0], str):
-            # Handle single string input
-            lat, lon = map(float, coordinates[0].split(","))
-        elif len(coordinates) == 2:
-            # Handle separate inputs (float or string)
-            try:
-                lat, lon = map(float, coordinates)
-            except ValueError:
-                raise ValueError(
-                    "Invalid input. Latitude and longitude must be convertible to float."
-                )
-        else:
-            raise ValueError(
-                "Invalid input. Provide either a string 'latitude,longitude' or two values (float or string)."
-            )
-
-        return f"{lat:.6f},{lon:.6f}"
 
     def get_location_info(self):
         """

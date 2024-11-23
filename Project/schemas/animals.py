@@ -1,8 +1,9 @@
 import html
 from marshmallow import fields, validate, pre_load, post_dump
 from Project.services.petfinder.petfinder_types import FormattedAnimalType
-from Project.utils.parse import Parse
+from Project.utils.parse import Parse, ParseAnimal
 from core import ma
+from fuzzywuzzy import process
 
 
 class AnimalAttributesSchema(ma.Schema):
@@ -100,6 +101,36 @@ class AnimalSchema(ma.Schema):
 
         if "type" in data:
             data["type"] = mapping.get(data["type"].lower())
+
+        bad_colors_key = ("color", "colors", "colour", "colours")
+        for bad_key in bad_colors_key:
+            if bad_key in data:
+                if "colors" not in data:
+                    data["colors"] = ParseAnimal.parse_color(colors_obj=data[bad_key])
+                del data[bad_key]
+        bad_breeds_key = (
+            "breed",
+            "BREED",
+            "BREEDs",
+        )
+        for bad_key in bad_breeds_key:
+            if bad_key in data:
+                if "breeds" not in data:
+                    data["breeds"] = ParseAnimal.parse_breed(breeds_obj=data[bad_key])
+                del data[bad_key]
+
+        if "environment" in data:
+            animal_env_schema = EnvironmentSchema()
+            env_data = animal_env_schema.load(data["environment"])
+            del data["environment"]
+        if "attributes" in data:
+            animal_attr_schema = AttributesSchema()
+            # deserialize attributes
+            attr_data = animal_attr_schema.load(data["attributes"])
+            # combine with data
+            data = data.extend(attr_data)
+            del data["attributes"]
+
         # deserialize animal
         data = AnimalSchema.deserialize_animal(animal_data=data)
 
@@ -121,7 +152,7 @@ class AnimalSchema(ma.Schema):
         # Convert 'type' to a prettified format for API requests
 
         if "type" in data:
-            data["type"] = Parse.prettify_animal_types(data["type"])
+            data["type"] = process.extractOne(data["type"], Parse.PRETTIFIED_MAPPING)
         return data
 
     @staticmethod
@@ -138,8 +169,12 @@ class AnimalSchema(ma.Schema):
             or "address" not in animal_data["contact"]
         ):
             return None
-
-        address_data = animal_data["contact"]["address"]
+        #for animals
+        if "contact" in animal_data:
+            address_data = animal_data["contact"]["address"]
+        #for orgs
+        else:
+            address_data = animal_data["address"]
 
         # Use the existing AddressSchema to deserialize the address
         address_schema = AddressSchema()
@@ -149,11 +184,11 @@ class AnimalSchema(ma.Schema):
         city_data = {
             "name": deserialized_address.get("city"),
             "country": deserialized_address.get("country"),
-            "countryCode": deserialized_address.get(
+            "country_code": deserialized_address.get(
                 "country"
             ),  # Assuming country is provided as a code
             "region": deserialized_address.get("state"),
-            "regionCode": deserialized_address.get(
+            "region_code": deserialized_address.get(
                 "state"
             ),  # Assuming state is provided as a code
             "postcode": deserialized_address.get("postcode"),

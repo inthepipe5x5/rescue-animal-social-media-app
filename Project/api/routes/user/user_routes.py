@@ -14,6 +14,7 @@ from werkzeug.datastructures import MultiDict
 from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
 import os
 
+from Project.models.geography import CitySchema
 from Project.models.users import UserTravelPreferences
 from core import (
     load_session,
@@ -107,7 +108,7 @@ def user_location_form():
 
             if form.geolocation.data:
                 coordinates = form.geolocation.data
-                location.geolocation = UserLocation.format_geolocation(coordinates)
+                location.geolocation = CitySchema.format_geolocation(coordinates)
                 users_bp.logger.info(f"Setting geolocation: {location.geolocation}")
 
             location.city = location.city.lower() if location.city else None

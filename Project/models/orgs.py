@@ -1,5 +1,8 @@
+from flask import json
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB
+
 from Project.core.extensions import db
 
 # from Project.models.common import SchemaDbModel
@@ -14,34 +17,47 @@ from Project.schemas.orgs import OrganizationSchema
 #     id = Column(String(50), primary_key=True)
 
 
-# TODO: remove?
 class Organization(db.Model):
+    """Rescue Organization db.Model"""
+
+    __tablename__ = "rescueOrg"
+    # schema for validation
+    SCHEMA = OrganizationSchema()
+
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, nullable=False)
+
     email = db.Column(db.String)
     phone = db.Column(db.String)
-    url = db.Column(db.String)
-    website = db.Column(db.String)
+    petfinder_url = db.Column(db.String)  # petfinder URL
+    website = db.Column(db.Text)
     mission_statement = db.Column(db.Text)
-    distance = db.Column(db.Float)
+    hours = db.Column(
+        JSONB,
+        default=json.load(
+            {
+                "monday": "",
+                "tuesday": "",
+                "wednesday": "",
+                "thursday": "",
+                "friday": "",
+                "saturday": "",
+                "sunday": "",
+            }
+        ),
+    )
+    adoption_policy = db.Column(db.Text)
+    adoption_url = db.Column(db.Text)
 
+    photos = db.Column(JSONB)
+    social_media = db.Column(JSONB)
+    self_link = db.Column(db.String)
+    animals_link = db.Column(db.String)
+    social_media = db.Column(JSONB)
 
-# class Address(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     organization_id = db.Column(db.String, db.ForeignKey("organization.id"))
-#     address1 = db.Column(db.String)
-#     address2 = db.Column(db.String)
-#     city = db.Column(db.String)
-#     state = db.Column(db.String)
-#     postcode = db.Column(db.String)
-#     country = db.Column(db.String)
-
-
-# TODO: either make this a property OR move to schemas.orgs
-
-# class OrganizationSchema(ma.SQLAlchemySchema):
-#     class Meta:
-#         model = Organization
-#         include_fk = True
-#         include_relationships = True
-#         load_instance = True
+class OrganizationSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Organization
+        include_fk = True
+        include_relationships = True
+        load_instance = True

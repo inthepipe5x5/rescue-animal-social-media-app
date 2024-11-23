@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 import requests
 from time import sleep
 from typing import List, Callable, Any
+from Project.models.geography import City, CitySchema
 from Project.services.data import seed_initial_cities
 from Project.services.petfinder.PetFinderAPI import pf as api
 from Project.services.petfinder.petfinder_types import RequestedContent, AnimalReqParams
@@ -87,7 +88,7 @@ def validate_saved_cities(
     """
     query_all_cities = db.session.query(City).all()
     query_all_cities_dicts = (
-        [city.dump() for city in query_all_cities]
+        [city.to_dict() for city in query_all_cities]
         if query_all_cities
         else seed_initial_cities()
     )

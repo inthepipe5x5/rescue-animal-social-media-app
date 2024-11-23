@@ -308,3 +308,38 @@ def check_db(location_dict: dict) -> List[object]:
     results = query.all()
 
     return results if results else []
+
+
+if __name__ == "__main__":
+    pass
+    """
+    1. Input Preparation
+
+    Use canada_updated and usa_updated to structure the nested country-state-city relationships.
+    Transform this structure into CSV files with country_state_dict_to_csv() for persistent storage.
+    
+    2. CSV File Generation
+
+    Call create_country_csvs(canada_updated, usa_updated) to create CSVs in the csv folder. This ensures you have clean, consistent, and formatted data for further processing.
+    Pandas DataFrame for Processing
+
+    Use country_cities_csv_to_df() to convert generated CSV files into DataFrames.
+    This allows easy manipulation, filtering, and sorting before populating the database.
+    Scraping and Data Augmentation
+
+    For each DataFrame, invoke populate_db_from_df().
+    Fetch missing data such as geolocation, population, or postal codes using geodb.get_city_details() and ensure API responses align with the schema using geodb.process_city_data().
+    Validation and Population
+
+    Validate the processed data with CitySchema().
+    Insert or update records in the database:
+    New Cities: Add to the cities_to_add list and bulk save.
+    Existing Cities: Use City.check_city_exists() to identify matches and update their attributes.
+    Commit Changes
+
+    Commit all changes with proper error handling to ensure integrity and avoid transaction rollbacks unless necessary.
+    Verification
+
+    Use check_db() to query and verify city entries, ensuring they meet criteria like city name, state, and country.
+    
+    """

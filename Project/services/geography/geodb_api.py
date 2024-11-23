@@ -64,30 +64,8 @@ class GeoDB(GeoUtil):
             f"{self.BASE_URL}/cities/nearby", headers=self.HEADERS, params=params
         )
         return response.json()
-    
-    @staticmethod
-    def process_city_data(city_data: dict):
-        """
-        Process the city data returned by the API to match your City model structure.
 
-        :param city_data: The data returned by the API
-        :param state: The state name (since it might not be included in the API response)
-        :return: A dictionary with keys matching your City model
-        """
-        return {
-            "type": "CITY",
-            "name": city_data.get("name"),
-            "country": city_data.get("country"),
-            "country_code": city_data.get("countryCode"),
-            "region_name": city_data.get('region', None),
-            "region_code": city_data.get("regionCode"),
-            "geolocation": f"({city_data.get('latitude', '')},{city_data.get('longitude', '')})",
-            "population": city_data.get("population"),
-            "postal_code": city_data.get("postcode"),
-        }
 
-    
-    
     @staticmethod
     def get_city_details(self, city_identifier: Union[str, int], country):
         """

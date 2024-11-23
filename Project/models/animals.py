@@ -1,6 +1,9 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, JSON
+
+from sqlalchemy import NUMERIC
+from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import class_mapper
 
 # from sqlalchemy.dialects.postgresql import JSONB
 
@@ -37,7 +40,7 @@ class Animal(db.Model):
     size = db.Column(db.String(20))
     gender = db.Column(db.String(20))
     age = db.Column(db.String(20))
-    color = db.Column(db.String(50))
+    colors = db.Column(db.String(50))
     coat = db.Column(db.String(20))
     status = db.Column(db.String(20))
     organization_id = db.Column(db.String(50))
@@ -50,11 +53,55 @@ class Animal(db.Model):
     special_needs = db.Column(db.Boolean, default=False)
     shots_current = db.Column(db.Boolean, default=False)
 
-    # Foreign relationships
+    # Environment
+    children = db.Column(db.Boolean, default=False)
+    dogs = db.Column(db.Boolean, default=False)
+    cats = db.Column(db.Boolean, default=False)
 
+    # media
+    photos = db.Column(JSONB)
+    videos = db.Column(JSONB)
+
+    # dates
+    published_at = db.Column(db.DateTime)
+
+    # Foreign relationships
     # Add a foreign key to reference the City model
     city_id = db.Column(db.Integer, db.ForeignKey("cities.id"))
     city_associations = db.relationship("AnimalCity", back_populates="animal")
+
+    def to_dict(self):
+        """Deserializes instance to a dict, often for a MarshMallow schema and
+
+        Returns:
+            dict: deserialized db columns
+        """
+        return {
+            c.key: getattr(self, c.key) for c in class_mapper(self.__class__).columns
+        }
+
+    def dump(self):
+        """
+        Dumps a deserialized version of the city model using CitySchema.
+
+        Returns:
+            dict: A dictionary representation of the City instance.
+
+        Raises:
+            ValidationError: If the data doesn't pass schema validation.
+        """
+        animal_schema = AnimalSchema()
+        try:
+            # Convert the model instance to a dictionary
+            animal_dict = self.to_dict()
+
+            # Use the schema to dump and validate the data
+            return animal_schema.dump(animal_dict)
+
+        except ValidationError as err:
+            # Handle validation errors
+            print(f"Validation error occurred: {err.messages}")
+            raise
 
 
 class AnimalCity(db.Model):
@@ -64,6 +111,7 @@ class AnimalCity(db.Model):
     animal_id = db.Column(db.String(50), db.ForeignKey("animals.id"), nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey("cities.id"), nullable=False)
     date_associated = db.Column(db.DateTime, default=datetime.now)
+    distance = db.Column(NUMERIC(10, 4), default=None) #distance returned by PetFinder API
 
     # Define unique constraint to prevent duplicate associations
     __table_args__ = (db.UniqueConstraint("animal_id", "city_id"),)
@@ -72,9 +120,10 @@ class AnimalCity(db.Model):
     animal = db.relationship("Animal", back_populates="city_associations")
     city = db.relationship("City", back_populates="animal_associations")
 
-    def __init__(self, animal_id, city_id):
+    def __init__(self, animal_id, city_id, distance=None):
         self.animal_id = animal_id
         self.city_id = city_id
+        self.distance = distance
 
     @classmethod
     def create_from_combined_dict(cls, combined_animal_location_dict):
@@ -83,7 +132,9 @@ class AnimalCity(db.Model):
 
         # Extract location data
         if "contact" in combined_animal_location_dict:
-            location = combined_animal_location_dict.get("contact", {}).get("address", {})
+            location = combined_animal_location_dict.get("contact", {}).get(
+                "address", {}
+            )
 
         # Create or get City
         city_schema = CitySchema()
@@ -96,10 +147,11 @@ class AnimalCity(db.Model):
         city = City.query.filter_by(
             name=city_data["name"], country=city_data["country"]
         ).first()
+        
         if not city:
             city = city_schema.load(city_data)
             db.session.add(city)
-            db.session.flush()  # This assigns an ID to the city if it's new
+            db.session.flush()
 
         # Create or get Animal
         animal_schema = AnimalSchema()

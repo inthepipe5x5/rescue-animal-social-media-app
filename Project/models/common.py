@@ -1,7 +1,10 @@
+from datetime import datetime
 from core.extensions import db
 from marshmallow import fields
-from sqlalchemy import Column, Integer, String, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import declared_attr
+
 
 class SchemaDbModel(db.Model):
     __abstract__ = True
@@ -15,7 +18,7 @@ class SchemaDbModel(db.Model):
     def create_model_from_schema(cls, schema_class):
         for field_name, field_obj in schema_class._declared_fields.items():
             column = cls.get_column_from_field(field_obj)
-            column = setattr(cls, field_name, column) if column else None                 
+            column = setattr(cls, field_name, column) if column else None
 
     @staticmethod
     def get_column_from_field(field_obj):
@@ -76,17 +79,14 @@ class SchemaDbModel(db.Model):
             return next_link["href"]
         return None
 
-# class MetaData(db.Model):
-#     __abstract__ = True
 
-#     @declared_attr
-#     def dt_saved(cls):
-#         return db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+class MetaData(db.Model): #TODO: make this into a MIXIN class
+    __abstract__ = True
 
-#     @declared_attr
-#     def provider(cls):
-#         return db.Column(db.String(255), nullable=False)
+    @declared_attr
+    def dt_saved(cls):
+        return db.Column(db.DateTime, nullable=False, default=datetime.now())
 
-# class MetaDataSchema(Schema):
-#     dt_saved = fields.DateTime(dump_only=True)
-#     provider = fields.String(required=True)
+    @declared_attr
+    def provider(cls):
+        return db.Column(db.String(255), nullable=False)

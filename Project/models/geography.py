@@ -1,13 +1,12 @@
-from typing import Optional
-from marshmallow import pre_load
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from typing import Any, Dict, Optional
+
 from sqlalchemy import desc
 from sqlalchemy.orm import class_mapper
+from Project.schemas.geography import CitySchema
 from Project.services import geodb
 from Project.core.extensions import db
-from Project.core.types import GeoLocationType
 from Project.utils.utils import TwoCharString
-
+from Project.core.types import GeoLocationType
 
 class City(db.Model):
     """
@@ -57,6 +56,7 @@ class City(db.Model):
         country_code: Optional[TwoCharString],
         region_name: Optional[str],
         region_code: Optional[TwoCharString],
+        geolocation: Optional[GeoLocationType],
         latitude: Optional[float],
         longitude: Optional[float],
         population: Optional[int],
@@ -80,19 +80,50 @@ class City(db.Model):
             raise ValueError(f"Invalid city data: {errors}")
 
     @staticmethod
-    def check_city_exists(city_name: str, state: str, country: str) -> bool:
-        query = (
-            db.session.query(City)
-            .filter(City.name.casefold() == city_name.casefold())
-            .one_or_none()
+    def find(city_name: str, **kwargs) -> bool:
+        """
+        Check if a city exists in the database.
+
+        Args:
+            city_name (str): Name of the city (required).
+            kwargs (dict): Optional filter criteria (e.g., state, country, country_code).
+
+        Returns:
+            city (object) if found else None
+        """
+        # Filter the kwargs to match City model columns
+        valid_columns = {col.name for col in City.__table__.columns}
+        filters = {key: value for key, value in kwargs.items() if key in valid_columns}
+
+        # Build the query
+        query = db.session.query(City).filter(
+            City.name.casefold() == city_name.casefold()
         )
+        for key, value in filters.items():
+            query = query.filter(getattr(City, key).casefold() == value.casefold())
 
-        return True if query else False
+        return query.one_or_none()
 
-    def dump(self):
-        return geodb.process_city_data(city_data=self.to_dict())
+    @classmethod
+    def check_city_exists(cls, city_name: str, **kwargs) -> bool:
+        """
+        Check if a city exists in the database.
+
+        Args:
+            city_name (str): Name of the city (required).
+            kwargs (dict): Optional filter criteria (e.g., state, country, country_code).
+
+        Returns:
+            bool: True if the city exists, False otherwise.
+        """
+        return bool(cls.find(city_name=city_name, kwargs=kwargs))
 
     def to_dict(self):
+        """Deserializes instance to a dict, often for a MarshMallow schema and
+
+        Returns:
+            dict: deserialized db columns
+        """
         return {
             c.key: getattr(self, c.key) for c in class_mapper(self.__class__).columns
         }
@@ -105,19 +136,32 @@ class City(db.Model):
             _type_: _description_
         """
         return db.session.query(City).order_by(desc(City.population)).all()
-    
 
-class CitySchema(SQLAlchemyAutoSchema):
-    class Meta:
-        model = City
-        load_instance = True
-        include_relationships = True
-        include_fk = True
+    @staticmethod
+    def validate_city_data(city_data: Dict[str, Any], **kwargs: Any) -> None:
 
-    country_code = TwoCharString()
-    region_code = TwoCharString()
-    geolocation = GeoLocationType()
+        city_name = city_data.get("city") or city_data.get("name")
+        # Query the database for the city
+        pre_existing_city = City.check_city_exists(
+            city_name=city_name,
+            state=city_data.get("state"),
+            country=city_data.get("country"),
+        )
 
-    @pre_load
-    def process_data(self, data: dict, **kwargs):
-        return geodb.process_city_data(city_data=data)
+        if pre_existing_city:
+            pre_existing_city: Dict[str, Any] = {
+                # "email": pre_existing_city.email,
+                # "phone": pre_existing_city.phone,
+                # "address": {
+                "city": pre_existing_city.name,
+                "country": pre_existing_city.country,
+                "state": pre_existing_city.state,
+                "postal_code": pre_existing_city.postal_code,
+                # },
+            }
+        # check if city
+        if not geodb.compare_location_dicts(city_data, pre_existing_city):
+            new_city = City(**city_data)
+            db.session.add(new_city)
+            db.session.commit()
+
