@@ -3,6 +3,7 @@ Parser class to parse API results
 """
 
 import datetime
+from typing import Union
 import pytz
 import pycountry
 import json
@@ -15,6 +16,7 @@ from flask import url_for
 import traceback
 from difflib import get_close_matches
 import os
+from fuzzywuzzy import process
 
 
 class ParsingError(Exception):
@@ -72,13 +74,12 @@ class Parse:
         "DESCRIPTION": "parse_description",
         "BIO": "parse_description",
         "name": "parse_description",
-        "type":"prettify_animal_type",
+        "type": "prettify_animal_type",
     }
     parsed = None  # parsed output
     parsed_keys = set()  # set of keys filtered
     success_flag = False
 
-    
     # def __init__(self, type=None):
     #     """Initialize the Parse object, taking in a dictionary and an optional type."""
 
@@ -89,7 +90,7 @@ class Parse:
 
     # self.parsed_types_tuples = self.get_parsed_types_types()
     # Define mapping as a class attribute
-    
+
     PRETTIFIED_MAPPING = {
         "dog": "Dog",
         "cat": "Cat",
@@ -98,27 +99,42 @@ class Parse:
         "horse": "Horse",
         "bird": "Bird",
         "scales-fins-other": "Scales, Fins & Other",
-        "barnyard": "Barnyard"
+        "barnyard": "Barnyard",
     }
+
+    @staticmethod
+    def reverse_prettify_animal_types(
+        animal_type: str, match_threshold: int = 70
+    ) -> str:
+        """The above Python code snippet is creating a mapping dictionary where the keys and values are swapped
+        from the `Parse.PRETTIFIED_MAPPING` dictionary. It then attempts to retrieve a value from this
+        mapping based on the `animal_type` input (after converting it to lowercase). If the value is not
+        found in the mapping, it uses the `process.extractOne` function to find the closest match to the
+        `animal_type` with a score cutoff specified by `match_threshold`. The result of this operation is
+        returned.
+        """
+        mapping = {value: key for key, value in Parse.PRETTIFIED_MAPPING.items()}
+        return mapping.get(animal_type.lower(), None) or process.extractOne(
+            animal_type, mapping, score_cutoff=match_threshold
+        )
 
     @classmethod
     def get_default_prettified_animal_types(cls):
         """Return the list of default prettified animal types."""
-        
+
         api_type_key = "API_ANIMAL_TYPES"
         default_prettified_animal_types = cls.PRETTIFIED_MAPPING.values()
-        
+
         if api_type_key in os.environ:
             types_list = json.loads(os.environ.get(api_type_key))
             return list(types_list or default_prettified_animal_types)
-        
-        #return default
+
+        # return default
         return list(default_prettified_animal_types)
 
     @property
     def meta_data(self):
-        """Return metadata associated with the parsed object, eg. for debugging
-        """
+        """Return metadata associated with the parsed object, eg. for debugging"""
         return {
             "type": self.type,
             "parsed_keys": list(self.parsed_keys),
@@ -204,28 +220,51 @@ class Parse:
             for animal_type in animal_types:
                 # Try exact match first
                 prettified = cls.PRETTIFIED_MAPPING.get(animal_type.lower())
-                
+
                 if prettified is None and fuzzy_match:
                     # If no exact match and fuzzy matching is enabled, try fuzzy matching
-                    close_matches = get_close_matches(animal_type.lower(), cls.get_default_prettified_animal_types(), n=1, cutoff=0.6)
+                    close_matches = get_close_matches(
+                        animal_type.lower(),
+                        cls.get_default_prettified_animal_types(),
+                        n=1,
+                        cutoff=0.6,
+                    )
                     if close_matches:
                         prettified = cls.PRETTIFIED_MAPPING[close_matches[0]]
 
-                prettified_types.append(prettified if prettified else animal_type.capitalize())
-            
-            #return the first value if prettified types == 1
-            return str(prettified_types[0]) if len(prettified_types) == 1 else prettified_types
+                prettified_types.append(
+                    prettified if prettified else animal_type.capitalize()
+                )
+
+            # return the first value if prettified types == 1
+            return (
+                str(prettified_types[0])
+                if len(prettified_types) == 1
+                else prettified_types
+            )
         elif isinstance(animal_types, str):
             prettified = cls.PRETTIFIED_MAPPING.get(animal_types.lower())
             if prettified is None and fuzzy_match:
-                close_matches = get_close_matches(animal_type.lower(), cls.get_default_prettified_animal_types(), n=1, cutoff=0.6)
+                close_matches = get_close_matches(
+                    animal_type.lower(),
+                    cls.get_default_prettified_animal_types(),
+                    n=1,
+                    cutoff=0.6,
+                )
                 if close_matches:
-                    prettified = close_matches[0] if close_matches[0] == cls.PRETTIFIED_MAPPING.get(animal_types.lower()) else cls.PRETTIFIED_MAPPING.get(animal_types.lower())
-            
+                    prettified = (
+                        close_matches[0]
+                        if close_matches[0]
+                        == cls.PRETTIFIED_MAPPING.get(animal_types.lower())
+                        else cls.PRETTIFIED_MAPPING.get(animal_types.lower())
+                    )
+
             return prettified or animal_types.capitalize()
         else:
-            raise TypeError(f"Wrong type passed in for 'animal_types' param, expected str or iterable, got: type({animal_types}) = {type(animal_types)}")
-        
+            raise TypeError(
+                f"Wrong type passed in for 'animal_types' param, expected str or iterable, got: type({animal_types}) = {type(animal_types)}"
+            )
+
     def return_original(self):
         """Function to return original data object"""
         return self.original_data
@@ -398,22 +437,22 @@ class Parse:
         else:
             return data
 
-    def format_kebob_case(input_string) -> str: 
-        """Helper function to remove underscores & capitalize input string text  
+    def format_kebob_case(input_string) -> str:
+        """Helper function to remove underscores & capitalize input string text
 
         Args:
             input_string (str): string text to remove underscores & capitalize
 
         Returns:
-            str: formatted string text 
+            str: formatted string text
         """
         # Guard clause: return the original string if no underscores are found
-        if '_' not in input_string:
+        if "_" not in input_string:
             return input_string
-        
+
         # Split the string by underscores, capitalize each part, and join them back with spaces
-        return ' '.join(part.capitalize() for part in input_string.split('_'))
-    
+        return " ".join(part.capitalize() for part in input_string.split("_"))
+
     def clean_text(self, text, *cleaning_rules) -> str:
         """
         Clean text by removing common artifacts, unescaping HTML, and applying other cleaning rules.
@@ -820,7 +859,7 @@ class ParseAnimal(Parse):
         )
         return self.results
 
-    def parse_color(self, colors_obj):
+    def parse_color(self, colors_obj: Union[dict, str]) -> str:
         """Parse the colors object in an animal data object returned from API to remove false or null values"""
         if not colors_obj:
             return "Unknown Color"  # color is Unknown Color by default
@@ -835,7 +874,7 @@ class ParseAnimal(Parse):
 
         if tertiary:
             if secondary:
-                print("parse colors output", f"{primary}/ {secondary}")
+                print("parse colors output", f"{primary}/{secondary}")
                 return f"{primary}/ {secondary}"
             else:
                 print("parse colors output", primary)

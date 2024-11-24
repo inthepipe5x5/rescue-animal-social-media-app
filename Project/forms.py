@@ -23,6 +23,7 @@ from Project.models.users import (
     UserLocation,
     UserTravelPreferences,
 )
+from Project.utils.utils import uppercase_2_chars
 
 load_dotenv()
 
@@ -51,14 +52,6 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-def uppercase_2_chars(value):
-    """
-    Helper form filter function to always output 2 upper case str characters
-    Intended to be used for state input fields
-    """
-    if value:
-        value = value.upper()[:2]
-    return value
 
 
 class ValidState(object):

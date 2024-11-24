@@ -3,6 +3,7 @@
 from datetime import datetime
 import pycountry
 from flask_bcrypt import Bcrypt
+import pytz
 from sqlalchemy import func, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert
 from sqlalchemy.sql import func
@@ -157,7 +158,7 @@ class MatchedRescueOrganization(db.Model):
     matched_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     matched_org_id = db.Column(db.Integer, db.ForeignKey("rescueOrg.id"))
     matched_pct = db.Column(db.Integer, nullable=False, default=0)
-    matched_datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    matched_datetime = db.Column(db.DateTime, nullable=False, default= datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S %Z%z'))
     followed_by_user_bool = db.Column(db.Boolean, default=False)
 
     user = db.relationship(

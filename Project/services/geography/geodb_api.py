@@ -1,4 +1,3 @@
-import fuzzywuzzy
 import requests
 import os
 from ratelimit import (
@@ -34,7 +33,9 @@ class GeoDB(GeoUtil):
     TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
     MAX_TRIES = 3  # Maximum number of retries for handling RateLimitException
 
-    BASE_URL = "http://geodb-free-service.wirefreethought.com/v1/geo"
+    BASE_URL = os.environ.get(
+        "GEODB_CITIES_API_URL", "https://wft-geo-db.p.rapidapi.com/v1/geo"
+    )
     HEADERS = {"x-rapidapi-key": api_key, "Content-Type": "application/json"}
 
     @limits(calls=50, period=30)  # Limit of 50 calls per second
@@ -64,7 +65,6 @@ class GeoDB(GeoUtil):
             f"{self.BASE_URL}/cities/nearby", headers=self.HEADERS, params=params
         )
         return response.json()
-
 
     @staticmethod
     def get_city_details(self, city_identifier: Union[str, int], country):

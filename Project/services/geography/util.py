@@ -1,10 +1,10 @@
 import pycountry
 from itertools import combinations
-from urllib.parse import urljoin
-from Project.core.types import GeoLocationType, UserLocationData
-from typing import Dict, Any, Optional
-from fuzzywuzzy import fuzz
+from typing import Dict, Any
 import pycountry
+
+from Project.core.types import GeoLocationType, UserLocationData
+from Project.utils.utils import fuzzy_match_str
 
 
 class GeoUtil:
@@ -152,34 +152,34 @@ class GeoUtil:
                 result_combinations.append(combo)
         print(result_combinations)
         return result_combinations
-    
+
     @staticmethod
     def normalize_to_pycountry(value: str, key: str) -> Any:
-            """Use Pycountry to normalize the location dictionaries being compared to results from Pycountry.country and/or Pycountry.subdivisions
-            Args:
-                value (str): _description_
-                key (str): _description_
+        """Use Pycountry to normalize the location dictionaries being compared to results from Pycountry.country and/or Pycountry.subdivisions
+        Args:
+            value (str): _description_
+            key (str): _description_
 
-            Returns:
-                : _description_
-            """
-            if isinstance(value, str):
-                value = value.casefold()
-                if key in ["country", "country_code"]:
-                    try:
-                        country = pycountry.countries.search_fuzzy(value)
-                        if country:
-                            return country[0].alpha_2
-                    except LookupError:
-                        pass
-                elif key in ["region", "region_code"]:
-                    try:
-                        subdivision = pycountry.subdivisions.search_fuzzy(value)
-                        if subdivision:
-                            return subdivision[0].code
-                    except LookupError:
-                        pass
-            return value
+        Returns:
+            : _description_
+        """
+        if isinstance(value, str):
+            value = value.casefold()
+            if key in ["country", "country_code"]:
+                try:
+                    country = pycountry.countries.search_fuzzy(value)
+                    if country:
+                        return country[0].alpha_2
+                except LookupError:
+                    pass
+            elif key in ["region", "region_code"]:
+                try:
+                    subdivision = pycountry.subdivisions.search_fuzzy(value)
+                    if subdivision:
+                        return subdivision[0].code
+                except LookupError:
+                    pass
+        return value
 
     @classmethod
     def compare_location_dicts(
@@ -195,17 +195,12 @@ class GeoUtil:
             bool: True if location dicts match else False
         """
 
-        def fuzzy_match(val1: Any, val2: Any) -> bool:
-            if isinstance(val1, str) and isinstance(val2, str):
-                return fuzz.ratio(val1, val2) >= 90  # Adjust threshold as needed
-            return val1 == val2
-
         if set(data.keys()) != set(expected.keys()):
             return False
 
         for key in data:
             if (
-                key == "address"  # handle 
+                key == "address"  # handle
                 and isinstance(data[key], dict)
                 and isinstance(expected[key], dict)
             ):
@@ -214,7 +209,7 @@ class GeoUtil:
             else:
                 data_value = cls.normalize_to_pycountry(data[key], key)
                 expected_value = cls.normalize_to_pycountry(expected[key], key)
-                if not fuzzy_match(data_value, expected_value):
+                if not fuzzy_match_str(data_value, expected_value):
                     return False
 
         return True

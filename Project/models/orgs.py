@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from Project.core.extensions import db
 
 # from Project.models.common import SchemaDbModel
+from Project.models.animals import Animal
+from Project.models.common import MetaDataMixin
 from Project.schemas.orgs import OrganizationSchema
 
 
@@ -17,12 +19,12 @@ from Project.schemas.orgs import OrganizationSchema
 #     id = Column(String(50), primary_key=True)
 
 
-class Organization(db.Model):
+class Organization(db.Model, MetaDataMixin):
     """Rescue Organization db.Model"""
 
     __tablename__ = "rescueOrg"
     # schema for validation
-    SCHEMA = OrganizationSchema()
+    # SCHEMA = OrganizationSchema()
 
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, nullable=False)
@@ -34,7 +36,7 @@ class Organization(db.Model):
     mission_statement = db.Column(db.Text)
     hours = db.Column(
         JSONB,
-        default=json.load(
+        default=json.load(  # TODO: not sure this is the right way to ensure this format..use a schema?
             {
                 "monday": "",
                 "tuesday": "",
@@ -49,15 +51,27 @@ class Organization(db.Model):
     adoption_policy = db.Column(db.Text)
     adoption_url = db.Column(db.Text)
 
+    # Socials, photos, and media links
     photos = db.Column(JSONB)
     social_media = db.Column(JSONB)
     self_link = db.Column(db.String)
     animals_link = db.Column(db.String)
     social_media = db.Column(JSONB)
 
-class OrganizationSchema(SQLAlchemyAutoSchema):
-    class Meta:
-        model = Organization
-        include_fk = True
-        include_relationships = True
-        load_instance = True
+    # Relationships
+    animals = db.relationship("Animal", back_populates="organization", lazy="dynamic")
+    matched_users = db.relationship(
+        "MatchedOrgs", back_populates="organization", lazy="dynamic"
+    )
+
+    # @staticmethod
+    # def get_org_operating_cities(org_id:str):
+    #     """Fetch unique cities for all animals under an organization."""
+    #     cities = (
+    #         Animal.query.filter_by(organization_id=org_id)
+    #         .with_entities(Animal.city)
+    #         .distinct()
+    #         .all()
+    #     )
+    #     return [city[0] for city in cities]  # Extract city names or IDs
+

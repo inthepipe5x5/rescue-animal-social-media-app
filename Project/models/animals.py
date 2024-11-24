@@ -4,11 +4,12 @@ from sqlalchemy import NUMERIC
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import class_mapper
-
+from sqlalchemy.dialects.postgresql import JSONB
 # from sqlalchemy.dialects.postgresql import JSONB
 
 
 # from Project.schemas.common import SchemaDbModel
+from Project.models.common import MetaDataMixin
 from Project.schemas.animals import AnimalSchema
 from Project.models.geography import City, CitySchema
 from Project.core.extensions import db
@@ -30,7 +31,7 @@ from Project.services.petfinder.petfinder_types import AnimalType
 #     id = Column(String(50), primary_key=True)
 
 
-class Animal(db.Model):
+class Animal(db.Model, MetaDataMixin):
     __tablename__ = "animals"
 
     id = db.Column(db.String(50), primary_key=True)
@@ -40,7 +41,6 @@ class Animal(db.Model):
     size = db.Column(db.String(20))
     gender = db.Column(db.String(20))
     age = db.Column(db.String(20))
-    colors = db.Column(db.String(50))
     coat = db.Column(db.String(20))
     status = db.Column(db.String(20))
     organization_id = db.Column(db.String(50))
@@ -58,10 +58,10 @@ class Animal(db.Model):
     dogs = db.Column(db.Boolean, default=False)
     cats = db.Column(db.Boolean, default=False)
 
-    # media
+    # social media, contact info and media links
     photos = db.Column(JSONB)
     videos = db.Column(JSONB)
-
+    api_links = db.Column(JSONB) #store urls from api
     # dates
     published_at = db.Column(db.DateTime)
 
@@ -70,41 +70,11 @@ class Animal(db.Model):
     city_id = db.Column(db.Integer, db.ForeignKey("cities.id"))
     city_associations = db.relationship("AnimalCity", back_populates="animal")
 
-    def to_dict(self):
-        """Deserializes instance to a dict, often for a MarshMallow schema and
+    # Foreign Key to RescueOrg
+    organization_id = db.Column(db.String, db.ForeignKey("rescue_orgs.id"))
+    organization = db.relationship("RescueOrg", back_populates="animals")
 
-        Returns:
-            dict: deserialized db columns
-        """
-        return {
-            c.key: getattr(self, c.key) for c in class_mapper(self.__class__).columns
-        }
-
-    def dump(self):
-        """
-        Dumps a deserialized version of the city model using CitySchema.
-
-        Returns:
-            dict: A dictionary representation of the City instance.
-
-        Raises:
-            ValidationError: If the data doesn't pass schema validation.
-        """
-        animal_schema = AnimalSchema()
-        try:
-            # Convert the model instance to a dictionary
-            animal_dict = self.to_dict()
-
-            # Use the schema to dump and validate the data
-            return animal_schema.dump(animal_dict)
-
-        except ValidationError as err:
-            # Handle validation errors
-            print(f"Validation error occurred: {err.messages}")
-            raise
-
-
-class AnimalCity(db.Model):
+class AnimalCity(db.Model, MetaDataMixin):
     __tablename__ = "animal_city"
 
     id = db.Column(db.Integer, primary_key=True)

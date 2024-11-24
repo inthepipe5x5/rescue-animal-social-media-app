@@ -119,7 +119,8 @@ class City(db.Model):
         return bool(cls.find(city_name=city_name, kwargs=kwargs))
 
     def to_dict(self):
-        """Deserializes instance to a dict, often for a MarshMallow schema and
+        """Deserializes instance to a python dict
+
 
         Returns:
             dict: deserialized db columns

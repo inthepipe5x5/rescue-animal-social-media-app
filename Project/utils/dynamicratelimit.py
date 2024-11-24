@@ -1,6 +1,7 @@
 import time
 import functools
 from datetime import datetime, timedelta
+import pytz
 from ratelimit import RateLimitException
 
 from Project.core.constants import API_CALLS_PER_DAY, TIME_PERIOD, MAX_TRIES
@@ -74,7 +75,7 @@ def get_time_until_reset():
     """
     Calculates the time until the next rate limit reset.
     """
-    now = datetime.now()
+    now =  datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S %Z%z')
     next_reset = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
         days=1
     )
