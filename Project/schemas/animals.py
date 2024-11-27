@@ -95,7 +95,7 @@ def add_friendly_suffix(self, data: dict, **kwargs) -> Optional[dict[str]]:
     return {f"{key}_friendly": value for key, value in data.items()}
 
 
-class AnimalSchema(PetFinderResponseSchema):
+class AnimalResponseSchema(PetFinderResponseSchema):
     """
     Marshmallow ma.Schema for serializing and deserializing Animal objects.
 
@@ -236,7 +236,7 @@ class AnimalListResponseSchema(ma.Schema):
     This ma.Schema includes a list of animals and pagination information.
     """
 
-    animals = fields.List(fields.Nested(AnimalSchema))
+    animals = fields.List(fields.Nested(AnimalResponseSchema))
     pagination = fields.Dict()
 
 

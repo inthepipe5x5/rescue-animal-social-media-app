@@ -10,10 +10,7 @@ from sqlalchemy.sql import func
 from flask_login import UserMixin
 from sqlalchemy.exc import IntegrityError
 
-from core import db, bcrypt
-
-
-
+from Project.core.extensions import db, bcrypt
 
 class UserFavorites(db.Model):
     """Table to store user favorites"""

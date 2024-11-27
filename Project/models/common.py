@@ -1,6 +1,7 @@
 import os
 import pytz
-from sqlalchemy.orm import declared_attr, class_mapper
+from sqlalchemy.orm import class_mapper
+from sqlalchemy.event import listens_for
 from datetime import datetime  # , timezone
 
 # from marshmallow import fields
@@ -89,12 +90,14 @@ class MetaDataMixin:
 
     __abstract__ = True
 
+    DEFAULT_PROVIDER = "unknown"
+
     dt_saved = db.Column(
         db.DateTime,
         default=datetime.now(pytz.utc).strftime("%Y-%m-%d %H:%M:%S %Z%z"),
         onupdate=datetime.now(pytz.utc).strftime("%Y-%m-%d %H:%M:%S %Z%z"),
     )
-    provider = db.Column(db.String(255), nullable=False)
+    provider = db.Column(db.String(255), nullable=False, default="unknown")
 
     def to_dict(self):
         """Deserializes instance to a python dict.
@@ -106,18 +109,8 @@ class MetaDataMixin:
             c.key: getattr(self, c.key) for c in class_mapper(self.__class__).columns
         }
 
-    @staticmethod
-    def set_provider(target, value, oldvalue, initiator):
-        if not value:
-            if target.__tablename__.casefold() in ("animals", "rescueorg"):
-                target.provider = "petfinder"
-            elif target.__tablename__.casefold() == "cities":
-                target.provider = "geodb_cities"
-            else:
-                target.provider = "unknown"  # Unknown provider
 
-    db.event.listen(provider, "set", set_provider)
-
+    
     @property
     def base_url(self):
         """Returns the base URL for the provider, or None if unknown."""
@@ -130,3 +123,18 @@ class MetaDataMixin:
             ),
         }
         return base_urls.get(self.provider.casefold(), None)
+
+
+def attach_listeners():
+    for subclass in MetaDataMixin.__subclasses__():
+
+        @listens_for(subclass, "before_insert")
+        def set_provider(mapper, connection, target):
+            if not target.provider:
+                if target.__tablename__.casefold() == "animals":
+                    target.provider = "petfinder"
+                elif target.__tablename__.casefold() == "cities":
+                    target.provider = "geodb_cities"
+                else:
+                    target.provider = "unknown"
+

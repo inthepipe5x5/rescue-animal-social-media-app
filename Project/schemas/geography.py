@@ -2,8 +2,35 @@ from marshmallow import ValidationError, fields, Schema, post_load, pre_load
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from Project.services.geography.util import GeoUtil
 from Project.utils.utils import TwoCharString
-from Project.core.types import GeoLocationType
 from Project.core.extensions import db
+
+
+def validate_geolocation(value):
+    """Custom Validator: The validate_geolocation function checks if the input is either a string or a dictionary and performs the necessary validation for each case.
+
+    Args:
+        value (_type_): _description_
+
+    Raises:
+        ValidationError: _description_
+    """
+    if isinstance(value, str):
+        try:
+            lat, lon = map(float, value.split(","))
+        except ValueError:
+            raise ValidationError("String format must be 'latitude,longitude'.")
+    elif isinstance(value, dict):
+        if "latitude" not in value or "longitude" not in value:
+            raise ValidationError("Dictionary must contain 'latitude' and 'longitude'.")
+        try:
+            float(value["latitude"])
+            float(value["longitude"])
+        except ValueError:
+            raise ValidationError("'latitude' and 'longitude' must be floats.")
+    else:
+        raise ValidationError(
+            "Geolocation must be either a string 'latitude,longitude' or a dictionary with 'latitude' and 'longitude'."
+        )
 
 
 class CitySchema(Schema):
@@ -27,10 +54,9 @@ class CitySchema(Schema):
     region_code = fields.String(required=False)
     population = fields.Integer(required=False)
     postal_code = fields.String(required=False)
-    country_code = fields.String(validate=TwoCharString())
-    region_code = fields.String(validate=TwoCharString())
-    # Assuming GeoLocationType is a custom field type
-    geolocation = GeoLocationType()
+    country_code = fields.String(validate=TwoCharString)
+    region_code = fields.String(validate=TwoCharString)
+    geolocation = fields.Raw(validate=validate_geolocation)
 
     @pre_load
     def preprocess_data(self, data, **kwargs):

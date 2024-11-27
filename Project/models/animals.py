@@ -1,23 +1,27 @@
 from datetime import datetime
+from typing import Union
 
 from sqlalchemy import NUMERIC
+from sqlalchemy.event import listens_for
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.dialects.postgresql import JSONB
+
 # from sqlalchemy.dialects.postgresql import JSONB
 
 
 # from Project.schemas.common import SchemaDbModel
-from Project.models.common import MetaDataMixin
-from Project.schemas.animals import AnimalSchema
-from Project.models.geography import City, CitySchema
+from Project.models.common import MetaDataMixin, attach_listeners
+from Project.schemas.animals import AnimalResponseSchema
+from Project.models.geography import City
+from Project.schemas.geography import CitySchema
 from Project.core.extensions import db
 from Project.services.petfinder.petfinder_types import AnimalType
 
 
 # subclass for Animals
-# class Animal(SchemaDbModel, schema=AnimalSchema):
+# class Animal(SchemaDbModel, schema=AnimalResponseSchema):
 #     """
 #     Represents an animal in the database.
 
@@ -61,18 +65,27 @@ class Animal(db.Model, MetaDataMixin):
     # social media, contact info and media links
     photos = db.Column(JSONB)
     videos = db.Column(JSONB)
-    api_links = db.Column(JSONB) #store urls from api
+    api_links = db.Column(JSONB)  # store urls from api
     # dates
     published_at = db.Column(db.DateTime)
 
-    # Foreign relationships
-    # Add a foreign key to reference the City model
-    city_id = db.Column(db.Integer, db.ForeignKey("cities.id"))
+    # Relationships
     city_associations = db.relationship("AnimalCity", back_populates="animal")
-
-    # Foreign Key to RescueOrg
     organization_id = db.Column(db.String, db.ForeignKey("rescue_orgs.id"))
     organization = db.relationship("RescueOrg", back_populates="animals")
+
+    @property
+    def city(self):
+        """Return the associated city through AnimalCity, if available."""
+        if self.city_associations:
+            return self.city_associations[0].city  # Assuming one-to-one association
+        return None
+
+
+def set_provider(mapper, connection, target):
+    if not target.provider:
+        target.provider = "petfinder"
+
 
 class AnimalCity(db.Model, MetaDataMixin):
     __tablename__ = "animal_city"
@@ -81,7 +94,9 @@ class AnimalCity(db.Model, MetaDataMixin):
     animal_id = db.Column(db.String(50), db.ForeignKey("animals.id"), nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey("cities.id"), nullable=False)
     date_associated = db.Column(db.DateTime, default=datetime.now)
-    distance = db.Column(NUMERIC(10, 4), default=None) #distance returned by PetFinder API
+    distance = db.Column(
+        NUMERIC(10, 4), default=None
+    )  # distance returned by PetFinder API
 
     # Define unique constraint to prevent duplicate associations
     __table_args__ = (db.UniqueConstraint("animal_id", "city_id"),)
@@ -96,15 +111,16 @@ class AnimalCity(db.Model, MetaDataMixin):
         self.distance = distance
 
     @classmethod
-    def create_from_combined_dict(cls, combined_animal_location_dict):
+    def create_from_combined_dict(
+        cls, combined_animal_location_dict: dict[str, Union[bool, str, int, dict, list]]
+    ):
         if not combined_animal_location_dict:
             return None
 
         # Extract location data
-        if "contact" in combined_animal_location_dict:
-            location = combined_animal_location_dict.get("contact", {}).get(
-                "address", {}
-            )
+        location = combined_animal_location_dict.get("contact", {}).get("address", {})
+        if not location:
+            return None
 
         # Create or get City
         city_schema = CitySchema()
@@ -112,39 +128,55 @@ class AnimalCity(db.Model, MetaDataMixin):
             "name": location.get("city"),
             "state": location.get("state"),
             "country": location.get("country"),
-            "postal_code": location.get("postal_code", None),
+            "postal_code": location.get("postal_code"),
         }
+
         city = City.query.filter_by(
-            name=city_data["name"], country=city_data["country"]
+            name=city_data["name"],
+            state=city_data["state"],
+            country=city_data["country"],
         ).first()
-        
+
         if not city:
-            city = city_schema.load(city_data)
-            db.session.add(city)
-            db.session.flush()
+            try:
+                city = city_schema.load(city_data)
+                db.session.add(city)
+                db.session.flush()  # Ensures the city ID is available
+            except Exception as e:
+                db.session.rollback()
+                raise ValueError(f"Failed to create city: {e}")
 
         # Create or get Animal
-        animal_schema = AnimalSchema()
-        animal_data = combined_animal_location_dict.copy()
-        animal_data.pop(
-            "contact", None
-        )  # Remove contact info as it's handled separately
+        animal_schema = AnimalResponseSchema()
+        animal_data = {
+            key: value
+            for key, value in combined_animal_location_dict.items()
+            if key != "contact"
+        }
         animal = Animal.query.get(animal_data.get("id"))
+
         if not animal:
-            animal = animal_schema.load(animal_data)
-            db.session.add(animal)
-            db.session.flush()
+            try:
+                animal = animal_schema.load(animal_data)
+                db.session.add(animal)
+                db.session.flush()  # Ensures the animal ID is available
+            except Exception as e:
+                db.session.rollback()
+                raise ValueError(f"Failed to create animal: {e}")
 
         # Create AnimalCity association
-        animal_city = cls(animal_id=animal.id, city_id=city.id)
-        db.session.add(animal_city)
-
+        animal_city = cls(
+            animal_id=animal.id, city_id=city.id, distance=location.get("distance")
+        )
         try:
+            db.session.add(animal_city)
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            # Handle the case where the association already exists
-            return None
+            # Handle duplicate association gracefully
+            animal_city = cls.query.filter_by(
+                animal_id=animal.id, city_id=city.id
+            ).first()
 
         return animal_city
 
@@ -183,6 +215,10 @@ class AnimalCity(db.Model, MetaDataMixin):
 
         # Return True if any matching records exist, False otherwise
         return count > 0
+
+
+# Call this function after all models are defined
+attach_listeners()
 
 
 if __name__ == "__main__":

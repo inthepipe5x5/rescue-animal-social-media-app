@@ -6,9 +6,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from Project.core.extensions import db
 
 # from Project.models.common import SchemaDbModel
-from Project.models.animals import Animal
-from Project.models.common import MetaDataMixin
-from Project.schemas.orgs import OrganizationSchema
+# from Project.schemas.orgs import OrgResponseSchema
+# from Project.models.animals import Animal
+from Project.models.common import MetaDataMixin, attach_listeners
 
 
 # subclass for Organizations
@@ -34,20 +34,7 @@ class Organization(db.Model, MetaDataMixin):
     petfinder_url = db.Column(db.String)  # petfinder URL
     website = db.Column(db.Text)
     mission_statement = db.Column(db.Text)
-    hours = db.Column(
-        JSONB,
-        default=json.load(  # TODO: not sure this is the right way to ensure this format..use a schema?
-            {
-                "monday": "",
-                "tuesday": "",
-                "wednesday": "",
-                "thursday": "",
-                "friday": "",
-                "saturday": "",
-                "sunday": "",
-            }
-        ),
-    )
+    hours = db.Column(JSONB)
     adoption_policy = db.Column(db.Text)
     adoption_url = db.Column(db.Text)
 
@@ -75,3 +62,6 @@ class Organization(db.Model, MetaDataMixin):
     #     )
     #     return [city[0] for city in cities]  # Extract city names or IDs
 
+
+# Call this function after all models are defined
+attach_listeners()

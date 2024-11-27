@@ -1,10 +1,9 @@
 from typing import Any, Dict, List, Optional, Union
-from marshmallow_sqlalchemy.fields import String
 from fuzzywuzzy import fuzz
 
 
 # Custom Validator
-class TwoCharString(String):
+class TwoCharString(str):
     def _deserialize(self, value, attr, data, **kwargs):
         if len(value) != 2:
             raise ValueError("Must be a 2-character string")

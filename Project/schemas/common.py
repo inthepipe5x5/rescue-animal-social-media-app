@@ -1,5 +1,6 @@
 import html
 from marshmallow import (
+    ValidationError,
     fields,
     post_dump,
     pre_load,
@@ -25,7 +26,6 @@ class NestedSchemaMixin(Schema):
             data=self.__dict__, target_key=target_key, nesting_keys=nesting_keys
         )
 
-    
     @staticmethod
     def _sanitize_string(value):
         """
@@ -42,6 +42,49 @@ class NestedSchemaMixin(Schema):
 
         return sanitized_value
 
+    def _preprocess_field(
+        self,
+        data: dict,
+        target_key: str,
+        *source_keys,
+        parser_func=None,
+        exempt_keys: Optional[List[str]] = None,
+        remove_source_keys: bool = True,
+    ) -> dict:
+        """
+        Process and consolidate fields into a target key, handling exceptions and key removal.
+
+        Args:
+            data (dict): The input data dictionary.
+            target_key (str): The key to consolidate values into.
+            *source_keys (str): Keys to retrieve and process values from.
+            parser_func (callable, optional): A function to process the field values.
+            exempt_keys (list, optional): Keys to exclude from certain operations (e.g., sanitization).
+            remove_source_keys (bool): Whether to delete source keys after processing.
+
+        Returns:
+            dict: The updated data dictionary.
+        """
+        exempt_keys = exempt_keys or []
+
+        for source_key in source_keys:
+            if source_key in data:
+                # create processed_value as new value to replace data[target_key]
+                processed_value = (
+                    parser_func(data[source_key]) if parser_func else data[source_key]
+                )
+                # target key found, set target source_key with processed_value
+                if target_key:
+                    data[target_key] = processed_value
+                elif not remove_source_keys:
+                    data[source_key] = processed_value
+
+                # Remove source keys if specified
+                if remove_source_keys:
+                    del data[source_key]
+
+        return data
+
 class AddressSchema(NestedSchemaMixin):
     address1 = fields.Str(allow_none=True)
     address2 = fields.Str(allow_none=True)
@@ -51,11 +94,14 @@ class AddressSchema(NestedSchemaMixin):
     country = fields.Str(allow_none=True)
 
     @pre_load
-    def preprocess_data(self, data: Dict[str]) -> Dict[str]:
-        if "postcode" in data:
-            data["postal_code"] = data["postcode"]
-            del data["postcode"]
+    def preprocess_data(self, data: Dict[str, str]) -> Dict[str, str]:
+        # if "postcode" in data:
+        #     data["postal_code"] = data["postcode"]
+        #     del data["postcode"]
 
+        return self._preprocess_field(
+            data, "postcode", target_key="postal_code", remove_source_keys=True
+        )
 
 class ContactSchema(NestedSchemaMixin):
     email = fields.Str(allow_none=True)
@@ -220,7 +266,6 @@ class PetFinderResponseSchema(NestedSchemaMixin):
 
     #     return data
 
-
     def deserialize_address(self, data: dict) -> dict[str]:
         """
         Deserialize the address field for both animals and organizations.
@@ -256,50 +301,6 @@ class PetFinderResponseSchema(NestedSchemaMixin):
             return None
         link_schema = LinkSchema()
         return {key: link_schema.load(value) for key, value in links_data.items()}
-    
-    @staticmethod
-    def _preprocess_field (
-        data: dict,
-        target_key: str,
-        *source_keys,
-        parser_func=None,
-        exempt_keys: Optional[List[str]] = None,
-        remove_source_keys: bool = True,
-    ) -> dict:
-        """
-        Process and consolidate fields into a target key, handling exceptions and key removal.
-
-        Args:
-            data (dict): The input data dictionary.
-            target_key (str): The key to consolidate values into.
-            *source_keys (str): Keys to retrieve and process values from.
-            parser_func (callable, optional): A function to process the field values.
-            exempt_keys (list, optional): Keys to exclude from certain operations (e.g., sanitization).
-            remove_source_keys (bool): Whether to delete source keys after processing.
-
-        Returns:
-            dict: The updated data dictionary.
-        """
-        exempt_keys = exempt_keys or []
-
-        for key in source_keys:
-            try:
-                value = data.get(key)
-                if value is not None:
-                    # Skip exempt keys
-                    if key in exempt_keys:
-                        data[target_key] = value
-                    else:
-                        data[target_key] = parser_func(value) if parser_func else value
-
-                    # Remove the source key if specified
-                    if remove_source_keys:
-                        del data[key]
-            except Exception as e:
-                # Handle exceptions gracefully and log (if needed)
-                print(f"Error processing key '{key}': {e}")
-        return data
-
 
 
 if __name__ == "__main__":

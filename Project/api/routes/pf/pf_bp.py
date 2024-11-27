@@ -9,7 +9,7 @@ from Project.services.data import seed_initial_cities
 from Project.services.petfinder.PetFinderAPI import pf as api
 from Project.services.petfinder.petfinder_types import RequestedContent, AnimalReqParams
 from Project.core import db
-from Project.schemas.animals import Animal, AnimalListResponseSchema, AnimalSchema
+from Project.schemas.animals import Animal, AnimalListResponseSchema, AnimalResponseSchema
 from models import Animal
 
 import logging
@@ -56,7 +56,7 @@ def scrape_animals():
     if response:
         response.raise_for_status()
         data: RequestedContent = response.json()
-        validated_data = Animal(schema=AnimalSchema)
+        validated_data = Animal(schema=AnimalResponseSchema)
         Animal.db_bulk_insert_mapping(session=db.session)
 
         next_url = Animal.get_next_url(data.get("pagination", {}))

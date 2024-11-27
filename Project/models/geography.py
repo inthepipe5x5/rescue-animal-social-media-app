@@ -1,14 +1,17 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy import desc
-from sqlalchemy.orm import class_mapper
-from Project.schemas.geography import CitySchema
+from sqlalchemy.orm import class_mapper, Query
+from Project.models.common import MetaDataMixin, attach_listeners
+
+# from Project.schemas.geography import CitySchema
 from Project.services import geodb
 from Project.core.extensions import db
 from Project.utils.utils import TwoCharString
 from Project.core.types import GeoLocationType
 
-class City(db.Model):
+
+class City(db.Model, MetaDataMixin):
     """
     Table to store cities data.
 
@@ -34,19 +37,20 @@ class City(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    country = db.Column(db.String(100), nullable=False)
+    country_name = db.Column(db.String(100), nullable=False)
     country_code = db.Column(db.String(2), nullable=False)
-    state = db.Column(db.String(100))
-    region_code = db.Column(db.String(2))
+    region_name = db.Column(db.String(100), nullable=False)
+    region_code = db.Column(db.String(2), nullable=False)
     geolocation = db.Column(db.String(50))
     population = db.Column(db.Integer)
     postal_code = db.Column(db.String(10))
 
     # Foreign relationships
     # FK to Animals
-
-    animals = db.relationship("Animal", back_populates="city")
-
+    # Relationships
+    animals = db.relationship("Animal", back_populates="city_associations")
+    animal_associations = db.relationship("AnimalCity", back_populates="city")
+    
     def __init__(
         self,
         id: Optional[int],
@@ -69,18 +73,22 @@ class City(db.Model):
         self.country_code = country_code.upper()
         self.region_name = region_name
         self.region_code = region_code.upper()
-        self.geolocation: str = f"({latitude},{longitude})"
+        self.geolocation: str = (
+            geolocation
+            if geolocation
+            else f"({latitude},{longitude})" if (latitude and longitude) else None
+        )
         self.population = population
         self.postal_code = postal_code
 
-        # Validate the instance using CitySchema
-        city_schema = CitySchema()
-        errors = city_schema.validate(self.__dict__)
-        if errors:
-            raise ValueError(f"Invalid city data: {errors}")
+        # # Validate the instance using CitySchema
+        # city_schema = CitySchema()
+        # errors = city_schema.validate(self.__dict__)
+        # if errors:
+        #     raise ValueError(f"Invalid city data: {errors}")
 
     @staticmethod
-    def find(city_name: str, **kwargs) -> bool:
+    def find(city_name: str, return_all: bool = False, **kwargs) -> bool:
         """
         Check if a city exists in the database.
 
@@ -102,7 +110,7 @@ class City(db.Model):
         for key, value in filters.items():
             query = query.filter(getattr(City, key).casefold() == value.casefold())
 
-        return query.one_or_none()
+        return query.one_or_none() if not return_all else query.all()
 
     @classmethod
     def check_city_exists(cls, city_name: str, **kwargs) -> bool:
@@ -118,6 +126,7 @@ class City(db.Model):
         """
         return bool(cls.find(city_name=city_name, kwargs=kwargs))
 
+    @property
     def to_dict(self):
         """Deserializes instance to a python dict
 
@@ -129,14 +138,41 @@ class City(db.Model):
             c.key: getattr(self, c.key) for c in class_mapper(self.__class__).columns
         }
 
-    @staticmethod
-    def all_cities_by_pop():
-        """Returns all cities in the database by population
+    # properties to make the db column keys easier to map to petfinder service
+    @property
+    def state(self):
+        return self.region_code
 
-        Returns:
-            _type_: _description_
-        """
-        return db.session.query(City).order_by(desc(City.population)).all()
+    @property
+    def country(self):
+        return self.country_code
+
+    @property
+    def postcode(self):
+        return self.postal_code
+
+    @staticmethod
+    def all_saved_cities(
+        as_query_obj: bool = False, sort_by_pop: bool = False
+    ) -> Union[Query, Dict[tuple, Any]]:
+        # base query
+        query = City.query
+
+        # Apply sorting if needed
+        if sort_by_pop:
+            query = query.order_by(desc(City.population))
+
+        # Execute the query
+        results = query.all()
+
+        # Return as requested format
+        if as_query_obj:
+            return set(results)  # or list(results) if you prefer a list of objects
+        else:
+            return {
+                (city.name, city.region_name, city.country_name): city
+                for city in results
+            }
 
     @staticmethod
     def validate_city_data(city_data: Dict[str, Any], **kwargs: Any) -> None:
@@ -166,3 +202,6 @@ class City(db.Model):
             db.session.add(new_city)
             db.session.commit()
 
+
+# Call this function after all models are defined
+attach_listeners()
