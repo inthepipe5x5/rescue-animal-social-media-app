@@ -70,7 +70,9 @@ class Animal(db.Model, MetaDataMixin):
     published_at = db.Column(db.DateTime)
 
     # Relationships
-    city_associations = db.relationship("AnimalCity", back_populates="animal")
+    city_associations = db.relationship("AnimalCity", back_populates="animal.id", secondary="animal_city")
+    
+    #city
     organization_id = db.Column(db.String, db.ForeignKey("rescue_orgs.id"))
     organization = db.relationship("RescueOrg", back_populates="animals")
 

@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from Project.core.extensions import db, bcrypt
 
+
 class UserFavorites(db.Model):
     """Table to store user favorites"""
 
@@ -142,6 +143,7 @@ class UserFavorites(db.Model):
         else:
             print(f"Favorite {favorite_id} not found for user {user_id}")
 
+
 class MatchedRescueOrganization(db.Model):
     """Matched Rescue Organization db.Model captures information about a Rescue Organization and the relationship to a specific user"""
 
@@ -155,11 +157,17 @@ class MatchedRescueOrganization(db.Model):
     matched_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     matched_org_id = db.Column(db.Integer, db.ForeignKey("rescueOrg.id"))
     matched_pct = db.Column(db.Integer, nullable=False, default=0)
-    matched_datetime = db.Column(db.DateTime, nullable=False, default= datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S %Z%z'))
+    matched_datetime = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.now(pytz.utc).strftime("%Y-%m-%d %H:%M:%S %Z%z"),
+    )
     followed_by_user_bool = db.Column(db.Boolean, default=False)
 
     user = db.relationship(
-        "User", foreign_keys=[matched_user_id], back_populates="matched_rescue_orgs"
+        "User",
+        foreign_keys=[matched_user_id, matched_org_id],
+        back_populates="matched_rescue_orgs",
     )
 
 
@@ -167,15 +175,19 @@ class UserLocation(db.Model):
     """Table to store user location information"""
 
     __tablename__ = "user_location"
-    #Primary Key
+    # Primary Key
     id = db.Column(db.Integer, primary_key=True)
-    #User
+    # User
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True)
-    
-    #Data Columns
-    country = db.Column(db.String(2), nullable=False, default="CA") #2 letter STR abbreviation
-    state = db.Column(db.String(2), nullable=False, default="ON") #2 letter STR abbreviation
-    postal_code = db.Column(db.String(7)) 
+
+    # Data Columns
+    country = db.Column(
+        db.String(2), nullable=False, default="CA"
+    )  # 2 letter STR abbreviation
+    state = db.Column(
+        db.String(2), nullable=False, default="ON"
+    )  # 2 letter STR abbreviation
+    postal_code = db.Column(db.String(7))
     geolocation = db.Column(db.String(100))
     city = db.Column(db.String(150))
 
@@ -264,13 +276,17 @@ class UserLocation(db.Model):
         :return: The code snippet is defining a `serialize` method for a class. The method returns a
         dictionary containing the following keys and values:
         """
-        return {
+        return (
+            {
                 "CURR_LOCATION": self.get_location_info(),
-                "city": self.city,   
-                "state": self.state,   
-                "country": self.country,   
-                "geolocation": self.geolocation,   
-            } or None,
+                "city": self.city,
+                "state": self.state,
+                "country": self.country,
+                "geolocation": self.geolocation,
+            }
+            or None,
+        )
+
 
 class User(db.Model, UserMixin):
     """User in the system."""
@@ -435,23 +451,25 @@ class User(db.Model, UserMixin):
     @property
     def animal_prefs(self):
         """Returns user animal preferences in a serialized python dict if truthy user animal preferences else seeds
-        
-        Returns: 
+
+        Returns:
             animal prefs (dict): serialized user animal preferences
         """
         # Get user preferences or query db
         prefs = self.user_animal_preferences or (
-                db.session.query(UserAnimalPreferences)
-                .filter(UserAnimalPreferences.user_id == self.id)
-                .all()
-            )
-        
+            db.session.query(UserAnimalPreferences)
+            .filter(UserAnimalPreferences.user_id == self.id)
+            .all()
+        )
+
         if prefs:
             # Group preferences by species, creating a dictionary where each species key has a list of preferences
             dict_of_preferences_by_species = {}
             if prefs:
                 for pref in prefs:
-                    dict_of_preferences_by_species.setdefault(pref.species, []).append(pref)
+                    dict_of_preferences_by_species.setdefault(pref.species, []).append(
+                        pref
+                    )
 
             # Serialize each preference object in the dictionary
             animal_prefs = {}
@@ -460,14 +478,14 @@ class User(db.Model, UserMixin):
                     pref.user_preference_name: pref.user_preference_data
                     for pref in preferences_list
                 }
-            
-            #return serialized dict
+
+            # return serialized dict
             return animal_prefs
-        #handle if no animal preferences 
+        # handle if no animal preferences
         else:
-            #seed preferences
+            # seed preferences
             return UserAnimalPreferences.seed_user_pref(user_id=self.id)
-            
+
     def serialize(self):
         """Serialize this ORM model class into a python dict
 
@@ -475,7 +493,6 @@ class User(db.Model, UserMixin):
             obj (dict): serialized dict of this user columns
         """
 
-        
         obj = {
             "id": self.id,
             "animal_types": self.animal_types,
@@ -484,15 +501,17 @@ class User(db.Model, UserMixin):
             "favorites": self.get_all_favorites or [],
             "location": {
                 "CURR_LOCATION": self.location.get_location_info(),
-                "city": self.location.city,   
-                "state": self.location.state,   
-                "country": self.location.country,   
-                "geolocation": self.location.geolocation,   
-            } or UserLocation().serialize(),
+                "city": self.location.city,
+                "state": self.location.state,
+                "country": self.location.country,
+                "geolocation": self.location.geolocation,
+            }
+            or UserLocation().serialize(),
             "distance_pref": UserTravelPreferences._get_distance_filter_param(
                 user_id=self.id
             ),
-            "animal_pref_dict": self.animal_prefs or {ani_type: None for ani_type in self.animal_types}
+            "animal_pref_dict": self.animal_prefs
+            or {ani_type: None for ani_type in self.animal_types},
         }
         return obj
 
@@ -620,7 +639,9 @@ class UserAnimalPreferences(db.Model):
                 # add result to out if matches user_id and species
                 if preference.user_id == u_id and preference.species == animal_type:
                     # parse JSON value to python values
-                    key = preference.user_preference_name if key != 'color' else "colors"
+                    key = (
+                        preference.user_preference_name if key != "color" else "colors"
+                    )
                     value = preference.user_preference_data
                     out[key] = value
             # handle bad keys
@@ -715,21 +736,15 @@ class UserAnimalPreferences(db.Model):
                 pref_obj = pref_obj_template.copy()
                 pref_obj["user_preference_name"] = pref
                 pref_obj["user_preference_data"] = False
-                
-                pref_list.append(
-                    pref_obj
-                )
-                
+
+                pref_list.append(pref_obj)
 
             for pref in default_attr_prefs:
                 pref_obj = pref_obj_template.copy()
                 pref_obj["user_preference_name"] = pref
                 pref_obj["user_preference_data"] = "any"
-                
-                pref_list.append(
-                    pref_obj
-                )
 
+                pref_list.append(pref_obj)
 
         # Bulk insert the data into the database
         if pref_list:
@@ -898,5 +913,3 @@ class UserCurrentPets(db.Model):
     user_pets_friendly_to_new_birds = db.Column(db.Boolean)
     user_pets_friendly_to_new_bunnies = db.Column(db.Boolean)
     user_pets_friendly_to_new_misc_animal_types = db.Column(db.Boolean)
-
-

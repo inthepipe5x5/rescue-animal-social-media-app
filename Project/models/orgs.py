@@ -47,6 +47,7 @@ class Organization(db.Model, MetaDataMixin):
 
     # Relationships
     animals = db.relationship("Animal", back_populates="organization", lazy="dynamic")
+    
     matched_users = db.relationship(
         "MatchedOrgs", back_populates="organization", lazy="dynamic"
     )

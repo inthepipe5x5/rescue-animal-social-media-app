@@ -158,8 +158,12 @@ class CSVFileManager:
         full_path = os.path.join(folder_path, csv_name)
 
         data = []
-        with open(full_path, "r", newline="") as csvfile:
-            reader = csv.reader(csvfile)
+        with open(full_path, "r", newline=CSVFileManager.CSV_NEWLINE) as csvfile:
+            reader = csv.reader(
+                csvfile=csvfile,
+                delimiter=CSVFileManager.CSV_NEWLINE,
+                none=CSVFileManager.NA_VALUES,
+            )
             data = list(reader)
 
         return data

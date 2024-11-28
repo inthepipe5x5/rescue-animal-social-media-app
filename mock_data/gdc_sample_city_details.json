@@ -1,0 +1,21 @@
+{
+    "data": {
+      "id": 123214,
+      "wikiDataId": "Q60",
+      "type": "CITY",
+      "city": "New York City",
+      "name": "New York City",
+      "country": "United States of America",
+      "countryCode": "US",
+      "region": "New York",
+      "regionCode": "NY",
+      "elevationMeters": 10,
+      "latitude": 40.7,
+      "longitude": -74,
+      "population": 8804190,
+      "timezone": "America__New_York",
+      "distance": null,
+      "deleted": false,
+      "placeType": "CITY"
+    }
+  }

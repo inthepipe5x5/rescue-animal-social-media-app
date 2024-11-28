@@ -40,7 +40,7 @@ default_session_keys = {
 
 # store default user_preference
 default_animal_params = {
-    "location": "Toronto, ON",
+    "location": "Toronto,ON",
     "state": "ON",
     "country": "CA",
     "animal_types": [

@@ -1,0 +1,53 @@
+{
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "wikiDataId": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "latitude": {
+              "type": "number"
+            },
+            "longitude": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "rel": {
+              "type": "string"
+            },
+            "href": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "currentOffset": {
+            "type": "integer"
+          },
+          "totalCount": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }

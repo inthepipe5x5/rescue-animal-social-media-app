@@ -1,0 +1,55 @@
+{
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "wikiDataId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "elevationMeters": {
+            "type": "integer"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "population": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }

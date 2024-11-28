@@ -1,6 +1,7 @@
 """Seed database with sample data from CSV Files."""
 
 from csv import DictReader
+import json
 from Project.core.app import app, db
 from Project.models.users import (
     User,
@@ -12,15 +13,9 @@ from Project.models.users import (
 import os
 import bcrypt
 
-test_user = {
-    "username": "test123",
-    "email": "test123@test123.com",
-    "bio": "test123",
-    "password": "test123",
-    "animal_types": ["dog"],
-    "image_url": "../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
-    "rescue_action_type": ["volunteering", "donation", "adoption", "animal foster"],
-}
+file_path = os.path.join(os.getcwd(), "tests/test_user.json")
+with open(file_path, "r") as file:
+    test_user = json.load(file)
 
 # create app context for db
 app.app_context().push()

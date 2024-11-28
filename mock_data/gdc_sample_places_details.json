@@ -1,0 +1,72 @@
+{
+    "data": [
+      {
+        "id": 3403289,
+        "wikiDataId": "Q4663912",
+        "type": "CITY",
+        "city": "Abbato",
+        "name": "Abbato",
+        "latitude": 37.053888888,
+        "longitude": -120.827777777,
+        "population": 0
+      },
+      {
+        "id": 3349830,
+        "wikiDataId": "Q2821569",
+        "type": "CITY",
+        "city": "Aberdeen",
+        "name": "Aberdeen",
+        "latitude": 36.978056,
+        "longitude": -118.253333,
+        "population": 0
+      },
+      {
+        "id": 129580,
+        "wikiDataId": "Q4671652",
+        "type": "CITY",
+        "city": "Acalanes Ridge",
+        "name": "Acalanes Ridge",
+        "latitude": 37.9047,
+        "longitude": -122.079,
+        "population": 1285
+      },
+      {
+        "id": 3002467,
+        "wikiDataId": "Q4671833",
+        "type": "CITY",
+        "city": "Acampo",
+        "name": "Acampo",
+        "latitude": 38.171944444,
+        "longitude": -121.280277777,
+        "population": 334
+      },
+      {
+        "id": 3344443,
+        "wikiDataId": "Q4673048",
+        "type": "CITY",
+        "city": "Acebedo",
+        "name": "Acebedo",
+        "latitude": 35.831944444,
+        "longitude": -120.201944444,
+        "population": 0
+      }
+    ],
+    "links": [
+      {
+        "rel": "first",
+        "href": "/v1/geo/countries/US/regions/CA/cities?offset=0&limit=5"
+      },
+      {
+        "rel": "next",
+        "href": "/v1/geo/countries/US/regions/CA/cities?offset=5&limit=5"
+      },
+      {
+        "rel": "last",
+        "href": "/v1/geo/countries/US/regions/CA/cities?offset=3715&limit=5"
+      }
+    ],
+    "metadata": {
+      "currentOffset": 0,
+      "totalCount": 3720
+    }
+  }
