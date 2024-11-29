@@ -1,5 +1,5 @@
 import os
-from Project.services.data.generate_cities import (
+from Project.services.data.gdc_pipeline import (
     canada_updated,
     usa_updated,
     ensure_directories_exist,

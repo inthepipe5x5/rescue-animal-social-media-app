@@ -1,12 +1,14 @@
-import csv
+import json
+import os
 import os
 import pandas as pd
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Optional
 from sqlalchemy.orm import Session
-from Project.utils.csvfilemanager import CSVFileManager
+from Project.utils.filemanager import FileManager
+from Project.core.constants import default_session_keys, DEFAULT_LOCATION
 
 
-class Pipeline(CSVFileManager):
+class Pipeline(FileManager):
     """
     A modular pipeline class for managing directories, CSVs, DataFrames, and database population.
 
@@ -18,13 +20,29 @@ class Pipeline(CSVFileManager):
     Modular Subclassing: Supports specific pipelines by subclassing
     """
 
+    # set starting city
+    starting_city = None
+    STARTING_CITY_PATH = os.path.join(
+        os.getcwd(),
+        "mock_data/geodbcities/cities_details/gdc_toronto_details_parsed.json",
+    )
+    with open(STARTING_CITY_PATH, "r") as default_city_json:
+        starting_city = (
+            json.loads(default_city_json)
+            or default_session_keys.get(DEFAULT_LOCATION)["city"]
+        )
+
     # Constants
     PWD = os.getcwd()
-    CSV_COLUMN_HEADERS = {}
-    CSV_NEWLINE = ","
-    NA_VALUES = ["", "null", "NULL", "none"]
 
-    def __init__(self, base_path: str, db_session: Session):
+    def __init__(
+        self,
+        api: object,
+        base_path: str,
+        db_session: Session,
+        csv_headers: Optional[Dict[str, list[str]]],
+        hierarchy: List[str] = ["country", "state", "city"],
+    ):
         """
         Initialize the pipeline with a base directory path and database session.
 
@@ -32,9 +50,18 @@ class Pipeline(CSVFileManager):
             base_path (str): Base directory for data.
             db_session (Session): SQLAlchemy session for database operations.
         """
-        super().__init__(base_folder=base_path, hierarchy=["country", "state", "city"])
-        self.base_path = base_path
+        super().__init__(base_folder=base_path, hierarchy=hierarchy)
+        self.base_path = base_path or os.getcwd()
         self.db_session = db_session
+        self.CSV_COLUMN_HEADERS = csv_headers if csv_headers else {}
+        self.api = api
+        
+        #set up 
+        self.setup_pipeline(
+            directories=self.hierarchy,
+            csv_files=hierarchy,
+            csv_headers=self.CSV_COLUMN_HEADERS,
+        )
 
     # @staticmethod
     # def ensure_directories_exist(base_path: str, folders: List[str]) -> None:
@@ -120,28 +147,29 @@ class Pipeline(CSVFileManager):
         self.db_session.commit()
         print(f"Final commit completed for {len(rows)} rows.")
 
-    def run_pipeline(
+    def setup_pipeline(
         self,
         directories: List[str],
         csv_files: List[str],
         csv_headers: Dict[str, List[str]],
-        model_class: type,
-        data_source: Callable[[], pd.DataFrame],
     ) -> None:
         """
-        Execute the full pipeline: directory and CSV management, data transformation, and DB population.
+        Set up the pipeline: directory and CSV management, data transformation, and DB population.
 
         Args:
             directories (List[str]): List of directories to manage.
             csv_files (List[str]): List of CSV files to manage.
             csv_headers (Dict[str, List[str]]): Mapping of CSV file names to headers.
+            data_schema(Schema) Marshmallow Schema to validate data.
             model_class (type): SQLAlchemy model class for DB population.
-            data_source (Callable): Function to fetch or transform data into a DataFrame.
+            data_fetcher (str): Str reference of function to fetch or transform data into a DataFrame.
         """
         self.ensure_directories_exist(self.base_path, directories)
         self.ensure_csv_files_exist(
             self.base_path, directories, csv_files, csv_headers, self.write_to_csv
         )
-        data_df = data_source()
-        self.df_to_db(data_df, model_class)
-        print("Pipeline execution completed.")
+
+    # def save_data(self, data, data_to_df_converter, *schemas, *models):
+    #     data_df = data_to_df_converter
+    #     self.df_to_db(data_df, model_class)
+    #     print("Pipeline execution completed.")

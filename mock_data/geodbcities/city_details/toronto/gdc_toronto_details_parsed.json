@@ -1,0 +1,11 @@
+{
+  "id": 10908,
+  "type": "CITY",
+  "name": "Toronto",
+  "country": "Canada",
+  "countryCode": "CA",
+  "region": "Ontario",
+  "region_code": "ON",
+  "geolocation": "43.6702,-79.3866",
+  "population": 2794356
+}

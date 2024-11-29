@@ -1,9 +1,11 @@
 import os
 import csv
-from typing import Callable, Dict, List, Optional
+from pathlib import Path
+import shutil
+from typing import Callable, Dict, List, Optional, Union
 
 
-class CSVFileManager:
+class FileManager:
     """
     Python class with functions to manage CSV files in a nested folder structure based on a given hierarchy
     """
@@ -14,6 +16,40 @@ class CSVFileManager:
     def __init__(self, base_folder: str = "csv", hierarchy: List[str] = None):
         self.base_folder = os.path.join(os.getcwd(), base_folder)
         self.hierarchy = hierarchy or ["country", "state", "city"]
+
+    @staticmethod
+    def remove_directory(directory_path: str) -> None:
+        """Helper method that can be used within test cases to clean up directories:
+
+        Args:
+            directory_path (str): _description_
+        """
+        if os.path.exists(directory_path):
+            shutil.rmtree(directory_path)
+        else:
+            # Directory does not exist, do nothing
+            pass
+
+    @staticmethod
+    def get_relative_path_to_file(
+        target_file: str, parent_dir: str = "/mock_data"
+    ) -> Union[str, None]:
+        """
+        Recursively search for a target file within a given parent directory
+        and return the relative path from the parent to the target file.
+
+        Parameters:
+        - parent_dir (str or Path): The parent directory to start the search from.
+        - target_file (str): The name of the target file to search for.
+
+        Returns:
+        - str: the relative path to the target file if found
+        """
+        parent_dir = Path(parent_dir)
+        for file in parent_dir.rglob(target_file):
+            relative_path = file.relative_to(parent_dir)
+            return str(relative_path)
+        return None
 
     @staticmethod
     def ensure_csv_files_exist(
@@ -35,12 +71,12 @@ class CSVFileManager:
             write_to_csv_function (Callable): Function to write data to CSV.
         """
         write_to_csv_function = (
-            write_to_csv_function
-            if write_to_csv_function
-            else CSVFileManager.write_to_csv
+            write_to_csv_function if write_to_csv_function else FileManager.write_to_csv
         )
         for folder in folders:
-            folder_path = os.path.join(base_path, folder)
+            folder_path = FileManager.get_relative_path_to_file(
+                parent_dir=base_path, target_file=folder
+            )
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
                 print(f"Created directory: {folder_path}")
@@ -65,7 +101,7 @@ class CSVFileManager:
         for folder in folders:
             folder_path = os.path.join(base_path, folder)
             if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
+                FileManager.create_nested_folders(dir_hierarchy=folders)
                 print(f"Created directory: {folder_path}")
             else:
                 print(f"Directory already exists: {folder_path}")
@@ -80,7 +116,7 @@ class CSVFileManager:
             headers (List[str]): Column headers for the CSV.
             data()
         """
-        with open(file_path, "w", newline=CSVFileManager.CSV_NEWLINE) as csvfile:
+        with open(file_path, "w", newline=FileManager.CSV_NEWLINE) as csvfile:
             writer = csv.writer(csvfile)
             if headers:
                 writer.writerow(headers)
@@ -118,9 +154,6 @@ class CSVFileManager:
         Returns:
             str: Generated CSV filename.
         """
-        if len(values) != len(self.hierarchy):
-            raise ValueError("Number of values must match the hierarchy levels.")
-
         return "_".join(values) + ".csv"
 
     def create_nested_csv_file(
@@ -141,7 +174,7 @@ class CSVFileManager:
         csv_name = self.generate_csv_name(values)
         full_path = os.path.join(folder_path, csv_name)
 
-        return CSVFileManager.write_to_csv(file_path=full_path, headers=headers)
+        return FileManager.write_to_csv(file_path=full_path, headers=headers)
 
     def read_csv_file(self, values: List[str]) -> List[List]:
         """
@@ -158,11 +191,11 @@ class CSVFileManager:
         full_path = os.path.join(folder_path, csv_name)
 
         data = []
-        with open(full_path, "r", newline=CSVFileManager.CSV_NEWLINE) as csvfile:
+        with open(full_path, "r", newline=FileManager.CSV_NEWLINE) as csvfile:
             reader = csv.reader(
                 csvfile=csvfile,
-                delimiter=CSVFileManager.CSV_NEWLINE,
-                none=CSVFileManager.NA_VALUES,
+                delimiter=FileManager.CSV_NEWLINE,
+                none=FileManager.NA_VALUES,
             )
             data = list(reader)
 

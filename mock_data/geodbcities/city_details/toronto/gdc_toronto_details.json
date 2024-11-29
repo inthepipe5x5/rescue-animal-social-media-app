@@ -1,0 +1,20 @@
+{
+  "data": {
+    "id": 10908,
+    "wikiDataId": "Q172",
+    "type": "CITY",
+    "city": "Toronto",
+    "name": "Toronto",
+    "country": "Canada",
+    "countryCode": "CA",
+    "region": "Ontario",
+    "regionCode": "ON",
+    "regionWdId": "Q1904",
+    "elevationMeters": 76,
+    "latitude": 43.670277777,
+    "longitude": -79.386666666,
+    "population": 2794356,
+    "timezone": "America__Toronto",
+    "deleted": false
+  }
+}

@@ -48,9 +48,13 @@ class City(db.Model, MetaDataMixin):
     # Foreign relationships
     # FK to Animals
     animals = db.relationship(
-        "Animal", back_populates="city_associations", lazy="dynamic", uselist=True
+        "Animal",
+        secondary="animal_city",
+        back_populates="cities",
+        lazy="dynamic",
+        uselist=True,
     )
-    animal_associations = db.relationship("AnimalCity", back_populates="city")
+    # animal_associations = db.relationship("AnimalCity", back_populates="city")
 
     def __init__(
         self,

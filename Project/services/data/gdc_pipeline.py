@@ -8,6 +8,7 @@ from pandas import pandas as pd
 from psycopg2 import IntegrityError
 from pycountry import countries, subdivisions
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from Project.core import db
 from Project.core.constants import default_session_keys, LOCATION_SESSION_KEY
@@ -18,31 +19,12 @@ from canada_us_states_cities import usa, canada
 from Project.services.data.pipeline import Pipeline
 
 
-class CitiesPipeline(Pipeline):
+class GeoDBCitiesPipeline(Pipeline):
 
     # get present working directory
     PWD = os.path.abspath(__file__)
     # list to represent country/state/cities relationship => use in deserializing & creating folders/CSVs
-    country_state_cities = ["country", "states", "cities"]
-
-    # Update Canadian provinces and territories
-    canada_updated = {
-        country_state_cities[0]: "Canada",
-        country_state_cities[1]: {
-            province: {country_state_cities[2]: cities}
-            for province, cities in canada.items()
-        },
-    }
-
-    # Update USA states
-    usa_updated = {
-        country_state_cities[0]: "United States of America",
-        country_state_cities[1]: {
-            province: {country_state_cities[2]: cities}
-            for province, cities in usa.items()
-        },
-    }
-    SEED_CITY = default_session_keys.get(LOCATION_SESSION_KEY, {"name": "Toronto"})
+    COUNTRY_STATE_CITIES = ("country", "states", "cities")
 
     # CSV column headers matching City db.Model attributes
     CITY_CSV_COLUMN_HEADERS = [
@@ -56,11 +38,29 @@ class CitiesPipeline(Pipeline):
         "population",
         "postal_code",
     ]
-    CSV_NEWLINE = ","
 
-    def country_state_dict_to_csv(
-        data: dict, filename: str, newline: str = CSV_NEWLINE
-    ):
+    def __init__(self, base_path: str, db_session: Session):
+        super().__init__(base_path, db_session)()
+
+        # Update Canadian provinces and territories
+        self.canada_updated = {
+            self.COUNTRY_STATE_CITIES[0]: "Canada",
+            self.COUNTRY_STATE_CITIES[1]: {
+                province: {self.COUNTRY_STATE_CITIES[2]: cities}
+                for province, cities in canada.items()
+            },
+        }
+
+        # Update USA states
+        self.usa_updated = {
+            self.COUNTRY_STATE_CITIES[0]: "United States of America",
+            self.COUNTRY_STATE_CITIES[1]: {
+                province: {self.COUNTRY_STATE_CITIES[2]: cities}
+                for province, cities in usa.items()
+            },
+        }
+
+    def country_state_dict_to_csv(self, data: dict, filename: str, newline: str):
         """
         The function `country_state_dict_to_csv` converts a dictionary containing country and state data
         into a CSV file with specific column headers.
@@ -72,14 +72,17 @@ class CitiesPipeline(Pipeline):
         that represents the name of the CSV file where the data will be written. It should include the file
         extension (e.g., "output.csv") and specify the path if the file is not in the current working
         """
+        newline = newline if newline else self.CSV_NEWLINE
+
         if "_cities.csv" not in filename:
             filename = filename.replace(" ", "_") + "_cities.csv"
-
+        
+        country_name = data.get("country") or data.get("country_code")
+        
         with open(filename, "w", newline=newline) as csvfile:
-            writer = DictWriter(csvfile, fieldnames=CITY_CSV_COLUMN_HEADERS)
+            writer = DictWriter(csvfile, fieldnames=self.CITY_CSV_COLUMN_HEADERS)
             writer.writeheader()
 
-            country_name = data["country"]
             country = countries.search_fuzzy(country_name)[0]
             country_code = country.alpha_2
 
@@ -90,7 +93,7 @@ class CitiesPipeline(Pipeline):
                     ]
                     region_code = subdivision.code.split("-")[1]
                 except LookupError:
-                    region_code = CSV_NEWLINE  # If state/region code is not found
+                    region_code = self.CSV_NEWLINE  # If state/region code is not found
 
                 for city in state_data["cities"]:
                     writer.writerow(
@@ -101,9 +104,9 @@ class CitiesPipeline(Pipeline):
                             country_code,
                             state,
                             region_code,
-                            CSV_NEWLINE,  # geolocation (to be filled by API)
-                            CSV_NEWLINE,  # population (to be filled by API)
-                            CSV_NEWLINE,  # postal_code (to be filled by API)
+                            self.CSV_NEWLINE,  # geolocation (to be filled by API)
+                            self.CSV_NEWLINE,  # population (to be filled by API)
+                            self.CSV_NEWLINE,  # postal_code (to be filled by API)
                         ]
                     )
 
@@ -117,7 +120,7 @@ class CitiesPipeline(Pipeline):
             # convert df  -> db entries
             self.populate_db_from_df(df)
 
-    def create_country_csvs(*country_data: Dict[str, Any]) -> str:
+    def create_country_csvs(self, *country_data: Dict[str, Any]) -> str:
         """
         Create CSV files for an arbitrary number of countries.
 
@@ -125,13 +128,13 @@ class CitiesPipeline(Pipeline):
                             Each dictionary should have the format: {'country_name': data_dict}
         :return: Path to the CSV folder
         """
-        csv_folder = ensure_directories_exist(base_path=PWD, folders=["csv"])
+        csv_folder = self.ensure_directories_exist(base_path=self.PWD, folders=["csv"])
 
         for country_dict in country_data:
             for country_name, data in country_dict.items():
                 filename = f"{country_name.lower().replace(' ', '_')}_cities.csv"
                 filepath = os.path.join(csv_folder, filename)
-                country_state_dict_to_csv(data=data, filename=filepath)
+                self.country_state_dict_to_csv(data=data, filename=filepath)
                 print(f"Created CSV for {country_name}: {filepath}")
 
         return csv_folder

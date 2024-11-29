@@ -229,7 +229,7 @@ class AnimalResponseSchema(PetFinderResponseSchema):
         return deserialized_data
 
 
-class AnimalListResponseSchema(ma.Schema):
+class AnimalListResponseSchema(PetFinderResponseSchema):
     """
     ma.Schema for the entire response from the PetFinder API's /animals endpoint.
 

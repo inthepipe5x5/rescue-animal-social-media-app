@@ -70,18 +70,24 @@ class Animal(db.Model, MetaDataMixin):
     published_at = db.Column(db.DateTime)
 
     # Relationships
-    city_associations = db.relationship("AnimalCity", back_populates="animal.id", secondary="animal_city")
-    
-    #city
+    # city_associations = db.relationship("AnimalCity", back_populates="animal.id", secondary="animal_city")
+    city = db.relationship(
+        "City",
+        secondary="animal_cities",
+        back_populates="animals",
+        lazy="dynamic",
+        uselist=True,
+    )
+    # org
     organization_id = db.Column(db.String, db.ForeignKey("rescue_orgs.id"))
     organization = db.relationship("RescueOrg", back_populates="animals")
 
-    @property
-    def city(self):
-        """Return the associated city through AnimalCity, if available."""
-        if self.city_associations:
-            return self.city_associations[0].city  # Assuming one-to-one association
-        return None
+    # @property
+    # def city(self):
+    #     """Return the associated city through AnimalCity, if available."""
+    #     if self.city_associations:
+    #         return self.city_associations[0].city  # Assuming one-to-one association
+    #     return None
 
 
 def set_provider(mapper, connection, target):

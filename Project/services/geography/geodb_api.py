@@ -6,7 +6,37 @@ from ratelimit import (
 
 from Project.services.geography.util import GeoUtil
 from Project.core.types import UserLocationData
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, TypedDict, Union
+
+
+class FindCitiesParams(TypedDict):
+    # Required parameters
+    location: Optional[str]  # Latitude/longitude in ISO-6709 format: ±DD.DDDD±DDD.DDDD
+    countryIds: Optional[str]  # Comma-delimited country codes or WikiData ids
+    excludedCountryIds: Optional[
+        str
+    ]  # Comma-delimited country codes or WikiData ids to exclude
+
+    # Optional parameters
+    minPopulation: Optional[int]  # Only places having at least this population
+    maxPopulation: Optional[int]  # Only places having no more than this population
+    limit: Optional[int]  # Limit the number of results
+    offset: Optional[int]  # Offset for pagination
+    namePrefix: Optional[
+        str
+    ]  # City name prefix (starts matching at the beginning of every word in the name)
+    radius: Optional[int]  # The location radius within which to find places
+    distanceUnit: Optional[str]  # The unit of distance: MI | KM (default: MI)
+    types: Optional[str]  # Comma-delimited list of place types (e.g., CITY, ADM2)
+    languageCode: Optional[str]  # Language code for the results
+
+    @staticmethod
+    def valid_params() -> list:
+        """
+        Returns:
+            list: Valid GeoDB /cities GET request params
+        """
+        return list(FindCitiesParams.__annotations__.keys())
 
 
 class GeoDB(GeoUtil):
@@ -14,16 +44,16 @@ class GeoDB(GeoUtil):
 
     **Core Methods:**
 
-    - **filter_places**: Filters cities by various criteria like name prefix and population.
+    - **find_cities**: Filters cities by various criteria like name prefix and population.
     - **find_nearby_places**: Finds cities near a specified latitude and longitude.
-    - **get_place_details**: Retrieves detailed information about a specific city.
+    - **get_city_details**: Retrieves detailed information about a specific city.
     - **get_country_regions**: Lists all regions within a specified country.
     - **get_places_in_region**: Retrieves all cities within a specified region.
     - **get_countries_by_currency**: Lists countries using a specific currency.
 
     # Usage example:
     # geo_helper = GeoDB()
-    # cities = geo_helper.filter_places(name_prefix="San")
+    # cities = geo_helper.find_cities(name_prefix="San")
     """
 
     # Define API variables
@@ -40,19 +70,24 @@ class GeoDB(GeoUtil):
 
     @limits(calls=50, period=30)  # Limit of 50 calls per second
     @limits(calls=API_CALLS_PER_DAY, period=TIME_PERIOD)  # Limit of 1000 calls per day
-    def find_cities(
-        self,
-        name_prefix=None,
-        country_ids=None,
-        location=None,
-        min_population=50_000,
-    ):
-        params = {
-            "namePrefix": name_prefix,
-            "countryIds": country_ids,
-            "location": location,
-            "minPopulation": min_population,
+    def find_cities(self, **search_params: FindCitiesParams):
+        # Filter search_params to only include valid parameters
+        search_params = {
+            search_param: param_val
+            for search_param, param_val in search_params.items()
+            if search_param in FindCitiesParams.valid_params()
         }
+
+        default_params = {
+            "countryIds": "CA,US",
+            "minPopulation": 500_000,
+            "limit": 50,
+            "distanceUnit": "MI",
+            "sort": "countryId,-minPopulation,",
+        }
+        # Combine default and search parameters
+        params = {**default_params, **search_params}
+
         response = requests.get(
             f"{self.BASE_URL}/cities", headers=self.HEADERS, params=params
         )
@@ -67,7 +102,9 @@ class GeoDB(GeoUtil):
         return response.json()
 
     @staticmethod
-    def get_city_details(self, city_identifier: Union[str, int], country):
+    def get_city_details(
+        self, city_identifier: Union[str, int], country: Union[List[str], str]
+    ):
         """
         This function retrieves details about a place based on the provided city ID or city name.
 
@@ -76,7 +113,7 @@ class GeoDB(GeoUtil):
         """
         if isinstance(city_identifier, int):
             # If it's an integer, assume it's a city ID
-            response = self.get_place_details(city_id=city_identifier)
+            response = self.get_city_details(city_id=city_identifier)
             if response.status_code == 200:
                 return response.json()
             else:

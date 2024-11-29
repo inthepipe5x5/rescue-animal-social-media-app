@@ -165,22 +165,23 @@ class GeoUtil:
         """
         if isinstance(value, str):
             value = value.casefold()
-            if key in ["country", "country_code"]:
+            if key in ["country", "country_code", "countryCode"]:
                 try:
                     country = pycountry.countries.search_fuzzy(value)
                     if country:
                         return country[0].alpha_2
                 except LookupError:
-                    pass
-            elif key in ["region", "region_code"]:
+                    return value
+            elif key in ["region", "region_code", "regionCode"]:
                 try:
                     subdivision = pycountry.subdivisions.search_fuzzy(value)
                     if subdivision:
                         return subdivision[0].code
                 except LookupError:
-                    pass
+                    return value
         return value
-
+    
+    
     @classmethod
     def compare_location_dicts(
         cls, data: Dict[str, Any], expected: Dict[str, Any]

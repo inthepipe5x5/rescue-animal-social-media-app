@@ -1,0 +1,100 @@
+{
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "wikiDataId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "population": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": ["string", "null"]
+          },
+          "deleted": {
+            "type": ["boolean", "null"]
+          },
+          "elevationMeters": {
+            "type": ["integer", "null"]
+          }
+        },
+        "required": [
+          "id",
+          "wikiDataId",
+          "type",
+          "city",
+          "name",
+          "country",
+          "countryCode",
+          "region",
+          "regionCode",
+          "latitude",
+          "longitude",
+          "population"
+        ]
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rel": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          }
+        },
+        "required": ["rel", "href"]
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "currentOffset": {
+          "type": "integer"
+        },
+        "totalCount": {
+          "type": "integer"
+        }
+      },
+      "required": ["currentOffset", "totalCount"]
+    }
+  },
+  "required": ["data", "links", "metadata"]
+}

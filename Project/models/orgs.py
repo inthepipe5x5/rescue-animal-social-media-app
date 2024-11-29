@@ -46,8 +46,10 @@ class Organization(db.Model, MetaDataMixin):
     social_media = db.Column(JSONB)
 
     # Relationships
-    animals = db.relationship("Animal", back_populates="organization", lazy="dynamic")
-    
+    animals = db.relationship(
+        "Animal", back_populates="organization", lazy="dynamic", uselist=True
+    )
+
     matched_users = db.relationship(
         "MatchedOrgs", back_populates="organization", lazy="dynamic"
     )
