@@ -1,4 +1,4 @@
-FLASK_APP=Project/app.py
+FLASK_APP=Project.core.app:create_app
 FLASK_ENV=development
 CURR_USER_KEY=curr_user
 ANIMAL_TYPES=['dog']

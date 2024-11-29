@@ -43,7 +43,7 @@ def create_app():
 
     # INITIALIZE EXTENSIONS
     # Set up DB & Flask-Migrate
-    connect_db(app)
+    db, migrate = connect_db(app)
     csrf.init_app(app)
     bcrypt(app)
     ma.init_app(app)

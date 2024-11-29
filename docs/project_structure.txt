@@ -48,6 +48,7 @@
 |   |   |-- messages.csv
 |   |   `-- users.csv
 |   |-- forms.py
+|   |-- init_scrape.ipynb
 |   |-- migrations
 |   |   |-- README
 |   |   |-- alembic.ini
@@ -60,6 +61,7 @@
 |   |   |-- __init__.py
 |   |   |-- animals.py
 |   |   |-- common.py
+|   |   |-- geography.py
 |   |   |-- orgs.py
 |   |   `-- users.py
 |   |-- requirements.txt
@@ -68,11 +70,19 @@
 |   |   |-- animals.py
 |   |   |-- animals_req_schema.json
 |   |   |-- common.py
+|   |   |-- geography.py
 |   |   |-- orgs.py
 |   |   `-- orgs_req_schema.json
 |   |-- seed.py
 |   |-- services
 |   |   |-- __init__.py
+|   |   |-- data
+|   |   |   |-- __init__.py
+|   |   |   |-- canada_us_states_cities.py
+|   |   |   |-- gdc_pipeline.py
+|   |   |   |-- pf_pipeline.py
+|   |   |   |-- pipeline.py
+|   |   |   `-- utils.py
 |   |   |-- geography
 |   |   |   |-- geodb_api.py
 |   |   |   `-- util.py
@@ -161,13 +171,12 @@
 |   |       |-- show.html
 |   |       |-- signup.html
 |   |       `-- user_animal_preferences.html
-|   |-- tests
-|   |   |-- __init__.py
-|   |   `-- test_PetFinderAPI.py
 |   `-- utils
 |       |-- __init__.py
 |       |-- dynamicratelimit.py
-|       `-- parse.py
+|       |-- filemanager.py
+|       |-- parse.py
+|       `-- utils.py
 |-- docker-build.sh
 |-- docker-run.sh
 |-- docs
@@ -178,11 +187,31 @@
 |-- ff_rescue_db_backup.sql
 |-- gunicorn.conf.py
 |-- mock_data
-|   |-- pf_assorted_na_orgs.json
-|   |-- pf_sample_animals.json
-|   |-- pf_sample_orgs.json
-|   |-- pf_sample_single_animal.json
-|   `-- pf_sample_single_org.json
+|   |-- geodbcities
+|   |   |-- cities
+|   |   |   |-- gdc_cities_schema.json
+|   |   |   `-- gdc_sample_cities.json
+|   |   |-- city_details
+|   |   |   |-- gdc_city_details_schema.json
+|   |   |   |-- gdc_sample_city_details.json
+|   |   |   `-- toronto
+|   |   |       |-- gdc_toronto_details.json
+|   |   |       `-- gdc_toronto_details_parsed.json
+|   |   `-- places
+|   |       |-- gdc_places_details_schema.json
+|   |       `-- gdc_sample_places_details.json
+|   |-- petfinder
+|   |   |-- animals
+|   |   |   |-- pf_animal_parsed.json
+|   |   |   |-- pf_sample_animals.json
+|   |   |   `-- pf_sample_single_animal.json
+|   |   |-- meta
+|   |   `-- orgs
+|   |       |-- pf_assorted_na_orgs.json
+|   |       |-- pf_org_parsed.json
+|   |       |-- pf_sample_orgs.json
+|   |       `-- pf_sample_single_org.json
+|   `-- test_user.json
 |-- prod-ca-2021.crt
 |-- readme.txt
 |-- render.yaml
@@ -190,7 +219,11 @@
 |-- start.sh
 |-- supabase_test.py
 |-- tests
+|   |-- __init__.py
+|   |-- test_PetFinderAPI.py
+|   |-- test_common.py
+|   `-- test_deserializer.py.py
 |-- traint
 `-- wsgi.py
 
-35 directories, 158 files
+44 directories, 182 files

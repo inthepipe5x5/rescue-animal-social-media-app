@@ -13,16 +13,16 @@ db = SQLAlchemy()  # flask-sqlalchemy
 login_manager = LoginManager()  # flask-login manager
 bcrypt = Bcrypt()
 
+
 def connect_db(app):
     """Connect this database to provided Flask app.
 
     You should call this in your Flask app.
     """
 
-    db.app = app
     db.init_app(app)
-    migrate = Migrate(app=app, db=db, compare_type=True)
-
+    migrate = Migrate(app=app, db=db, directory="migrations", compare_type=True)
+    return db, migrate
 
 if __name__ == "__main__":
     from Project.core.app import app

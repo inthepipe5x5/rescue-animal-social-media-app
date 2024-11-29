@@ -14,7 +14,6 @@ os.environ["APP_DIR"] = basedir
 
 # custom formatter for Flask logger to log in different colors
 
-
 class CustomFormatter(logging.Formatter):
     # Define color codes
     grey = "\x1b[38;21m"
@@ -158,7 +157,7 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     EXPLAIN_TEMPLATE_LOADING = True
-
+    SQLALCHEMY_DATABASE_URI =  os.environ.get('SQLALCHEMY_DATABASE_URI')
 
 class TestingConfig(Config):
     TESTING = True
@@ -189,7 +188,6 @@ class ProductionConfig(Config):
 
         # Configure logging
         dictConfig(obj.get_logger_config())
-
 
         return app
 

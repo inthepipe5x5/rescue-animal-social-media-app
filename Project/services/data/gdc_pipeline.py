@@ -1,6 +1,7 @@
 import os
 import glob
 from csv import DictWriter
+from pathlib import Path
 from typing import Any, Dict, List
 
 from marshmallow import ValidationError
@@ -22,7 +23,9 @@ from Project.services.data.pipeline import Pipeline
 class GeoDBCitiesPipeline(Pipeline):
 
     # get present working directory
-    PWD = os.path.abspath(__file__)
+
+    PWD = Path(os.path.abspath(os.path.dirname(__file__)))
+
     # list to represent country/state/cities relationship => use in deserializing & creating folders/CSVs
     COUNTRY_STATE_CITIES = ("country", "states", "cities")
 
@@ -76,9 +79,9 @@ class GeoDBCitiesPipeline(Pipeline):
 
         if "_cities.csv" not in filename:
             filename = filename.replace(" ", "_") + "_cities.csv"
-        
+
         country_name = data.get("country") or data.get("country_code")
-        
+
         with open(filename, "w", newline=newline) as csvfile:
             writer = DictWriter(csvfile, fieldnames=self.CITY_CSV_COLUMN_HEADERS)
             writer.writeheader()
@@ -265,6 +268,16 @@ class GeoDBCitiesPipeline(Pipeline):
         )
 
         return results if results else []
+
+    def seed_initial_cities(self):
+        # create csv folder
+        csv_folder = self.ensure_directories_exist(base_path=self.PWD, folders=list("csv"))
+        # create country csvs
+        csv_folder = self.create_country_csvs(
+            {"Canada": self.canada_updated},
+            {"United States of America": self.usa_updated},
+        )
+        self.populate_db_from_csv(csv_folder)
 
 
 if __name__ == "__main__":

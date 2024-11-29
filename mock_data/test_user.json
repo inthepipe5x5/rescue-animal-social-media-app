@@ -4,7 +4,7 @@
   "bio": "test123",
   "password": "test123",
   "animal_types": ["dog"],
-  "image_url": "../static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
+  "image_url": "./Project/static/images/profile-images/default-hero-sasha-sashina-YCsh4ltV9Ec-unsplash.jpg",
   "rescue_action_type": [
     "volunteering",
     "donation",
