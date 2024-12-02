@@ -46,25 +46,7 @@ class Organization(db.Model, MetaDataMixin):
     social_media = db.Column(JSONB)
 
     # Relationships
-    animals = db.relationship(
-        "Animal", back_populates="organization", lazy="dynamic", uselist=True
-    )
-
-    matched_users = db.relationship(
-        "MatchedOrgs", back_populates="organization", lazy="dynamic"
-    )
-
-    # @staticmethod
-    # def get_org_operating_cities(org_id:str):
-    #     """Fetch unique cities for all animals under an organization."""
-    #     cities = (
-    #         Animal.query.filter_by(organization_id=org_id)
-    #         .with_entities(Animal.city)
-    #         .distinct()
-    #         .all()
-    #     )
-    #     return [city[0] for city in cities]  # Extract city names or IDs
-
+    animals = db.relationship("Animal", back_populates="organization", uselist=True)
 
 # Call this function after all models are defined
 attach_listeners()

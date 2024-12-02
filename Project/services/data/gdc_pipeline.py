@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from Project.core import db
-from Project.core.constants import default_session_keys, LOCATION_SESSION_KEY
+from Project.core.constants import default_session_dict, LOCATION_SESSION_KEY
 from Project.services import geodb
 from Project.models import City, CitySchema
 from canada_us_states_cities import usa, canada

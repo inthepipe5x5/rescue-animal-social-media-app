@@ -2,7 +2,7 @@
 import os
 
 # from Project.types import *
-from flask import Flask
+from flask import Flask, url_for
 from Project.config import Config, config
 from Project.core.extensions import (
     connect_db,
@@ -11,11 +11,6 @@ from Project.core.extensions import (
     bcrypt,
     csrf,
 )
-
-# from Project.core.app import app
-
-
-from flask_migrate import Migrate
 
 
 def create_app():
@@ -27,6 +22,8 @@ def create_app():
     app_config_instance = Config()
 
     # config Flask app
+    # Grab FLASK_ENV from environment variables
+    flask_env_type = os.environ.get("FLASK_ENV", "default")
     flask_env_type = (
         os.environ.get("FLASK_ENV")
         if os.environ.get("FLASK_ENV") is not None
@@ -50,13 +47,12 @@ def create_app():
     login_manager.init_app(app)
 
     # config flask-login.login manager
-    login_manager.login_view = "login"
+    login_manager.login_view = "auth_bp.login"
 
     # user load function to load user session based on user_id
     @login_manager.user_loader
     def load_user(user_id):
-        from models import User
-
+        from Project.models import User
         return User.query.get(int(user_id))
 
     return app

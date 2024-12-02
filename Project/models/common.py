@@ -1,4 +1,5 @@
 import os
+from typing import List, Union
 import pytz
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.event import listens_for
@@ -9,7 +10,7 @@ from datetime import datetime  # , timezone
 # from sqlalchemy.dialects.postgresql import JSONB
 # from sqlalchemy.orm import Mapped, mapped_column
 
-from core.extensions import db
+from Project.core.extensions import db
 
 # class SchemaDbModel(db.Model):
 #     __abstract__ = True
@@ -109,8 +110,30 @@ class MetaDataMixin:
             c.key: getattr(self, c.key) for c in class_mapper(self.__class__).columns
         }
 
+    @staticmethod
+    def valid_columns(
+        self,
+        exclude_meta: bool = True,
+    ) -> List[str]:
+        """Returns a list of valid columns as strings. Intended to be used on subclasses
 
-    
+        Args:
+            exclude_meta (bool, optional): Excludes the keys in the MetaDataMixin. Defaults to True.
+
+        Returns:
+            Union[List[str], dict]: _description_
+        """
+        data_dict = (
+            self.to_dict.keys()
+            if not exclude_meta
+            else [
+                col_key
+                for col_key in self.to_dict().keys()
+                if col_key not in MetaDataMixin.to_dict.keys()
+            ]
+        )
+        return data_dict
+
     @property
     def base_url(self):
         """Returns the base URL for the provider, or None if unknown."""
@@ -131,10 +154,12 @@ def attach_listeners():
         @listens_for(subclass, "before_insert")
         def set_provider(mapper, connection, target):
             if not target.provider:
-                if target.__tablename__.casefold() == "animals":
+                if (
+                    target.__tablename__.casefold() == "animals"
+                    or target.__tablename__.casefold() == "rescueOrg"
+                ):
                     target.provider = "petfinder"
                 elif target.__tablename__.casefold() == "cities":
                     target.provider = "geodb_cities"
                 else:
                     target.provider = "unknown"
-

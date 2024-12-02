@@ -1,5 +1,7 @@
 from datetime import datetime
+import os
 from typing import Union
+from urllib.parse import urljoin
 
 from sqlalchemy import NUMERIC
 from sqlalchemy.event import listens_for
@@ -65,29 +67,73 @@ class Animal(db.Model, MetaDataMixin):
     # social media, contact info and media links
     photos = db.Column(JSONB)
     videos = db.Column(JSONB)
-    api_links = db.Column(JSONB)  # store urls from api
     # dates
     published_at = db.Column(db.DateTime)
 
     # Relationships
-    # city_associations = db.relationship("AnimalCity", back_populates="animal.id", secondary="animal_city")
-    city = db.relationship(
+    # Relationship to AnimalCity
+    animal_city = db.relationship("AnimalCity", back_populates="animal")
+    # Cities indirectly through AnimalCity
+    cities = db.relationship(
         "City",
-        secondary="animal_cities",
+        secondary="animal_city",
         back_populates="animals",
-        lazy="dynamic",
-        uselist=True,
+        overlaps="animal_city",
     )
     # org
-    organization_id = db.Column(db.String, db.ForeignKey("rescue_orgs.id"))
-    organization = db.relationship("RescueOrg", back_populates="animals")
+    organization_id = db.Column(db.String, db.ForeignKey("rescueOrg.id"))
+    organization = db.relationship("Organization", back_populates="animals")
 
-    # @property
-    # def city(self):
-    #     """Return the associated city through AnimalCity, if available."""
-    #     if self.city_associations:
-    #         return self.city_associations[0].city  # Assuming one-to-one association
-    #     return None
+    @property
+    def self_href(self) -> str:
+        """
+        The `self_href` property generates a URL based on the base URL, provider, and object ID.
+        :return: The `self_href` property is returning a URL that is constructed by combining the base URL
+        obtained from the `base_url` dictionary with the partial URL generated using the object's table name
+        and id. The `urljoin` function is used to combine these two parts into a complete URL, which is then
+        returned by the property.
+        """
+        base_url = self.base_url.get(
+            self.provider if self.provider else "petfinder",
+            os.environ.get("PETFINDER_API_URL"),
+        )
+        partial = f"{self.__tablename__}/{self.id}"
+        return urljoin(base=base_url, url=partial, allow_fragments=True)
+
+    @property
+    def type_href(self) -> str:
+        """
+        The `type_href` property generates a URL for retrieving information about a specific type of pet
+        from a pet adoption API.
+        :return: The `type_href` property is returning a URL that is constructed by combining the base URL
+        obtained from the `base_url` attribute, and a partial URL formed by appending "types/" followed by
+        the value of the `type` attribute. The `urljoin` function is used to combine these two parts and
+        return the final URL.
+        """
+        base_url = self.base_url.get(
+            self.provider if self.provider else "petfinder",
+            os.environ.get("PETFINDER_API_URL"),
+        )
+        partial = f"types/{self.type}"
+        return urljoin(base=base_url, url=partial, allow_fragments=True)
+
+    @property
+    def organization_href(self) -> str:
+        """
+        The `organization_href` function generates a URL for accessing information about a specific
+        organization based on the provided organization ID.
+        :return: The `organization_href` property is being returned, which is a URL constructed by joining
+        the base URL obtained from the `base_url` dictionary with the partial URL
+        "organizations/{self.organization_id}". The `organization_id` is an attribute of the object. The
+        final URL is created using the `urljoin` function with the base URL and the partial URL, and it
+        allows fragments in the URL.
+        """
+        base_url = self.base_url.get(
+            self.provider if self.provider else "petfinder",
+            os.environ.get("PETFINDER_API_URL"),
+        )
+        partial = f"organizations/{self.organization_id}"
+        return urljoin(base=base_url, url=partial, allow_fragments=True)
 
 
 def set_provider(mapper, connection, target):
@@ -101,7 +147,6 @@ class AnimalCity(db.Model, MetaDataMixin):
     id = db.Column(db.Integer, primary_key=True)
     animal_id = db.Column(db.String(50), db.ForeignKey("animals.id"), nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey("cities.id"), nullable=False)
-    date_associated = db.Column(db.DateTime, default=datetime.now)
     distance = db.Column(
         NUMERIC(10, 4), default=None
     )  # distance returned by PetFinder API
@@ -109,9 +154,13 @@ class AnimalCity(db.Model, MetaDataMixin):
     # Define unique constraint to prevent duplicate associations
     __table_args__ = (db.UniqueConstraint("animal_id", "city_id"),)
 
-    # Relationships
-    animal = db.relationship("Animal", back_populates="city_associations")
-    city = db.relationship("City", back_populates="animal_associations")
+    # Relationships back to the `City` and `Animal` models
+    city = db.relationship(
+        "City", back_populates="animal_city", overlaps="animals,cities" #to silence SA warning
+    )
+    animal = db.relationship(
+        "Animal", back_populates="animal_city", overlaps="animals,cities" #to silence SA warning
+    )
 
     def __init__(self, animal_id, city_id, distance=None):
         self.animal_id = animal_id

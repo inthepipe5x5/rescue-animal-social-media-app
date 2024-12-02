@@ -83,16 +83,7 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # set to None to disable expiration
     CSRF_ENABLED = True
-    # SQLALCHEMY_DATABASE_URI =  os.environ.get('SQLALCHEMY_DATABASE_URI')
-    SQLALCHEMY_DATABASE_URI = URL.create(
-        drivername="postgresql",
-        username=os.environ.get("SUPABASE_USER"),
-        password=os.environ.get("SUPABASE_PW"),
-        host=os.environ.get("SUPABASE_HOST"),
-        database="postgres",
-        port=5432,
-        # sslmode="require",
-    )  # os.environ.get('SQLALCHEMY_DATABASE_URI') #if not SUPABASE_URI else SUPABASE_URI
+    SQLALCHEMY_DATABASE_URI =  os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = (
         False  # set to true to debug db logs; else False to not flood terminal
@@ -137,16 +128,10 @@ class Config:
         :param app: Flask app, update object
         :return:
         """
-        # create config instance
-        config_instance = Config()
 
-        # grab FLASK_ENV from os to determine config type
-        flask_env_type = (
-            os.environ.get("FLASK_ENV")
-            if os.environ.get("FLASK_ENV") is not None
-            else "default"
-        )
-        config_instance.config_app(app=app, obj=config[flask_env_type])  # type: ignore
+        # Apply the configuration object to the app
+        app.config.from_object(obj)
+
 
         # Configure logging
         dictConfig(obj.get_logger_config())
@@ -167,12 +152,20 @@ class TestingConfig(Config):
     CSRF_ENABLED = False
     # hardcoding in the postgresql DB for now as the URI is not being set as an env variable properly
     SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_TEST_DATABASE_URI")
-
+    LOGIN_DISABLED = True #disable logins for testing purposes
 
 class ProductionConfig(Config):
     DEBUG = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_PROD_DATABASE_URI")
+    SQLALCHEMY_DATABASE_URI = URL.create(
+        drivername="postgresql",
+        username=os.environ.get("SUPABASE_USER"),
+        password=os.environ.get("SUPABASE_PW"),
+        host=os.environ.get("SUPABASE_HOST"),
+        database="postgres",
+        port=5432,
+        # sslmode="require",
+    ) 
     SQLALCHEMY_ECHO = False  # set to False for prod
 
     # override the inherited .init_app() from parent Config() class

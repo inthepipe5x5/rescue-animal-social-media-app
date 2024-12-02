@@ -4,13 +4,18 @@ from urllib.parse import urljoin
 import requests
 from time import sleep
 from typing import List, Callable, Any
-from Project.models.geography import City, CitySchema
+from Project.models.geography import City
+from Project.schemas.geography import CitySchema
 from Project.services.data import seed_initial_cities
 from Project.services.petfinder.PetFinderAPI import pf as api
 from Project.services.petfinder.petfinder_types import RequestedContent, AnimalReqParams
 from Project.core import db
-from Project.schemas.animals import Animal, AnimalListResponseSchema, AnimalResponseSchema
-from models import Animal
+from Project.schemas.animals import (
+    Animal,
+    AnimalListResponseSchema,
+    AnimalResponseSchema,
+)
+from Project.models import Animal
 
 import logging
 from logging.config import dictConfig

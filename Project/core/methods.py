@@ -9,7 +9,7 @@ from Project.core.constants import (
     NEXT_ANIMAL_URLS_KEY,
     LOCATION_SESSION_KEY,
     USER_LOCATION_KEY,
-    default_session_keys,
+    default_session_dict,
     DEFAULT_LOCATION,
     CURR_USER_KEY,
     CURR_ANIMALS_KEY,
@@ -101,10 +101,10 @@ def init_default_session():
     with current_app.app_context():
         # clear current_app.session
         do_logout()
-        # populate with default_session_keys
-        for key, value in default_session_keys.items():
+        # populate with default_session_dict
+        for key, value in default_session_dict.items():
             current_app.session.setdefault(key, value)
-        current_app.session["STATE_COUNTRY"] = f"{default_session_keys['location']}"
+        current_app.session["STATE_COUNTRY"] = f"{default_session_dict['location']}"
         current_app.session.new = True
         current_app.session.modified = True
 
@@ -157,7 +157,7 @@ def get_location(no_geocode=False):
     else:
         if no_geocode:
             location_dict = {}
-            for key, default_location_value in default_session_keys.get(
+            for key, default_location_value in default_session_dict.get(
                 DEFAULT_LOCATION
             ).items():
                 location_dict[key] = (
@@ -186,7 +186,7 @@ def create_init_params(req_type="animal"):
             else current_app.session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
         )
         distance_pref = current_app.session.get(
-            "DISTANCE_PREF", default_session_keys["DISTANCE_PREF"]
+            "DISTANCE_PREF", default_session_dict["DISTANCE_PREF"]
         )
 
         # If the user is authenticated and active
@@ -231,7 +231,7 @@ def create_init_params(req_type="animal"):
             # Non-authenticated user, default settings
             species = current_app.session.get(
                 CURR_ANIMALS_KEY
-            ) or default_session_keys.get(CURR_ANIMALS_KEY, "dog")
+            ) or default_session_dict.get(CURR_ANIMALS_KEY, "dog")
             # prettify the animal types for the API to accept it
             species = Parse.prettify_animal_types(
                 animal_types=species, fuzzy_match=True
@@ -271,12 +271,12 @@ def create_init_params(req_type="animal"):
                 "state": str(
                     user_location.state
                     if user_location
-                    else default_session_keys.get(DEFAULT_LOCATION).get("state", "ON")
+                    else default_session_dict.get(DEFAULT_LOCATION).get("state", "ON")
                 ),  # Fallback state to ON
                 "country": str(
                     user_location.country
                     if user_location
-                    else default_session_keys.get(DEFAULT_LOCATION).get("country", "CA")
+                    else default_session_dict.get(DEFAULT_LOCATION).get("country", "CA")
                 ),  # Fallback country to CA
                 "distance": distance_pref,
                 "limit": limit,
@@ -338,10 +338,10 @@ def get_anon_user() -> dict:
     with current_app.app_context():
         animal_types = current_app.session.get(
             CURR_ANIMALS_KEY
-        ) or default_session_keys.get(CURR_ANIMALS_KEY)
+        ) or default_session_dict.get(CURR_ANIMALS_KEY)
         current_location = current_app.session.get(
             USER_LOCATION_KEY
-        ) or default_session_keys.get(USER_LOCATION_KEY)
+        ) or default_session_dict.get(USER_LOCATION_KEY)
         # Anonymous user, pull location from session
         get_anon_location()
 
@@ -354,7 +354,7 @@ def get_anon_location() -> dict:
             "state": current_app.session.get("state"),
             "postal_code": current_app.session.get("postal_code"),
             "geolocation": current_app.session.get("geolocation"),
-        } or default_session_keys.get(DEFAULT_LOCATION)
+        } or default_session_dict.get(DEFAULT_LOCATION)
 
 
 def create_next_animal_url(
@@ -414,7 +414,7 @@ def get_rescue_action_mapped_to_animal_status():
         str: Status query parameter value for the PetFinder API.
     """
     # Default status to return when user is interested in adoption or fostering
-    from core import default_animal_status
+    from Project.core import default_animal_status
 
     # Check if user and user.rescue_action_type exist, and retrieve the list
     if active_authenticated_user() and current_user.rescue_action_type:

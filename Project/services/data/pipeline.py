@@ -5,7 +5,7 @@ import pandas as pd
 from typing import List, Callable, Dict, Optional
 from sqlalchemy.orm import Session
 from Project.utils.filemanager import FileManager
-from Project.core.constants import default_session_keys, DEFAULT_LOCATION
+from Project.core.constants import default_session_dict, DEFAULT_LOCATION
 
 
 class Pipeline(FileManager):
@@ -29,7 +29,7 @@ class Pipeline(FileManager):
     with open(STARTING_CITY_PATH, "r") as default_city_json:
         starting_city = (
             json.loads(default_city_json)
-            or default_session_keys.get(DEFAULT_LOCATION)["city"]
+            or default_session_dict.get(DEFAULT_LOCATION)["city"]
         )
 
     # Constants
@@ -56,7 +56,7 @@ class Pipeline(FileManager):
         self.CSV_COLUMN_HEADERS = csv_headers if csv_headers else {}
         self.api = api
         
-        #set up 
+        #set up pipeline -> create directories, CSV files
         self.setup_pipeline(
             directories=self.hierarchy,
             csv_files=hierarchy,

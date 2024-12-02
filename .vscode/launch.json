@@ -20,6 +20,7 @@
       "env": {
         "PYTHONPATH": "${workspaceFolder}/Project",
         "FLASK_APP": "Project.core.app:create_app",
+        "APP_DIR": "Project.core.app:create_app",
         "FLASK_DEBUG": "1",
         "FLASK_ENV": "development"
       },

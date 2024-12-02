@@ -144,33 +144,6 @@ class UserFavorites(db.Model):
             print(f"Favorite {favorite_id} not found for user {user_id}")
 
 
-class MatchedRescueOrganization(db.Model):
-    """Matched Rescue Organization db.Model captures information about a Rescue Organization and the relationship to a specific user"""
-
-    __tablename__ = "matched_rescue_org"
-
-    id = db.Column(
-        db.Integer,
-        primary_key=True,
-    )
-
-    matched_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    matched_org_id = db.Column(db.Integer, db.ForeignKey("rescueOrg.id"))
-    matched_pct = db.Column(db.Integer, nullable=False, default=0)
-    matched_datetime = db.Column(
-        db.DateTime,
-        nullable=False,
-        default=datetime.now(pytz.utc).strftime("%Y-%m-%d %H:%M:%S %Z%z"),
-    )
-    followed_by_user_bool = db.Column(db.Boolean, default=False)
-
-    user = db.relationship(
-        "User",
-        foreign_keys=[matched_user_id, matched_org_id],
-        back_populates="matched_rescue_orgs",
-    )
-
-
 class UserLocation(db.Model):
     """Table to store user location information"""
 
@@ -355,9 +328,6 @@ class User(db.Model, UserMixin):
         back_populates="user",
         # on_delete="CASCADE",
         uselist=False,  # set to true if you want 1:M ie. one user has many locations; else false => 1 user: 1 location
-    )
-    matched_rescue_orgs = db.relationship(
-        "MatchedRescueOrganization", back_populates="user"
     )
 
     travel_preference = db.relationship(

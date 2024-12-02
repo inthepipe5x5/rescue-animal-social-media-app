@@ -4,34 +4,14 @@ from flask import (
     redirect,
     url_for,
     Blueprint,
-    flash,
     render_template,
-    session,
-    jsonify,
 )
 from dotenv import load_dotenv
-import os
 
-from core import (
-    login_required,
-    db,
-    current_user,
-    active_authenticated_user,
+from Project.core import (
+    
     handle_error,
     default_error_details,
-)
-from models import User, UserFavorites, UserLocation, UserAnimalPreferences
-from forms import (
-    UserAddForm,
-    LoginForm,
-    UserEditForm,
-    UserExperiencesForm,
-    UserLocationForm,
-    AnonExperiencesForm,
-    SpecificAnimalPreferencesForm,
-    HiddenForm,
-    HiddenLocationForm,
-    UserTravelForm,
 )
 
 load_dotenv()

@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 from sqlalchemy.exc import NoResultFound  # type: ignore
 
-from core import db, default_animal_params 
+from Project.core.extensions import db
+from Project.core.constants import default_animal_params
 from Project.models import User, UserLocation, UserAnimalPreferences
-from services import pf
 
 load_dotenv()
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")

@@ -33,28 +33,30 @@ class City(db.Model, MetaDataMixin):
     """
 
     __tablename__ = "cities"
+    # Define unique constraint to prevent duplicate cities entries
+    __table_args__ = (db.UniqueConstraint("id", "name", "region_code", "country_code"),)
 
     id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    country_name = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(50))  # type of township
+    country_name = db.Column(db.String(100))
     country_code = db.Column(db.String(2), nullable=False)
-    region_name = db.Column(db.String(100), nullable=False)
+    region_name = db.Column(db.String(100))
     region_code = db.Column(db.String(2), nullable=False)
     geolocation = db.Column(db.String(50))
     population = db.Column(db.Integer)
     postal_code = db.Column(db.String(10))
 
     # Foreign relationships
-    # FK to Animals
+    # Relationship to CityAnimal
+    animal_city = db.relationship("AnimalCity", back_populates="city")
+    # Animals indirectly through CityAnimal
     animals = db.relationship(
         "Animal",
         secondary="animal_city",
         back_populates="cities",
-        lazy="dynamic",
-        uselist=True,
+        overlaps="animal_city",
     )
-    # animal_associations = db.relationship("AnimalCity", back_populates="city")
 
     def __init__(
         self,

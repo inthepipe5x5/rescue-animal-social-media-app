@@ -15,13 +15,13 @@ import os
 
 # from marshmallow import MarshMallow
 
-from core.methods import (
+from Project.core.methods import (
     active_authenticated_user,
     load_session,
 )
 
-from core.constants import (
-    default_session_keys,
+from Project.core.constants import (
+    default_session_dict,
     default_animal_prefs,
     animal_colors,
     default_animal_types,
@@ -71,7 +71,7 @@ for function_key, function in custom_filters_dict.items():
 
 #     def init_default_session():
 #         """Initialize the session with default values"""
-#         for key, value in default_session_keys.items():
+#         for key, value in default_session_dict.items():
 #             session.setdefault(key, value)
 #         session.new = True
 #         session.modified = True
@@ -140,7 +140,8 @@ def reseed_db():
     """
     recreate db
     """
-
+    from Project.core.extensions import db
+    
     app.logger.info("recreating db by dropping & recreating tables")
 
     # drop and recreate all tables
@@ -162,7 +163,7 @@ def reseed_db():
         ],
     }
 
-    test_user_location = default_session_keys["DEFAULT_LOCATION"]
+    test_user_location = default_session_dict["DEFAULT_LOCATION"]
 
     # Creating a list of user preferences
     test_user_animal_prefs = [

@@ -1,4 +1,5 @@
 from flask import (
+    g,
     request,
     redirect,
     url_for,
@@ -9,44 +10,43 @@ from flask import (
     jsonify,
     current_app,
 )
+from flask_login import login_required, current_user
 from dotenv import load_dotenv
 from werkzeug.datastructures import MultiDict
-from sqlalchemy.exc import IntegrityError, NoResultFound  # type: ignore
-import os
-
-from Project.models.geography import CitySchema
+from sqlalchemy.exc import IntegrityError  # type: ignore
+from Project.core.constants import CURR_ANIMALS_KEY, USER_LOCATION_KEY
+from Project.schemas.geography import CitySchema
 from Project.models.users import UserTravelPreferences
-from core import (
-    load_session,
-    login_required,
-    db,
-    current_user,
+from Project.core.methods import (
     active_authenticated_user,
     do_logout,
     do_login,
-    update_user_preferences,
-    default_session_keys,
-    load_session,
     save_location_to_session,
 )
-from models import User, UserFavorites, UserLocation, UserAnimalPreferences
-from forms import (
+from Project.core.constants import default_session_dict
+from Project.core.extensions import db
+from Project.core.methods import load_session
+from Project.models import User, UserFavorites, UserLocation, UserAnimalPreferences
+from Project.services.petfinder.helper import (
+    add_location_to_g,
+    get_anon_preference,
+    update_anon_preferences,
+    update_user_preferences,
+)
+from Project.forms import (
     UserAddForm,
-    LoginForm,
     UserEditForm,
     UserExperiencesForm,
     UserLocationForm,
     AnonExperiencesForm,
     SpecificAnimalPreferencesForm,
-    HiddenForm,
-    HiddenLocationForm,
     UserTravelForm,
 )
 
 load_dotenv()
 
 users_bp = Blueprint(
-    "users", __name__, url_prefix="users", url_defaults=url_for("profile")
+    "users", __name__, url_prefix="users", url_defaults=url_for("users_bp.profile")
 )
 
 
@@ -68,7 +68,8 @@ def list_users():
     #     users = User.query.filter(User.username.like(f"%{search}%")).all()
 
     # return render_template("index.html", users=users)
-    return redirect(url_for("profile"))
+    with current_app.app_context():
+        return redirect(url_for("users_bp.profile"))
 
 
 @users_bp.route("/<int:user_id>")
@@ -356,7 +357,7 @@ def update_animal_types():
         animal_types = (
             current_user.animal_types
             if active_authenticated_user()
-            else default_session_keys.get(CURR_ANIMALS_KEY, ["dog"])
+            else default_session_dict.get(CURR_ANIMALS_KEY, ["dog"])
         )
         return jsonify({"animal_types": animal_types}), 200
 
@@ -424,7 +425,7 @@ def animal_preferences(animal_type):
                 "An error occurred while saving your preferences. Please try again.",
                 "danger",
             )
-            return redirect(url_for("profile"))
+            return redirect(url_for("users_bp.profile"))
 
     return render_template(
         url_for("templates", "users/user_animal_preferences.html"),

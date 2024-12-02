@@ -13,7 +13,7 @@ from time import sleep
 from Project.core.methods import (
     create_next_animal_url,
     get_location,
-    default_session_keys,
+    default_session_dict,
     active_authenticated_user,
     current_user,
     create_init_params,
@@ -28,8 +28,8 @@ from Project.core.constants import (
 import os
 from dotenv import load_dotenv
 from Project.services.petfinder.api_exceptions import PetFinderResourceNotFoundError
-from data import seed_animal_info
-from utils import Parse
+from Project.api.routes.data.data_routes import seed_animal_info
+from Project.utils import Parse
 
 from Project.services import pf as api
 
@@ -263,7 +263,7 @@ def discover_animals():
 #             "state": session.get("state"),
 #             "postal_code": session.get("postal_code"),
 #             "geolocation": session.get("geolocation"),
-#         } or default_session_keys.get(DEFAULT_LOCATION)
+#         } or default_session_dict.get(DEFAULT_LOCATION)
 
 #     init_params = create_init_params(req_type="animals")
 #     animal_types = (
@@ -480,7 +480,7 @@ def test_location_animals():
         data = api.log_and_raise_for_status(response) if response else None
         return data, response.status_code if response else None
 
-    location_dict = session.get("location", {}) or default_session_keys.get(
+    location_dict = session.get("location", {}) or default_session_dict.get(
         "DEFAULT_LOCATION"
     )
     location_combinations = api.generate_location_combinations(location_dict)

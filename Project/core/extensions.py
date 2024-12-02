@@ -6,6 +6,7 @@ from flask_login import (
 )
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
+from psycopg2 import ProgrammingError
 
 csrf = CSRFProtect()
 ma = Marshmallow()  # flask-marshmallow for validation & serialization
@@ -19,13 +20,18 @@ def connect_db(app):
 
     You should call this in your Flask app.
     """
-
-    db.init_app(app)
-    migrate = Migrate(app=app, db=db, directory="migrations", compare_type=True)
+    try:
+        db.init_app(app)
+        migrate = Migrate(app=app, db=db, directory="migrations", compare_type=True)
+    except ProgrammingError:  # handle if no tables are created
+        with app.app_context():
+            db.create_all()
+            return db, migrate
+    print(db.metadata.tables) #printing tables for debugging
     return db, migrate
+
 
 if __name__ == "__main__":
     from Project.core.app import app
 
-    with app.app_context():
-        db.create_all()
+    db, migrate = connect_db(app=app)

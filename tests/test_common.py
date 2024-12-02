@@ -8,7 +8,7 @@ import dotenv
 from typing import Dict, Any, Callable, List, Union
 from flask import Flask
 from Project.core.app import create_app
-from Project.core.constants import default_session_keys
+from Project.core.constants import default_session_dict
 
 dotenv.load_dotenv()
 

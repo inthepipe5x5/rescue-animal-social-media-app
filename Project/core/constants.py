@@ -1,5 +1,8 @@
 # file to store constant variables that are necessary for app function and/or to be shared
 import os
+from dotenv import load_dotenv
+#load env files
+load_dotenv()
 
 # keys to use to store key app values in Flask Session
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")
@@ -20,9 +23,8 @@ TIME_PERIOD = 86400  # Time period in seconds (86400 seconds = 24 hours)
 MAX_TRIES = 3  # Maximum number of retries for handling RateLimitException
 
 
-
 # default session keys
-default_session_keys = {
+default_session_dict = {
     USER_LOCATION_KEY: os.environ.get(USER_LOCATION_KEY, "43.6429,-79.3889"),
     CURR_ANIMALS_KEY: os.environ.get(CURR_ANIMALS_KEY, ["dog"]),
     DEFAULT_LOCATION: {

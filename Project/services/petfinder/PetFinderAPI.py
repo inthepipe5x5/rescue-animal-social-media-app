@@ -17,9 +17,15 @@ from ratelimit import (
 from collections.abc import Iterable
 
 from Project.services.petfinder.petfinder_types import AnimalReqParams
-from Project.core.constants import default_animal_params
+from Project.core.constants import (
+    default_animal_params,
+    API_CALLS_PER_DAY,
+    TIME_PERIOD,
+    MAX_TRIES,
+)
 from Project.utils.parse import Parse, parse_multi_animal
-
+from Project.utils.filemanager import FileManager
+from Project.config import dictConfig, Config
 from Project.services.petfinder.api_exceptions import (
     PetFinderInvalidCredentialsError,
     PetFinderAccessDeniedError,
@@ -29,12 +35,11 @@ from Project.services.petfinder.api_exceptions import (
     PetFinderInvalidParametersError,
     PetFinderLocationError,
 )
-from core.constants import API_CALLS_PER_DAY, TIME_PERIOD, MAX_TRIES
 
 # Configure logging
-logging.basicConfig(level="INFO")
-logger = logging.getLogger(__name__)
-
+# logging.basicConfig(level="INFO")
+# logger = logging.getLogger(__name__)
+dictConfig(config=Config.get_logger_config())
 
 load_dotenv()
 
