@@ -45,9 +45,7 @@ from Project.forms import (
 
 load_dotenv()
 
-users_bp = Blueprint(
-    "users", __name__, url_prefix="users", url_defaults=url_for("users_bp.profile")
-)
+users_bp = Blueprint("users", __name__, url_prefix="/users")
 
 
 ##############################################################################

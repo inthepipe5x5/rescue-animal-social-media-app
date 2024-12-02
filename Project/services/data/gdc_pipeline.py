@@ -11,11 +11,12 @@ from pycountry import countries, subdivisions
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from Project.core import db
+from Project.core.extensions import db
 from Project.core.constants import default_session_dict, LOCATION_SESSION_KEY
 from Project.services import geodb
-from Project.models import City, CitySchema
-from canada_us_states_cities import usa, canada
+from Project.models import City
+from Project.schemas.geography import CitySchema
+from Project.services.data.canada_us_states_cities import usa, canada
 
 from Project.services.data.pipeline import Pipeline
 

@@ -2,23 +2,19 @@ from http.client import HTTPException
 from flask import (
     request,
     redirect,
-    url_for,
     Blueprint,
     render_template,
 )
 from dotenv import load_dotenv
 
-from Project.core import (
-    
+from Project.core.methods import (
     handle_error,
-    default_error_details,
 )
+from Project.core.constants import default_error_details
 
 load_dotenv()
 
-error_bp = Blueprint(
-    "error", __name__, url_prefix="error", url_defaults=url_for("error")
-)
+error_bp = Blueprint("error", __name__, url_prefix="error")
 
 
 # ERROR routes ##############################################################################
@@ -50,8 +46,7 @@ def internal_error_handler(e):
         e.status_code,
     )
 
-
-@error_bp.route("/error")
+@error_bp.route("/")
 def custom_error():
     """Route to handle custom errors and redirects from other routes."""
     error_title = request.args.get("error_title", "Error")
