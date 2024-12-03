@@ -22,15 +22,6 @@ class Pipeline(FileManager):
 
     # set starting city
     starting_city = None
-    STARTING_CITY_PATH = os.path.join(
-        os.getcwd(),
-        "mock_data/geodbcities/cities_details/gdc_toronto_details_parsed.json",
-    )
-    with open(STARTING_CITY_PATH, "r") as default_city_json:
-        starting_city = (
-            json.loads(default_city_json)
-            or default_session_dict.get(DEFAULT_LOCATION)["city"]
-        )
 
     # Constants
     PWD = os.getcwd()
@@ -38,9 +29,9 @@ class Pipeline(FileManager):
     def __init__(
         self,
         api: object,
-        base_path: str,
         db_session: Session,
         csv_headers: Optional[Dict[str, list[str]]],
+        base_path: str="mock_data",
         hierarchy: List[str] = ["country", "state", "city"],
     ):
         """
@@ -55,13 +46,27 @@ class Pipeline(FileManager):
         self.db_session = db_session
         self.CSV_COLUMN_HEADERS = csv_headers if csv_headers else {}
         self.api = api
-        
-        #set up pipeline -> create directories, CSV files
+
+        # set up pipeline -> create directories, CSV files
         self.setup_pipeline(
             directories=self.hierarchy,
             csv_files=hierarchy,
             csv_headers=self.CSV_COLUMN_HEADERS,
         )
+        
+        STARTING_CITY_PATH = self.get_relative_path_to_file(
+        target_file="gdc_toronto_details_parsed.json",
+        parent_dir=os.path.abspath(os.getcwd(), "mock_data"),
+        ) 
+        #or os.path.join(
+        #    os.getcwd(),
+        #     "mock_data/geodbcities/city_details/toronto/gdc_toronto_details_parsed.json",
+        # )
+        with open(STARTING_CITY_PATH, "r") as default_city_json:
+            self.starting_city = (
+                json.loads(default_city_json)
+                or default_session_dict.get(DEFAULT_LOCATION)["city"]
+            )
 
     # @staticmethod
     # def ensure_directories_exist(base_path: str, folders: List[str]) -> None:

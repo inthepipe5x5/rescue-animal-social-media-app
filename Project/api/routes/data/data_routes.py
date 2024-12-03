@@ -11,6 +11,8 @@ from flask import (
 import os
 import pycountry
 from flask_login import login_required
+from Project.core.constants import CURR_ANIMALS_KEY, default_session_dict
+from Project.core.extensions import db
 from Project.api.routes.data.methods import seed_animal_info
 from Project.core.methods import active_authenticated_user, current_user
 from Project.models import UserAnimalPreferences
@@ -18,11 +20,48 @@ from Project.models import UserAnimalPreferences
 data_bp = Blueprint("data", __name__, template_folder="templates", url_prefix="/data")
 
 
-@data_bp.before_request
+# @data_bp.before_request
+@data_bp.route("/animal_types", methods=["GET", "POST"])
+def update_animal_types():
+    if request.method == "POST":
+        selected_types = request.form.getlist("animal_types")
+        # Update the current user's animal types via the current_user proxy
+        if active_authenticated_user():
+            # Update the current user's animal types
+            current_user.animal_types = selected_types
+            try:
+                db.session.commit()
+                flash("Animal types updated successfully", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash("An error occurred while updating animal types", "error")
+                data_bp.logger.error(
+                    f"Error updating animal_types for user {current_user.id} @ {request.url} => {str(e)}"
+                )
+                return (
+                    jsonify({"error": "An error occurred while updating animal types"}),
+                    500,
+                )
+        else:
+            # Limit anonymous users to just one selection
+            selected_type = selected_types[0] if selected_types else "dog"
+            session["ANIMAL_TYPES"] = [selected_type]
+            flash("Animal type updated successfully", "success")
+
+        return jsonify({"animal_types": current_user.animal_types}), 201
+
+    # handle get requests
+    else:
+        animal_types = (
+            current_user.animal_types
+            if active_authenticated_user()
+            else default_session_dict.get(CURR_ANIMALS_KEY, ["dog"])
+        )
+        return jsonify({"animal_types": animal_types}), 200
 
 
-@data_bp.route("/animal_types", methods=["GET"])
-def get_animal_types():
+@data_bp.route("/animal_types/meta", methods=["GET"])
+def get_animal_types_meta():
     """Endpoint to retrieve animal types from session or os.environ."""
     types_session_key = "API_ANIMAL_TYPES"
     # handle if request is to refresh saved animal_types
@@ -35,6 +74,7 @@ def get_animal_types():
         )
 
     return jsonify({"types": type_list})
+
 
 @data_bp.route("/<country>/state", methods=["GET"])
 def get_state(country):

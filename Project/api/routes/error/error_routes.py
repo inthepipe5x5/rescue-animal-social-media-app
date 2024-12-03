@@ -14,7 +14,7 @@ from Project.core.constants import default_error_details
 
 load_dotenv()
 
-error_bp = Blueprint("error", __name__, url_prefix="error")
+error_bp = Blueprint("error", __name__, url_prefix="/error")
 
 
 # ERROR routes ##############################################################################

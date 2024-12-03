@@ -1,3 +1,4 @@
+from typing import Union
 from flask import (
     g,
     request,
@@ -42,6 +43,7 @@ from Project.forms import (
     SpecificAnimalPreferencesForm,
     UserTravelForm,
 )
+from Project.services.petfinder.petfinder_types import AnimalType, FormattedAnimalType
 
 load_dotenv()
 
@@ -321,48 +323,11 @@ def user_favorite(favorite_id):
         return jsonify({"error": str(e)}), 500
 
 
-@users_bp.route("/animal_types", methods=["GET", "POST"])
-def update_animal_types():
-    if request.method == "POST":
-        selected_types = request.form.getlist("animal_types")
-        # Update the current user's animal types via the current_user proxy
-        if active_authenticated_user():
-            # Update the current user's animal types
-            current_user.animal_types = selected_types
-            try:
-                db.session.commit()
-                flash("Animal types updated successfully", "success")
-            except Exception as e:
-                db.session.rollback()
-                flash("An error occurred while updating animal types", "error")
-                users_bp.logger.error(
-                    f"Error updating animal_types for user {current_user.id} @ {request.url} => {str(e)}"
-                )
-                return (
-                    jsonify({"error": "An error occurred while updating animal types"}),
-                    500,
-                )
-        else:
-            # Limit anonymous users to just one selection
-            selected_type = selected_types[0] if selected_types else "dog"
-            session["ANIMAL_TYPES"] = [selected_type]
-            flash("Animal type updated successfully", "success")
-
-        return jsonify({"animal_types": current_user.animal_types}), 201
-
-    # handle get requests
-    else:
-        animal_types = (
-            current_user.animal_types
-            if active_authenticated_user()
-            else default_session_dict.get(CURR_ANIMALS_KEY, ["dog"])
-        )
-        return jsonify({"animal_types": animal_types}), 200
 
 
 @login_required
 @users_bp.route("/preferences/<animal_type>", methods=["GET", "POST"])
-def animal_preferences(animal_type):
+def animal_preferences(animal_type: Union[AnimalType, FormattedAnimalType]):
     if request.method == "GET":
         user_animal_prefs = UserAnimalPreferences.get_user_animal_pref_obj(
             u_id=current_user.id, animal_type=animal_type
@@ -576,7 +541,7 @@ def signup_preferences():
 
 
 @users_bp.route("/update/types", methods=["GET", "POST"])
-def update_animal_types():
+def animal_types_form():
     """Route to set the global options for country of origin and animal types
 
     If GET -> return form page

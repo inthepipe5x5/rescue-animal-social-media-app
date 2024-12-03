@@ -9,12 +9,12 @@ class FileManager:
     """
     Python class with functions to manage CSV files in a nested folder structure based on a given hierarchy
     """
-
+    ROOT_PATH = os.getcwd()
     CSV_NEWLINE = ","
     NA_VALUES = ["", "null", "NULL", "none"]
 
     def __init__(self, base_folder: str = "csv", hierarchy: List[str] = None):
-        self.base_folder = os.path.join(os.getcwd(), base_folder)
+        self.base_folder = os.path.join(self.ROOT_PATH, base_folder)
         self.hierarchy = hierarchy or ["country", "state", "city"]
 
     @staticmethod
@@ -24,6 +24,9 @@ class FileManager:
         Args:
             directory_path (str): _description_
         """
+        if not directory_path:
+            return #do nothing
+        
         if os.path.exists(directory_path):
             shutil.rmtree(directory_path)
         else:

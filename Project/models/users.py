@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import pycountry
-from flask_bcrypt import Bcrypt
 import pytz
 from sqlalchemy import func, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, insert

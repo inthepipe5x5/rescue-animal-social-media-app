@@ -8,12 +8,14 @@ from Project.api.routes.pf.pf_bp import pf_bp
 
 def register_bp(app):
     # Register blueprints
-    app.register(animals_bp)
-    app.register(orgs_bp)
-    app.register(users_bp)
-    app.register(data_bp)
-    app.register(error_bp)
-    app.register(pf_bp)
+    app.register_blueprint(animals_bp)
+    app.register_blueprint(orgs_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(data_bp)
+    app.register_blueprint(error_bp)
+    app.register_blueprint(pf_bp)
+    
+    return app
 
 
 if __name__ == "__main__":

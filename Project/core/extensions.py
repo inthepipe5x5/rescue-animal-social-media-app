@@ -8,11 +8,11 @@ from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from psycopg2 import ProgrammingError
 
+bcrypt = Bcrypt()
 csrf = CSRFProtect()
 ma = Marshmallow()  # flask-marshmallow for validation & serialization
 db = SQLAlchemy()  # flask-sqlalchemy
 login_manager = LoginManager()  # flask-login manager
-bcrypt = Bcrypt()
 
 
 def connect_db(app):

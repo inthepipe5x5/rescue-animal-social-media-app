@@ -3,7 +3,7 @@
 {% block offcanvas_title %}Animal Results{% endblock %}
 
 {% block offcanvas_content %}
-<form class="mb-2" action="{{ url_for('update_animal_types') }}" method="POST" id="animalTypeForm">
+<form class="mb-2" action="{{ url_for('animal_types_form') }}" method="POST" id="animalTypeForm">
     {{ form.csrf_token }}
     <div class="row row-cols-2 row-cols-md-3 g-2">
         {% for animal_type, image_file in animal_default_photos.items() %}

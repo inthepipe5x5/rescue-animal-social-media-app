@@ -1,29 +1,23 @@
-from flask import Blueprint, request, redirect, url_for, jsonify
+from flask import Blueprint, request, url_for, jsonify
 from dotenv import load_dotenv
 from urllib.parse import urljoin
-import requests
 from time import sleep
-from typing import List, Callable, Any
+from typing import Callable, Any
 from Project.models.geography import City
 from Project.schemas.geography import CitySchema
-from Project.services.data import seed_initial_cities
-from Project.services.petfinder.PetFinderAPI import pf as api
-from Project.services.petfinder.petfinder_types import RequestedContent, AnimalReqParams
-from Project.core import db
+from Project.services.data import GeoDBCitiesPipeline
+from Project.services import pf as api
+from Project.services.petfinder.petfinder_types import AnimalReqParams
+from Project.core.extensions import db
 from Project.schemas.animals import (
-    Animal,
-    AnimalListResponseSchema,
     AnimalResponseSchema,
 )
 from Project.models import Animal
 
 import logging
-from logging.config import dictConfig
 from Project.config import Config
 
-pf_bp = Blueprint(
-    "pf", __name__, url_prefix="/pf", url_defaults=url_for("return_animals")
-)
+pf_bp = Blueprint("pf", __name__, url_prefix="/pf")
 load_dotenv()
 
 
@@ -32,7 +26,7 @@ def return_animals():
     """Route to return scraped PetFinder /animals data"""
 
     # TODO:
-    # params = request.body.get("params")
+    params = request.body.get("params")
     # if params:
     #     db.session.query(Animal).filter()
 
@@ -95,7 +89,7 @@ def validate_saved_cities(
     query_all_cities_dicts = (
         [city.to_dict() for city in query_all_cities]
         if query_all_cities
-        else seed_initial_cities()
+        else GeoDBCitiesPipeline.seed_initial_cities()
     )
 
     for city in query_all_cities_dicts:

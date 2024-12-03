@@ -2,7 +2,7 @@
 import os
 
 # from Project.types import *
-from flask import Flask, url_for
+from flask import Flask
 from Project.config import Config, config
 from Project.core.extensions import (
     connect_db,
@@ -33,8 +33,9 @@ def create_app():
 
     # Register blueprints before extensions
     from Project.api import register_bp
-
-    register_bp(app)
+    
+    #register blueprints and return app after
+    app = register_bp(app)
 
     # Config app
 
@@ -42,7 +43,7 @@ def create_app():
     # Set up DB & Flask-Migrate
     db, migrate = connect_db(app)
     csrf.init_app(app)
-    bcrypt(app)
+    bcrypt.init_app(app)
     ma.init_app(app)
     login_manager.init_app(app)
 

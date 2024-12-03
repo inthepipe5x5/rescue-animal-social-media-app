@@ -11,10 +11,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-orgs_bp = Blueprint("orgs", __name__, url_prefix="orgs")
+orgs_bp = Blueprint("orgs", __name__, url_prefix="/discover/orgs")
 
 
-@orgs_bp.route("/discover/orgs", methods=["GET", "POST"])
+@orgs_bp.route("/", methods=["GET", "POST"])
 def discover_orgs():
     # grab current page_count in session
     current_page_count = session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
@@ -22,7 +22,7 @@ def discover_orgs():
         # direct to current page count
         return redirect(url_for("discover_orgs_page", page=current_page_count))
 
-@orgs_bp.route("/discover/orgs/<int:page>", methods=["GET"])
+@orgs_bp.route("/<int:page>", methods=["GET"])
 def discover_orgs_page(page):
     # args = request.args if request.args else {}
 
