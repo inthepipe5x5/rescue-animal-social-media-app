@@ -492,9 +492,9 @@ def test_location_animals():
             sleep(3)
             data, status_code = fetch_data(value)
             if status_code in [200, 201] and data:
-                successful_combinations.animals_bpend({key: value})
+                successful_combinations.animals.append({key: value})
             else:
-                unsuccessful_combinations.animals_bpend({key: value})
+                unsuccessful_combinations.animals.append({key: value})
 
         return jsonify(
             {

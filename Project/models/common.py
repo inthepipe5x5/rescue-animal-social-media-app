@@ -1,6 +1,8 @@
 import os
 from typing import List, Union
+from urllib.parse import urljoin
 import pytz
+from sqlalchemy import JSON
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.event import listens_for
 from datetime import datetime  # , timezone
@@ -91,14 +93,14 @@ class MetaDataMixin:
 
     __abstract__ = True
 
-    DEFAULT_PROVIDER = "unknown"
+    DEFAULT_PROVIDER = "geodb_cities"
 
     dt_saved = db.Column(
         db.DateTime,
         default=datetime.now(pytz.utc).strftime("%Y-%m-%d %H:%M:%S %Z%z"),
         onupdate=datetime.now(pytz.utc).strftime("%Y-%m-%d %H:%M:%S %Z%z"),
     )
-    provider = db.Column(db.String(255), nullable=False, default="unknown")
+    provider = db.Column(db.String(255), nullable=False, default=DEFAULT_PROVIDER)
 
     def to_dict(self):
         """Deserializes instance to a python dict.
@@ -156,10 +158,35 @@ def attach_listeners():
             if not target.provider:
                 if (
                     target.__tablename__.casefold() == "animals"
-                    or target.__tablename__.casefold() == "rescueOrg"
+                    or target.__tablename__.casefold() == "organizations"
                 ):
                     target.provider = "petfinder"
                 elif target.__tablename__.casefold() == "cities":
                     target.provider = "geodb_cities"
                 else:
                     target.provider = "unknown"
+
+
+class PetFinderProviderMixin:
+    """MetaDataMixin subclass for PetFinder models
+    sets provider attribute
+    Provdes self URL property
+    """
+    provider = "petfinder"
+    
+    @property
+    def self_href(self) -> str:
+        """
+        The `self_href` property generates an API PetFinder URL based on the base URL, provider, and object ID.
+        :return: The `self_href` property is returning a URL that is constructed by combining the base URL
+        obtained from the `base_url` dictionary with the partial URL generated using the object's table name
+        and id. The `urljoin` function is used to combine these two parts into a complete URL, which is then
+        returned by the property.
+        """
+        base_url = self.base_url.get(
+            self.provider if self.provider else "petfinder",
+            os.environ.get("PETFINDER_API_URL", None),
+        )
+        partial = f"{self.__tablename__}/{self.id}"
+        return urljoin(base=base_url, url=partial, allow_fragments=True)
+

@@ -8,7 +8,7 @@ from Project.core.extensions import db
 # from Project.models.common import SchemaDbModel
 # from Project.schemas.orgs import OrgResponseSchema
 # from Project.models.animals import Animal
-from Project.models.common import MetaDataMixin, attach_listeners
+from Project.models.common import MetaDataMixin, PetFinderProviderMixin, attach_listeners
 
 
 # subclass for Organizations
@@ -19,15 +19,18 @@ from Project.models.common import MetaDataMixin, attach_listeners
 #     id = Column(String(50), primary_key=True)
 
 
-class Organization(db.Model, MetaDataMixin):
-    """Rescue Organization db.Model"""
+class Organization(db.Model, PetFinderProviderMixin):
+    """Rescue Organization db.Model
+        
+        
+        PetFinderProviderMixin (_type_): PetFinder subclass of MetaDataMixin
+    
+    """
 
-    __tablename__ = "rescueOrg"
-    # schema for validation
-    # SCHEMA = OrganizationSchema()
+    __tablename__ = "organizations"
 
-    id = db.Column(db.String, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    id = db.Column(db.String(10), primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
 
     email = db.Column(db.String)
     phone = db.Column(db.String)
@@ -41,8 +44,6 @@ class Organization(db.Model, MetaDataMixin):
     # Socials, photos, and media links
     photos = db.Column(JSONB)
     social_media = db.Column(JSONB)
-    self_link = db.Column(db.String)
-    animals_link = db.Column(db.String)
     social_media = db.Column(JSONB)
 
     # Relationships

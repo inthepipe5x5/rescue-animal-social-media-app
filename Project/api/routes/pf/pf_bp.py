@@ -7,7 +7,7 @@ from Project.models.geography import City
 from Project.schemas.geography import CitySchema
 from Project.services.data import GeoDBCitiesPipeline
 from Project.services import pf as api
-from Project.services.petfinder.petfinder_types import AnimalReqParams
+from Project.services.petfinder.petfinder_types import AnimalReqParams, RequestedContent
 from Project.core.extensions import db
 from Project.schemas.animals import (
     AnimalResponseSchema,

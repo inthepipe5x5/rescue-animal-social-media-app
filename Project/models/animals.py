@@ -14,7 +14,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 
 # from Project.schemas.common import SchemaDbModel
-from Project.models.common import MetaDataMixin, attach_listeners
+from Project.models.common import (
+    MetaDataMixin,
+    PetFinderProviderMixin,
+    attach_listeners,
+)
 from Project.schemas.animals import AnimalResponseSchema
 from Project.models.geography import City
 from Project.schemas.geography import CitySchema
@@ -37,19 +41,29 @@ from Project.services.petfinder.petfinder_types import AnimalType
 #     id = Column(String(50), primary_key=True)
 
 
-class Animal(db.Model, MetaDataMixin):
+class Animal(db.Model, PetFinderProviderMixin):
+    """db.model for scraped Petfinder animals stored with flask sqlalchemy
+
+    Args:
+        db (_type_): flask qlalchemy db.Model
+        PetFinderProviderMixin (_type_): PetFinder subclass of MetaDataMixin
+
+    Returns:
+        _type_: _description_
+    """
+
     __tablename__ = "animals"
 
-    id = db.Column(db.String(50), primary_key=True)
+    id = db.Column(db.String(10), primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
     type = db.Column(db.Enum(AnimalType), nullable=False)
-    name = db.Column(db.String(100))
     breeds = db.Column(db.String(100))
     size = db.Column(db.String(20))
     gender = db.Column(db.String(20))
     age = db.Column(db.String(20))
     coat = db.Column(db.String(20))
     status = db.Column(db.String(20))
-    organization_id = db.Column(db.String(50))
+    organization_id = db.Column(db.String(10))
     description = db.Column(db.Text)
 
     # Attributes
@@ -81,24 +95,8 @@ class Animal(db.Model, MetaDataMixin):
         overlaps="animal_city",
     )
     # org
-    organization_id = db.Column(db.String, db.ForeignKey("rescueOrg.id"))
+    organization_id = db.Column(db.String, db.ForeignKey("organizations.id"))
     organization = db.relationship("Organization", back_populates="animals")
-
-    @property
-    def self_href(self) -> str:
-        """
-        The `self_href` property generates a URL based on the base URL, provider, and object ID.
-        :return: The `self_href` property is returning a URL that is constructed by combining the base URL
-        obtained from the `base_url` dictionary with the partial URL generated using the object's table name
-        and id. The `urljoin` function is used to combine these two parts into a complete URL, which is then
-        returned by the property.
-        """
-        base_url = self.base_url.get(
-            self.provider if self.provider else "petfinder",
-            os.environ.get("PETFINDER_API_URL"),
-        )
-        partial = f"{self.__tablename__}/{self.id}"
-        return urljoin(base=base_url, url=partial, allow_fragments=True)
 
     @property
     def type_href(self) -> str:
@@ -156,10 +154,14 @@ class AnimalCity(db.Model, MetaDataMixin):
 
     # Relationships back to the `City` and `Animal` models
     city = db.relationship(
-        "City", back_populates="animal_city", overlaps="animals,cities" #to silence SA warning
+        "City",
+        back_populates="animal_city",
+        overlaps="animals,cities",  # to silence SA warning
     )
     animal = db.relationship(
-        "Animal", back_populates="animal_city", overlaps="animals,cities" #to silence SA warning
+        "Animal",
+        back_populates="animal_city",
+        overlaps="animals,cities",  # to silence SA warning
     )
 
     def __init__(self, animal_id, city_id, distance=None):
