@@ -3,19 +3,26 @@ import csv
 from pathlib import Path
 import shutil
 from typing import Callable, Dict, List, Optional, Union
+from Project import PROJECT_DIR
 
 
 class FileManager:
     """
     Python class with functions to manage CSV files in a nested folder structure based on a given hierarchy
     """
-    ROOT_PATH = os.getcwd()
+
+    ROOT_PATH = None
     CSV_NEWLINE = ","
     NA_VALUES = ["", "null", "NULL", "none"]
 
-    def __init__(self, base_folder: str = "csv", hierarchy: List[str] = None):
+    def __init__(self, base_folder: str = "csv", hierarchy: List[str] = None, **kwargs):
         self.base_folder = os.path.join(self.ROOT_PATH, base_folder)
         self.hierarchy = hierarchy or ["country", "state", "city"]
+        self.ROOT_PATH = (
+            kwargs.get("PROJECT_DIR", PROJECT_DIR)
+            if "ROOT_PATH" in kwargs
+            else os.getcwd()
+        )
 
     @staticmethod
     def remove_directory(directory_path: str) -> None:
@@ -25,8 +32,8 @@ class FileManager:
             directory_path (str): _description_
         """
         if not directory_path:
-            return #do nothing
-        
+            return  # do nothing
+
         if os.path.exists(directory_path):
             shutil.rmtree(directory_path)
         else:

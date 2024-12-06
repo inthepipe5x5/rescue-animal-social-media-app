@@ -17,7 +17,9 @@ from Project.core.extensions import (
 
 def create_app():
     # create app with factory method
-    app = Flask(__name__)
+    app = Flask(
+        __name__, template_folder="Project/templates", static_folder="Project/static"
+    )
 
     # CONFIG APP
     # create config instance

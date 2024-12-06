@@ -21,6 +21,9 @@
 |   |   |   |-- error
 |   |   |   |   |-- __init__.py
 |   |   |   |   `-- error_routes.py
+|   |   |   |-- main
+|   |   |   |   |-- __init__.py
+|   |   |   |   `-- main_routes.py
 |   |   |   |-- org
 |   |   |   |   |-- __init__.py
 |   |   |   |   |-- methods.py
@@ -32,7 +35,9 @@
 |   |   |       |-- __init__.py
 |   |   |       |-- methods.py
 |   |   |       `-- user_routes.py
-|   |   `-- utils
+|   |   `-- signals
+|   |       |-- handlers.py
+|   |       `-- signals.py
 |   |-- config.py
 |   |-- core
 |   |   |-- __init__.py
@@ -49,14 +54,6 @@
 |   |   `-- users.csv
 |   |-- forms.py
 |   |-- init_scrape.ipynb
-|   |-- migrations
-|   |   |-- README
-|   |   |-- alembic.ini
-|   |   |-- env.py
-|   |   |-- script.py.mako
-|   |   `-- versions
-|   |       |-- 3131d0249564_.py
-|   |       `-- f1663474f27b_init_migration.py
 |   |-- models
 |   |   |-- __init__.py
 |   |   |-- animals.py
@@ -186,6 +183,13 @@
 |   `-- services_dir_README.txt
 |-- ff_rescue_db_backup.sql
 |-- gunicorn.conf.py
+|-- migrations
+|   |-- README
+|   |-- alembic.ini
+|   |-- env.py
+|   |-- script.py.mako
+|   `-- versions
+|       `-- f0788aaf192c_initial_migration_after_manual_reset.py
 |-- mock_data
 |   |-- geodbcities
 |   |   |-- cities
@@ -226,4 +230,4 @@
 |-- traint
 `-- wsgi.py
 
-44 directories, 182 files
+45 directories, 185 files

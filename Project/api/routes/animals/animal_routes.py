@@ -36,9 +36,10 @@ from Project.utils import Parse
 from Project.services import pf as api
 
 load_dotenv()
-
 animals_bp = Blueprint(
-    "animals", __name__, template_folder="templates", url_prefix="/animals"
+    "animals",
+    __name__,
+    url_prefix="/animals",
 )
 
 

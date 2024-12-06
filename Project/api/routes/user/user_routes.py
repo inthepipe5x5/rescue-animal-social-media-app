@@ -47,7 +47,13 @@ from Project.services.petfinder.petfinder_types import AnimalType, FormattedAnim
 
 load_dotenv()
 
-users_bp = Blueprint("users", __name__, url_prefix="/users")
+users_bp = Blueprint(
+    "users",
+    __name__,
+    url_prefix="/users",
+    template_folder="../../templates",
+    static_folder="../../static",
+)
 
 
 ##############################################################################
@@ -139,7 +145,7 @@ def user_location_form():
             return jsonify({"error": "Invalid form submission"}), 400
 
         return render_template(
-            "/form.html",
+            "form.html",
             form=form,
             form_title="Where are you located?",
             page_scripts=[

@@ -3,11 +3,16 @@ import os
 from flask import Blueprint, flash, redirect, session, g, render_template
 from flask_login import login_required
 from dotenv import load_dotenv
+from Project import 
 from Project.core import do_login, do_logout, init_default_session
 from Project.models import User
 from Project.forms import LoginForm
 
-auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+auth_bp = Blueprint(
+    "auth",
+    __name__,
+    url_prefix="/auth",
+)
 
 load_dotenv()
 CURR_USER_KEY = os.environ.get("CURR_USER_KEY", "curr_user")

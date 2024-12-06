@@ -1,14 +1,18 @@
 from http.client import HTTPException
 from flask import request, redirect, Blueprint, render_template, url_for
 from dotenv import load_dotenv
-
+import os
 from Project.core.methods import (
     map_error_to_dict,
 )
 
 load_dotenv()
 
-error_bp = Blueprint("error", __name__, url_prefix="/error")
+error_bp = Blueprint(
+    "error",
+    __name__,
+    url_prefix="/error",
+)
 
 
 # ERROR routes ##############################################################################

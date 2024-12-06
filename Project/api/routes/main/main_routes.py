@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template
 from flask_login import current_user
 
@@ -9,7 +10,10 @@ from Project.forms import (
     UserExperiencesForm,
 )
 
-main_bp = Blueprint("main", __name__)
+main_bp = Blueprint(
+    "main",
+    __name__,
+)
 
 
 # Homepage and error pages

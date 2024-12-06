@@ -17,7 +17,11 @@ from Project.api.routes.data.methods import seed_animal_info
 from Project.core.methods import active_authenticated_user, current_user
 from Project.models import UserAnimalPreferences
 
-data_bp = Blueprint("data", __name__, template_folder="templates", url_prefix="/data")
+data_bp = Blueprint(
+    "data",
+    __name__,
+    url_prefix="/data",
+)
 
 
 # @data_bp.before_request

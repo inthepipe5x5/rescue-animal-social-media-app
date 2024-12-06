@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, current_app, request, url_for, jsonify
 from dotenv import load_dotenv
 from urllib.parse import urljoin
@@ -17,7 +18,11 @@ from Project.models import Animal
 import logging
 from Project.config import Config
 
-pf_bp = Blueprint("pf", __name__, url_prefix="/pf")
+pf_bp = Blueprint(
+    "pf",
+    __name__,
+    url_prefix="/pf",
+)
 load_dotenv()
 
 
