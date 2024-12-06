@@ -1,6 +1,6 @@
 # auth/routes.py
 import os
-from flask import Blueprint, flash, redirect, session, g, render_template, url_for
+from flask import Blueprint, flash, redirect, session, g, render_template
 from flask_login import login_required
 from dotenv import load_dotenv
 from Project.core import do_login, do_logout, init_default_session

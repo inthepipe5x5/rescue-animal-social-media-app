@@ -11,13 +11,11 @@ from flask_login import (
 from dotenv import load_dotenv  # type: ignore
 import os
 
-# from functools import wraps #TODO: to protect certain API routes
 
-# from marshmallow import MarshMallow
 
 from Project.core.methods import (
     active_authenticated_user,
-    load_session,
+    load_session
 )
 
 from Project.core.constants import (
@@ -36,9 +34,6 @@ from Project.models import (
     UserAnimalPreferences,
 )
 
-from forms import (
-    UserExperiencesForm,
-)
 
 from Project.utils.parse import Parse
 
@@ -51,13 +46,7 @@ from Project.core import create_app
 app = create_app()
 
 
-# Inject Custom Jinja filters Here
-custom_filters_dict = {
-    "format_kebob_case": Parse.format_kebob_case,
-    "prettify_animal_types": Parse.prettify_animal_types,
-}
-for function_key, function in custom_filters_dict.items():
-    app.jinja_env.filters[function_key] = function
+
 
 ##############################################################################
 # SESSION FUNCTIONS
@@ -114,25 +103,6 @@ for function_key, function in custom_filters_dict.items():
 
 
 ##############################################################################
-
-
-# Homepage and error pages
-@app.route("/")
-def homepage():
-    """Show homepage:"""
-
-    offcanvas_form = UserExperiencesForm()
-
-    if active_authenticated_user():
-        # grab user
-        user = current_user._get_current_object().serialize()
-
-        # set session with user data
-        load_session()
-
-        return render_template("home.html", user=user, form=offcanvas_form)
-    else:
-        return render_template("home-anon.html")  # , results=results
 
 
 @app.route("/reseed_db", methods=["GET"])

@@ -34,13 +34,20 @@ petfinder_types_loaded = signals.signal(
 fetch_city_details = signals.signal("fetch-city-details")
 
 # Pipeline signals
-pipeline_created = signals.signal('pipeline-created') #after seed scraping is done
-pipeline_required = signals.signal('pipeline-required') #when a pipeline is needed but not created
-requesting_pf_animals = signals.signal("requesting-pf-animals") #look in db for animals
-requesting_pf_orgs = signals.signal("requesting-pf-orgs") #look in db for orgs
+pipeline_created = signals.signal("pipeline-created")  # after seed scraping is done
+pipeline_required = signals.signal(
+    "pipeline-required"
+)  # when a pipeline is needed but not created
+requesting_pf_animals = signals.signal(
+    "requesting-pf-animals"
+)  # look in db for animals
+requesting_pf_orgs = signals.signal("requesting-pf-orgs")  # look in db for orgs
 api_data_found_in_db = signals.signal("api-data-found-in-db")
 api_data_not_found_in_db = signals.signal("api-data-not-found-in-db")
 general_scrape_request_received = signals.signal("general-scrape-request-received")
 parse_validate_data = signals.signal("parse-validate-data")
 data_saved = signals.signal("data-saved")
 continue_scraping = signals.signal("continue-scraping")
+
+#errors
+http_error = signals.signal("http-error")

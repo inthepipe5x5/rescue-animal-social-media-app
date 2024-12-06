@@ -4,6 +4,8 @@ import os
 # from Project.types import *
 from flask import Flask
 from Project.config import Config, config
+from Project.utils.parse import Parse
+
 from Project.core.extensions import (
     connect_db,
     ma,
@@ -33,8 +35,8 @@ def create_app():
 
     # Register blueprints before extensions
     from Project.api import register_bp
-    
-    #register blueprints and return app after
+
+    # register blueprints and return app after
     app = register_bp(app)
 
     # Config app
@@ -54,7 +56,16 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         from Project.models import User
+
         return User.query.get(int(user_id))
+
+    # Inject Custom Jinja filters Here
+    custom_filters_dict = {
+        "format_kebob_case": Parse.format_kebob_case,
+        "prettify_animal_types": Parse.prettify_animal_types,
+    }
+    for function_key, function in custom_filters_dict.items():
+        app.jinja_env.filters[function_key] = function
 
     return app
 

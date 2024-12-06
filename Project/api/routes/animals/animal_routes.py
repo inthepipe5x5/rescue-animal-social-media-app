@@ -1,5 +1,7 @@
 from flask import (
     Blueprint,
+    current_app,
+    flash,
     json,
     redirect,
     request,
@@ -161,7 +163,7 @@ def discover_animals():
                 )
             render_content = backup_results.get("animals", [])
         except Exception as api_error:
-            animals_bp.logger.error(f"API Backup Call Failed: {api_error}")
+            current_app.logger.error(f"API Backup Call Failed: {api_error}")
             return redirect(
                 url_for(
                     "custom_error",
@@ -234,7 +236,7 @@ def discover_animals():
         return render_template("results.html", animals=render_content)
 
     # except Exception as e:
-    #     animals_bp.logger.error(f"Error at endpoint {request.endpoint}: {e}")
+    #     current_app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
     #     return redirect(
     #         url_for(
     #             "custom_error",
@@ -374,7 +376,7 @@ def discover_animals():
 #                     )
 #                 render_content = backup_results.get("animals", [])
 #             except Exception as api_error:
-#                 animals_bp.logger.error(f"API Backup Call Failed: {api_error}")
+#                 current_app.logger.error(f"API Backup Call Failed: {api_error}")
 #                 return redirect(
 #                     url_for(
 #                         "custom_error",
@@ -393,7 +395,7 @@ def discover_animals():
 #         return render_template("results.html", animals=render_content)
 
 #     except Exception as e:
-#         animals_bp.logger.error(f"Error at endpoint {request.endpoint}: {e}")
+#         current_app.logger.error(f"Error at endpoint {request.endpoint}: {e}")
 #         return redirect(
 #             url_for(
 #                 "custom_error",
@@ -448,7 +450,7 @@ def discover_specific_animal_type(animal_type):
 
         return jsonify({"results": data})
     except Exception as e:
-        animals_bp.logger.error(f"{request.url} error: {e}", exc_info=True)
+        current_app.logger.error(f"{request.url} error: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred."}), 500
 
 
@@ -504,7 +506,7 @@ def test_location_animals():
         )
 
     except Exception as e:
-        animals_bp.logger.error(f"{request.url} error: {e}", exc_info=1)
+        current_app.logger.error(f"{request.url} error: {e}", exc_info=1)
         if "successful_combinations" in locals():
             successful_combinations = locals().get("successful_combinations", None)
             unsuccessful_combinations = locals().get("unsuccessful_combinations", None)

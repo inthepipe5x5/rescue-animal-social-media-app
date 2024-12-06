@@ -35,7 +35,7 @@ def update_animal_types():
             except Exception as e:
                 db.session.rollback()
                 flash("An error occurred while updating animal types", "error")
-                data_bp.logger.error(
+                current_app.logger.error(
                     f"Error updating animal_types for user {current_user.id} @ {request.url} => {str(e)}"
                 )
                 return (

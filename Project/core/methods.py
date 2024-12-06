@@ -13,7 +13,7 @@ from Project.core.constants import (
     DEFAULT_LOCATION,
     CURR_USER_KEY,
     CURR_ANIMALS_KEY,
-    default_error_details as error_details,
+    default_error_details,
 )
 from Project.core.extensions import db
 from flask_login import login_user, logout_user
@@ -305,14 +305,41 @@ def active_authenticated_user():
 
 # Handle Error
 def handle_error(e):
-    """Handle both HTTP exceptions and other exceptions."""
-    error_code = e.code if isinstance(e, (HTTPException, HTTPError)) else 500
-    if error_details.keys() in e:
+    """
+    Handle both HTTP exceptions and other exceptions by mapping them to a dictionary
+    containing error details.
+
+    Parameters:
+    e (Exception): The exception object to handle.
+
+    Returns:
+    dict: A dictionary containing error details.
+    """
+    error_code = None
+    error_info = {}
+
+    # Check if the error is an HTTPException or HTTPError
+    if isinstance(e, (HTTPException, HTTPError)):
+        # Extract the status code from the HTTP exception
+        if isinstance(e, HTTPException):
+            error_code = e.code
+        elif isinstance(e, HTTPError):
+            error_code = e.response.status_code
+    else:
+        # For general exceptions, use a default error code (500)
+        error_code = 500
+
+    # Check if the error is a custom error with specific keys
+    if hasattr(e, 'to_dict') and callable(e.to_dict):
+        error_info = e.to_dict()
+    elif hasattr(e, '__dict__') and set(default_error_details.keys()).issubset(set(e.__dict__.keys())):
         error_info = {
-            key: e.get(key, error_details[key]) for key in error_details.keys()
+            key: e.__dict__.get(key, default_error_details.get(error_code, {}).get(key, ''))
+            for key in default_error_details.get(error_code, {}).keys()
         }
     else:
-        error_info = error_details.get(
+        # Use the error code to find the mapped dict within default_error_details
+        error_info = default_error_details.get(
             error_code,
             {
                 "error_title": f"{error_code} Error",
@@ -322,6 +349,7 @@ def handle_error(e):
                 "redirect_text": "Back to Home",
             },
         )
+
     return error_info
 
 

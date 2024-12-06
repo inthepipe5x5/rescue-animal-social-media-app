@@ -69,7 +69,7 @@ def list_users():
 
     # return render_template("index.html", users=users)
     with current_app.app_context():
-        return redirect(url_for("users_bp.profile"))
+        return redirect(url_for("users.profile"))
 
 
 @users_bp.route("/<int:user_id>")
@@ -88,50 +88,55 @@ def show_user(user_id):
 # Form route available to both anon and users but only user location is saved to db
 @users_bp.route("/location", methods=["GET", "POST"])
 def user_location_form():
-    users_bp.logger.info(
+    current_app.logger.info(
         f"Request method: {request.method}, Current user.location: {current_user.location if (active_authenticated_user() and current_user.location) else 'No Saved Location'}"
     )
     try:
+        # Pre-fill form if location exists
         if active_authenticated_user() and current_user.location:
             form = UserLocationForm(obj=current_user.location)
         else:
             form = UserLocationForm()
 
+        # Handle form submission
         if form.validate_on_submit():
             if current_user.location:
                 location = current_user.location
                 form.populate_obj(location)
-                users_bp.logger.info("Updating existing location")
+                current_app.logger.info("Updating existing location")
             else:
                 location = UserLocation(user_id=current_user.id)
                 form.populate_obj(location)
-                users_bp.logger.info("Creating new location")
+                current_app.logger.info("Creating new location")
 
             if form.geolocation.data:
                 coordinates = form.geolocation.data
                 location.geolocation = CitySchema.format_geolocation(coordinates)
-                users_bp.logger.info(f"Setting geolocation: {location.geolocation}")
+                current_app.logger.info(f"Setting geolocation: {location.geolocation}")
 
             location.city = location.city.lower() if location.city else None
 
             db.session.add(location)
             db.session.commit()
 
-            users_bp.logger.info(f"Location saved: {form.data}")
+            current_app.logger.info(f"Location saved: {form.data}")
             flash("Location updated successfully!", "success")
 
-            # update session logic
+            # Update session logic
             location_dict = save_location_to_session(location_dict=location.serialize())
             if request.is_json:
                 return jsonify({"location": location_dict})
 
+            # Keep viewed content in session
             viewed_content = session.get("VIEWED_CONTENT_LIST", [])
-            # load session
             load_session()
-            # keep viewed content in session
             session["VIEWED_CONTENT_LIST"] = viewed_content
 
-            return redirect(url_for("show_user", user_id=current_user.id))
+            return redirect(url_for("users.show_user", user_id=current_user.id))
+
+        # Default response if form is not submitted
+        if request.is_json:
+            return jsonify({"error": "Invalid form submission"}), 400
 
         return render_template(
             "/form.html",
@@ -143,11 +148,14 @@ def user_location_form():
             ],
         )
     except Exception as e:
-        users_bp.logger.error(f"Error in user_location_form: {str(e)}")
+        current_app.logger.error(f"Error in user_location_form: {str(e)}")
         db.session.rollback()
         flash(
             "An error occurred while updating your location. Please try again.", "error"
         )
+        if request.is_json:
+            return jsonify({"error": "Internal server error"}), 500
+        return redirect(url_for("users.user_location_form"))
 
 
 @users_bp.route("/location/update", methods=["POST"])
@@ -160,7 +168,7 @@ def update_location():
     from Project.core.types import UserLocationData
 
     # grab location from request body
-    location = request.values.get(
+    location: UserLocationData = request.values.get(
         "location"
     )  # Use request.values for a combined view of query and form data.
 
@@ -192,7 +200,7 @@ def user_travel_preferences():
 
     if not current_user.location:
         flash("Please set your location details first", "warning")
-        return redirect(url_for("user_location_form"))
+        return redirect(url_for("users.user_location_form"))
 
     if travel_preferences:
         form = UserTravelForm(obj=travel_preferences)
@@ -216,7 +224,7 @@ def user_travel_preferences():
 
         # flash message to user for feedback
         flash("Travel preferences updated successfully!", "success")
-        return redirect(url_for("show_user", user_id=current_user.id))
+        return redirect(url_for("users.show_user", user_id=current_user.id))
 
     return render_template(
         "/form.html",
@@ -240,7 +248,7 @@ def show_user_favorites(fav_type):
     )
     if not user:
         flash("Access unauthorized.", "danger")
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
 
     try:
         if fav_type == "all":
@@ -297,7 +305,7 @@ def user_favorite(favorite_id):
     )
     if not user:
         flash("Access unauthorized.", "danger")
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
 
     try:
         if action == "add":
@@ -321,8 +329,6 @@ def user_favorite(favorite_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-
 
 
 @login_required
@@ -380,15 +386,15 @@ def animal_preferences(animal_type: Union[AnimalType, FormattedAnimalType]):
 
             flash(f"Successfully updated {animal_type} preferences.", "success")
             # return redirect(url_for("animal_pref_data", animal_type=animal_type))
-            return redirect(url_for("show_user", user_id=current_user.id))
+            return redirect(url_for("users.show_user", user_id=current_user.id))
         except Exception as e:
-            users_bp.logger.error(f"Error updating preferences: {e}")
+            current_app.logger.error(f"Error updating preferences: {e}")
             db.session.rollback()
             flash(
                 "An error occurred while saving your preferences. Please try again.",
                 "danger",
             )
-            return redirect(url_for("users_bp.profile"))
+            return redirect(url_for("users.profile"))
 
     return render_template(
         url_for("templates", "users/user_animal_preferences.html"),
@@ -407,7 +413,7 @@ def profile():
 
     if not active_authenticated_user():
         flash("Access unauthorized.", "danger")
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
 
     else:
         active_user = current_user._get_current_object()
@@ -419,7 +425,7 @@ def profile():
                 db.session.add(active_user)
                 db.session.commit()  # commit to db
                 flash("Changes saved successfully", "success")  # show success to user
-                return redirect(url_for("show_user", user_id=g.user.id))
+                return redirect(url_for("users.show_user", user_id=g.user.id))
             else:
                 db.session.rollback()
                 flash(
@@ -455,7 +461,7 @@ def signup():
     Returns:
         redirect to signup_user Flask Route.
     """
-    return redirect(url_for("signup_user"))
+    return redirect(url_for("users.signup_user"))
 
 
 @users_bp.route("/signup/user", methods=["GET", "POST"])
@@ -504,7 +510,7 @@ def signup_user():
             "Please consider enabling geolocation in the browser to help us return more accurate results relative to your location",
             "warning",
         )
-        return redirect(url_for("user_location_form"))
+        return redirect(url_for("users.user_location_form"))
 
     else:
 
@@ -588,7 +594,7 @@ def animal_types_form():
             # Save preferences for logged-in users
             if "CURR_USER" in session:
                 update_user_preferences(form=form)
-                return redirect(url_for("home.html"))
+                return redirect(url_for("home"))
             else:
                 # Redirect anonymous users to login if animal types are selected
                 if isinstance(form.animal_types.data, list):
