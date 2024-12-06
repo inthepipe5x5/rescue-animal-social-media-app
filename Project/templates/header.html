@@ -85,7 +85,7 @@
               <span class="badge rounded-pill text-bg-primary">             
                 {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else 'ON, CA📍' }}
               </span></a></li>
-            <li><a class="dropdown-item" href="{{ url_for('user_travel_preferences') }}">
+            <li><a class="dropdown-item" href="{{ url_for('users.user_travel_preferences') }}">
               Distance Filter
               <span class="badge rounded-pill text-bg-primary">             
                 {{ session['DISTANCE_PREF'] if 'DISTANCE_PREF' in session else '100' }} mi

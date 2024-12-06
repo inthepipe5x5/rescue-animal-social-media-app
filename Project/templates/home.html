@@ -74,7 +74,7 @@
         </div>
         {% else %}
         <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg hoverable-animal-type-cards" style="background-image: url('{{ url_for('static', filename='/images/graphics/pets-iconixar.png') }}');">
-          <a href="{{ url_for('signup') }}" class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none">
+          <a href="{{ url_for('users.signup') }}" class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1 text-decoration-none">
             <h3 class="pt-3 mt-3 mb-4 display-6 lh-1 fw-bold animated-action-text">Even More Animals</h3>
             <p class="animated-cta-text">Browse pets from over 14,500 shelters and rescues from PetFinder</p>
           </a>
@@ -180,9 +180,9 @@
             <div class="btn-group" role="group" aria-label="Button Group">
 
           
-          <a href="{{ url_for('show_user_favorites', fav_type="all")}}" class="btn btn-primary"> View All </a>
-          <a href="{{ url_for('show_user_favorites', fav_type="orgs")}}" class="btn btn-secondary"> Fave Orgs </a>
-          <a href="{{ url_for('show_user_favorites', fav_type="animals")}}" class="btn btn-success"> Fave Animals </a>
+          <a href="{{ url_for('users.show_user_favorites', fav_type="all")}}" class="btn btn-primary"> View All </a>
+          <a href="{{ url_for('users.show_user_favorites', fav_type="orgs")}}" class="btn btn-secondary"> Fave Orgs </a>
+          <a href="{{ url_for('users.show_user_favorites', fav_type="animals")}}" class="btn btn-success"> Fave Animals </a>
         </div>
       </div>
     </div>
