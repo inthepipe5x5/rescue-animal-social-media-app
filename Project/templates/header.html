@@ -94,7 +94,7 @@
             <div class="dropdown-divider"></div>
             <li class="dropdown-header"><h6>Animal Filters</h6></li>
             {% for animal_type in animal_types %}
-              <li><a class="dropdown-item" href="{{ url_for('animal_preferences', animal_type=animal_type) }}">
+              <li><a class="dropdown-item" href="{{ url_for('users.animal_preferences', animal_type=animal_type) }}">
                 {{ animal_emojis[animal_type] }} {{ animal_type| format_kebob_case }} Preferences
               </a></li>
             {% endfor %}

@@ -5,16 +5,18 @@ from Project.api.routes.org.org_routes import orgs_bp
 from Project.api.routes.error.error_routes import error_bp
 from Project.api.routes.pf.pf_bp import pf_bp
 from Project.api.routes.main.main_routes import main_bp
+from Project.api.routes.auth.auth_routes import auth_bp
 
 
 def register_bp(app):
     blueprints = [
         main_bp,
-        animals_bp,
-        orgs_bp,
         users_bp,
+        auth_bp,
         data_bp,
         error_bp,
+        animals_bp,
+        orgs_bp,
         pf_bp,
     ]
 
