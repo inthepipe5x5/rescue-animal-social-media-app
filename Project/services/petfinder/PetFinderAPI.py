@@ -126,7 +126,7 @@ class PetFinderAPI:
         )
 
     ###########################    # Helper functions for error handling ############################################################################################################
-    def handle_error_response(error):
+    def map_error_to_dict_response(error):
         """Create a structured error response from an exception instance."""
         return {
             "error_title": getattr(error, "error_title", "Error"),

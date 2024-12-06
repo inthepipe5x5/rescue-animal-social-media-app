@@ -304,7 +304,7 @@ def active_authenticated_user():
 
 
 # Handle Error
-def handle_error(e):
+def map_error_to_dict(e):
     """
     Handle both HTTP exceptions and other exceptions by mapping them to a dictionary
     containing error details.

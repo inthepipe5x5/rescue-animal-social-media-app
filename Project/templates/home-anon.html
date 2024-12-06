@@ -70,11 +70,11 @@
 {{ render_animal_hero_cards(
   card1_title="Dogs",
   card1_body="Find your perfect canine companion",
-  card1_link=url_for('dogs'),
+  card1_link=url_for("static", filename='dog_freepik.png'),
   card1_image="dog_image.jpg",
   card2_title="Cats",
-  card2_body="Discover your ideal feline friend",
-  card2_link=url_for('cats'),
+  card2_body="Discover your future feline friend",
+  card2_link=url_for("static", filename='cat_freepik.png'),
   card2_image="cat_image.jpg",
   user_auth_status=user_auth_status,
   url_for=url_for

@@ -3,7 +3,7 @@ from flask import request, redirect, Blueprint, render_template, url_for
 from dotenv import load_dotenv
 
 from Project.core.methods import (
-    handle_error,
+    map_error_to_dict,
 )
 
 load_dotenv()
@@ -15,14 +15,14 @@ error_bp = Blueprint("error", __name__, url_prefix="/error")
 @error_bp.errorhandler(HTTPException)
 def http_error_handler(e):
     """Handles HTTP exceptions."""
-    error_info = handle_error(e)
+    error_info = map_error_to_dict(e)
     return redirect_to_custom_error(error_info)
 
 
 @error_bp.errorhandler(Exception)
 def internal_error_handler(e):
     """Handles all other exceptions."""
-    error_info = handle_error(e)
+    error_info = map_error_to_dict(e)
     return redirect_to_custom_error(error_info)
 
 
