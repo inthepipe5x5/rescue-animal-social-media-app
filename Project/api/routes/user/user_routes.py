@@ -159,42 +159,43 @@ def user_location_form():
         flash(
             "An error occurred while updating your location. Please try again.", "error"
         )
-        if request.is_json:
-            return jsonify({"error": "Internal server error"}), 500
-        return redirect(url_for("users.user_location_form"))
+
+        return jsonify({"error": "Internal server error"}), (
+            500 if request.is_json else redirect(url_for("users.user_location_form"))
+        )
 
 
-@users_bp.route("/location/update", methods=["POST"])
-def update_location():
-    """Route to set location for search results
+# @users_bp.route("/location/update", methods=["POST"])
+# def update_location():
+#     """Route to set location for search results
 
-    Returns:
-        _type_: _description_
-    """
-    from Project.core.types import UserLocationData
+#     Returns:
+#         _type_: _description_
+#     """
+#     from Project.core.types import UserLocationData
 
-    # grab location from request body
-    location: UserLocationData = request.values.get(
-        "location"
-    )  # Use request.values for a combined view of query and form data.
+#     # grab location from request body
+#     location: UserLocationData = request.values.get(
+#         "location"
+#     )  # Use request.values for a combined view of query and form data.
 
-    # handle lack of location provided from request body
-    if not location:
-        # check if country, state is provided in request body
-        country = request.values.get("country", None)
-        state = request.values.get("state", None)
-        postal_code = request.values.get("postal_code", None)
-        geolocation = request.values.get("geolocation", None)
+#     # handle lack of location provided from request body
+#     if not location:
+#         # check if country, state is provided in request body
+#         country = request.values.get("country", None)
+#         state = request.values.get("state", None)
+#         postal_code = request.values.get("postal_code", None)
+#         geolocation = request.values.get("geolocation", None)
 
-        location = ",".join(country, state)
+#         location = ",".join(country, state)
 
-    # set location in session
-    current_app.session[USER_LOCATION_KEY] = location
+#     # set location in session
+#     current_app.session[USER_LOCATION_KEY] = location
 
-    success_msg = f"App.py: Current CURR_LOCATION set to: {session['CURR_LOCATION']}"
-    add_location_to_g(session=session, g=g)
+#     success_msg = f"App.py: Current CURR_LOCATION set to: {session['CURR_LOCATION']}"
+#     add_location_to_g(session=session, g=g)
 
-    return jsonify({"message": success_msg})
+#     return jsonify({"message": success_msg})
 
 
 @login_required
@@ -403,7 +404,7 @@ def animal_preferences(animal_type: Union[AnimalType, FormattedAnimalType]):
             return redirect(url_for("users.profile"))
 
     return render_template(
-        url_for("templates", "users/user_animal_preferences.html"),
+        "users/user_animal_preferences.html",
         form=form,
         endpoint_param=animal_type,
     )
@@ -549,7 +550,7 @@ def signup_preferences():
             form=u_pref_form, session=session, user=session["CURR_USER"]
         )  # pass in a current user
 
-    return render_template("form.html", form=u_pref_form, next=False)
+    return render_template("/users/form.html", form=u_pref_form, next=False)
 
 
 @users_bp.route("/update/types", methods=["GET", "POST"])

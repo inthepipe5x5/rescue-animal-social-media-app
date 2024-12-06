@@ -44,7 +44,8 @@ load_dotenv()
 
 from Project.core import create_app
 app = create_app()
-
+#for debugging:
+app.logger.info(f"Template search paths: {app.jinja_loader.searchpath}")
 
 
 
@@ -172,46 +173,37 @@ def reseed_db():
     )
 
 
-# Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
-@app.context_processor
-def inject_global_vars():
-    """Injects the session and g objects into the Jinja2 template context"""
-    # print('template context processor being called', session['CURR_USER'])
-    return {
-        "session": session,
-        "g": g,
-        "animal_types": default_animal_types,
-        "animal_emojis": animal_emojis,
-        "animal_colors": animal_colors,
-        "animal_default_photos": default_animal_photos,
-        "animal_border_colors": {
-            key: "border-" + value for key, value in animal_colors.items()
-        },
-        "animal_bg_colors": {
-            key: "bg-" + value for key, value in animal_colors.items()
-        },
-        "animal_btn_colors": {
-            key: "btn-" + value for key, value in animal_colors.items()
-        },
-        "CURR_USER": (
-            current_user._get_current_object()
-            if (active_authenticated_user() and current_user)
-            else None
-        ),
-        "user_auth_status": active_authenticated_user(),
-        "default_prettified_animal_types": Parse.get_default_prettified_animal_types,
-    }
+# # Inject context into Jinja templates to ensure that Flask session and 'g' object is available without having to manually pass as param into every template
+# @app.context_processor
+# def inject_global_vars():
+#     """Injects the session and g objects into the Jinja2 template context"""
+#     # print('template context processor being called', session['CURR_USER'])
+#     return {
+#         "session": session,
+#         "g": g,
+#         "animal_types": default_animal_types,
+#         "animal_emojis": animal_emojis,
+#         "animal_colors": animal_colors,
+#         "animal_default_photos": default_animal_photos,
+#         "animal_border_colors": {
+#             key: "border-" + value for key, value in animal_colors.items()
+#         },
+#         "animal_bg_colors": {
+#             key: "bg-" + value for key, value in animal_colors.items()
+#         },
+#         "animal_btn_colors": {
+#             key: "btn-" + value for key, value in animal_colors.items()
+#         },
+#         "CURR_USER": (
+#             current_user._get_current_object()
+#             if (active_authenticated_user() and current_user)
+#             else None
+#         ),
+#         "user_auth_status": active_authenticated_user(),
+#         "default_prettified_animal_types": Parse.get_default_prettified_animal_types,
+#     }
 
 
-@app.after_request
-def add_header(req):
-    """Add non-caching headers on every request."""
-
-    req.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    req.headers["Pragma"] = "no-cache"
-    req.headers["Expires"] = "0"
-    req.headers["Cache-Control"] = "public, max-age=0"
-    return req
 
 
 ##############################################################################

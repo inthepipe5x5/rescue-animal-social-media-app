@@ -61,9 +61,9 @@
           </button>
           <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
             <li class="dropdown-header"><h6>Result Types</h6></li>
-            <li><a class="dropdown-item" href="{{ url_for('discover_animals') }}">Nearby Animals</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('discover_orgs')}}">Nearby Rescue Orgs</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('show_user_favorites', fav_type="all") }}">Favorites</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('animals.discover_animals') }}">Nearby Animals</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('orgs.discover_orgs')}}">Nearby Rescue Orgs</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('users.show_user_favorites', fav_type="all") }}">Favorites</a></li>
           </ul>
         </li>
 

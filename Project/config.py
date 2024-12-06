@@ -75,6 +75,10 @@ class CustomFormatter(logging.Formatter):
 
 class Config:
     # Default configuration
+    BASE_PATH = os.path.abspath(os.path.dirname(__file__))  # Base directory of the project
+    TEMPLATE_FOLDER = os.path.join(BASE_PATH, "templates")  # Path to templates folder
+    STATIC_FOLDER = os.path.join(BASE_PATH, "static")  # Path to static folder
+
     DEBUG = True
     TEMPLATES_AUTO_RELOAD = True
     TESTING = False
@@ -131,6 +135,10 @@ class Config:
 
         # Apply the configuration object to the app
         app.config.from_object(obj)
+        
+        # Set template and static folder explicitly
+        app.template_folder = obj.TEMPLATE_FOLDER
+        app.static_folder = obj.STATIC_FOLDER
 
 
         # Configure logging

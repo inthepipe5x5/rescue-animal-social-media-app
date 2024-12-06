@@ -2,7 +2,8 @@
 import os
 
 # from Project.types import *
-from flask import Flask
+from flask import Flask, before_render_template
+from Project.api.signals.handlers import inject_global_vars, add_header
 from Project.config import Config, config
 from Project.utils.parse import Parse
 
@@ -24,24 +25,21 @@ def create_app():
     # CONFIG APP
     # create config instance
     app_config_instance = Config()
-
-    # config Flask app
     # Grab FLASK_ENV from environment variables
     flask_env_type = os.environ.get("FLASK_ENV", "default")
-    flask_env_type = (
-        os.environ.get("FLASK_ENV")
-        if os.environ.get("FLASK_ENV") is not None
-        else "default"
-    )
     app_config_instance.config_app(app=app, obj=config[flask_env_type])
+    
+    # Inject global variables into Jinja context before rendering templates
+    before_render_template.connect(inject_global_vars, app)
 
-    # Register blueprints before extensions
+    @app.after_request
+    def post_request_processing(req):
+        return add_header(sender=post_request_processing, req=req)
+
+    # Register blueprints before extensions and return app afterwards
     from Project.api import register_bp
-
-    # register blueprints and return app after
     app = register_bp(app)
 
-    # Config app
 
     # INITIALIZE EXTENSIONS
     # Set up DB & Flask-Migrate
@@ -68,6 +66,17 @@ def create_app():
     }
     for function_key, function in custom_filters_dict.items():
         app.jinja_env.filters[function_key] = function
+
+    # Debugging block
+    if os.environ.get("FLASK_ENV") != "production":
+        try:
+            assert app.template_folder  # Check if template folder is properly set
+            assert app.static_folder  # Check if static folder is properly set
+        except AssertionError as e:
+            app.logger.error(
+                f"App template/static folders not set properly: {e}. "
+                f"template_folder: {app.template_folder}, static_folder: {app.static_folder}"
+            )
 
     return app
 
