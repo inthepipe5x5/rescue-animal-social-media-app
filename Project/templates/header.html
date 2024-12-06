@@ -22,14 +22,14 @@
 
         {% if not (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
         <li class="nav-item">
-          <a class="btn btn-link" href="{{ url_for('discover_animals') }}">Animal Results</a>
+          <a class="btn btn-link" href="{{ url_for('animals.discover_animals') }}">Animal Results</a>
         </li>
         {% else %}
         <li class="nav-item d-flex align-items-center"> <!-- Use flex for text alignment -->
           <div>
             {#
               {% for type in (CURR_USER.animal_types or session["ANIMAL_TYPES"]) %}
-              <a class='btn btn-link nav-link mx-1' href="{{ url_for('animal_preferences', animal_type=type) }}">
+              <a class='btn btn-link nav-link mx-1' href="{{ url_for('users.animal_preferences', animal_type=type) }}">
                 {{ animal_emojis[type] }}
                 </a>
                 #}
@@ -41,7 +41,7 @@
           </div>
         </li>
         <li class="nav-item">
-          <a class="btn nav-link text-dark" href={{ url_for('user_location_form') }}>
+          <a class="btn nav-link text-dark" href={{ url_for('users.user_location_form') }}>
             at 📍 {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else (CURR_USER.location.country + ", " +  CURR_USER.location.country) if (CURR_USER and CURR_USER.location ) else "Location Not Set" }}</a>
         </li>
         {% endif %}
@@ -80,7 +80,7 @@
           </button>
           <ul class="dropdown-menu" aria-labelledby="preferencesDropdown">
             <li class="dropdown-header"><h6>Search Filters</h6></li>
-            <li><a class="dropdown-item" href="{{ url_for('user_location_form') }}">
+            <li><a class="dropdown-item" href="{{ url_for('users.user_location_form') }}">
               Location Filter
               <span class="badge rounded-pill text-bg-primary">             
                 {{ session['STATE_COUNTRY'] if 'STATE_COUNTRY' in session else 'ON, CA📍' }}

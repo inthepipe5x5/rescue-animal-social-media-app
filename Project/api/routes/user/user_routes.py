@@ -594,15 +594,15 @@ def animal_types_form():
             # Save preferences for logged-in users
             if "CURR_USER" in session:
                 update_user_preferences(form=form)
-                return redirect(url_for("home"))
+                return redirect(url_for("main.home"))
             else:
                 # Redirect anonymous users to login if animal types are selected
                 if isinstance(form.animal_types.data, list):
-                    return redirect(url_for("login"))
+                    return redirect(url_for("auth.login"))
                 else:
                     # Set global country and animal type for anonymous users
                     update_anon_preferences(form=form)
 
         return render_template(
-            "users/form.html", form=form, next=url_for("discover_animals")
+            "users/form.html", form=form, next=url_for("animals.discover_animals")
         )

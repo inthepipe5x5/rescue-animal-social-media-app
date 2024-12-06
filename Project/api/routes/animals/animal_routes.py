@@ -54,7 +54,7 @@ def discover_animals():
     # Get location from user's serialized data
     location_data = user.serialize().get("location") if user else get_anon_location()
     if not location_data:
-        return redirect(url_for("form_users_location"))
+        return redirect(url_for("user.user_location_form"))
 
     init_params = create_init_params(req_type="animals")
     animal_types = (

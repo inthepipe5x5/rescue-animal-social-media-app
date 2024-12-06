@@ -20,7 +20,7 @@ def discover_orgs():
     current_page_count = session.get("CURRENT_DISCOVER_ORGS_PAGE", 1)
     if request.method.upper() == "GET":
         # direct to current page count
-        return redirect(url_for("discover_orgs_page", page=current_page_count))
+        return redirect(url_for("orgs.discover_orgs_page", page=current_page_count))
 
 @orgs_bp.route("/<int:page>", methods=["GET"])
 def discover_orgs_page(page):

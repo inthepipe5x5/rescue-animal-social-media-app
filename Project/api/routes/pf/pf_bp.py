@@ -1,4 +1,4 @@
-from flask import Blueprint, request, url_for, jsonify
+from flask import Blueprint, current_app, request, url_for, jsonify
 from dotenv import load_dotenv
 from urllib.parse import urljoin
 from time import sleep
@@ -61,13 +61,8 @@ def scrape_animals():
         next_url = Animal.get_next_url(data.get("pagination", {}))
         params.setdefault("request_url", next_url)
         sleep(20)
-        request.post(url_for("scrape_animals", _external=True), params=params)
+        request.post(url_for("pf.scrape_animals", _external=True), params=params)
         return jsonify({"data": validated_data})
-
-
-# Configure logging
-logging.config.dictConfig(Config.get_logger_config())
-logger = logging.getLogger(__name__)
 
 
 def validate_saved_cities(
@@ -98,7 +93,7 @@ def validate_saved_cities(
             get_updated_data_flag = any(bool(val) for val in city.values())
 
             if get_updated_data_flag:
-                logger.info(
+                current_app.logger.info(
                     f"City {city} requires updating..making HTTP request to GEODB cities API."
                 )
                 # Make HTTP request
@@ -111,12 +106,12 @@ def validate_saved_cities(
             # Save data to database
             save_to_db_func(data, db)
 
-            logger.info(f"Successfully processed and saved data for {city}")
+            current_app.logger.info(f"Successfully processed and saved data for {city}")
 
             # Add a small delay to avoid overwhelming the server
             sleep(2)
 
         except Exception as e:
-            logger.error(f"Error processing {city}: {str(e)}")
+            current_app.logger.error(f"Error processing {city}: {str(e)}")
 
-    logger.info("Finished processing all cities")
+    current_app.logger.info("Finished processing all cities")

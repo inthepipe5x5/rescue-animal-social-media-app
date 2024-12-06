@@ -4,7 +4,7 @@
   id="hidden_form"
   class="hidden visually-hidden"
   method="POST"
-  action="{{ url_for('animal_data') }}"
+  action="{{ url_for('data.animal_data') }}"
 >
   {{form.hidden_tag()}} {% for field in form %} {% if field.widget.input_type ==
   'hidden' %} {% for error in field.errors %}

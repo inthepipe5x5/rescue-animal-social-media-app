@@ -169,7 +169,7 @@ def loading_route():
     Returns:
         renders view with skeleton loading cards and then directs after 5 seconds
     """
-    redirect_url = request.args.get("redirect_url") or url_for("home")
+    redirect_url = request.args.get("redirect_url") or url_for("main.home")
     redirect_interval = request.args.get("redirect_interval") or 5000
 
     return render_template(

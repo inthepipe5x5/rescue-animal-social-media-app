@@ -201,7 +201,7 @@ def create_init_params(req_type="animal"):
                     "Please select what type of animals you're looking for"
                 )
                 return current_app.redirect(
-                    current_app.url_for("/users/animal_preferences")
+                    current_app.url_for("users.animal_preferences")
                 )
 
             # prettify the animal types for the API to accept it
